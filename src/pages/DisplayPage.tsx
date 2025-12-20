@@ -8,6 +8,8 @@ interface DisplaySettings {
   alwaysOnTop: boolean
   fullscreen: boolean
   stayAwake: boolean
+  enableVideo: boolean
+  enableAudio: boolean
 }
 
 export default function DisplayPage() {
@@ -18,6 +20,8 @@ export default function DisplayPage() {
     alwaysOnTop: false,
     fullscreen: false,
     stayAwake: false,
+    enableVideo: true,
+    enableAudio: true,
   })
   const [saving, setSaving] = useState(false)
 
@@ -52,9 +56,11 @@ export default function DisplayPage() {
 
   const updateCommandPreview = () => {
     const parts = ['scrcpy']
+    if (!settings.enableVideo) parts.push('--no-video')
+    if (!settings.enableAudio) parts.push('--no-audio')
     if (settings.maxSize && settings.maxSize !== 1920) parts.push(`--max-size=${settings.maxSize}`)
-    if (settings.videoBitrate) parts.push(`--video-bitrate=${settings.videoBitrate}M`)
-    if (settings.frameRate && settings.frameRate !== 60) parts.push(`--frame-rate=${settings.frameRate}`)
+    if (settings.videoBitrate) parts.push(`--video-bit-rate=${settings.videoBitrate}M`)
+    if (settings.frameRate && settings.frameRate !== 60) parts.push(`--max-fps=${settings.frameRate}`)
     if (settings.alwaysOnTop) parts.push('--always-on-top')
     if (settings.fullscreen) parts.push('--fullscreen')
     if (settings.stayAwake) parts.push('--stay-awake')
@@ -78,6 +84,24 @@ export default function DisplayPage() {
           视频设置
         </div>
         <div className="card-body">
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={settings.enableVideo}
+              onChange={(e) => setSettings({ ...settings, enableVideo: e.target.checked })}
+            />
+            <span className="checkmark" />
+            启用视频
+          </label>
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={settings.enableAudio}
+              onChange={(e) => setSettings({ ...settings, enableAudio: e.target.checked })}
+            />
+            <span className="checkmark" />
+            启用音频
+          </label>
           <div className="form-group">
             <label>最大分辨率</label>
             <select

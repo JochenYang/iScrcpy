@@ -30,6 +30,8 @@ interface DisplaySettings {
   alwaysOnTop: boolean;
   fullscreen: boolean;
   stayAwake: boolean;
+  enableVideo: boolean;
+  enableAudio: boolean;
 }
 
 interface EncodingSettings {
@@ -70,6 +72,8 @@ const settings: Settings = {
     alwaysOnTop: false,
     fullscreen: false,
     stayAwake: false,
+    enableVideo: true,
+    enableAudio: true,
   },
   encoding: {
     videoCodec: "h264",
@@ -270,9 +274,8 @@ ipcMain.handle(
 
     logger.info("Fetching device list...");
     return new Promise((resolve) => {
-      // 使用 chcp 65001 设置 UTF-8 编码，避免中文乱码
       exec(
-        `chcp 65001 >nul && "${ADB_PATH}" devices -l`,
+        `"${ADB_PATH}" devices -l`,
         { encoding: "utf8" },
         (error, stdout, stderr) => {
           if (error) {
@@ -315,56 +318,47 @@ ipcMain.handle(
 
     logger.info(`Enabling TCP/IP mode for device: ${deviceId}`);
     return new Promise((resolve) => {
-      // First, enable TCP/IP mode on port 5555
+      // First, get device IP address while still in USB mode
       exec(
-        `chcp 65001 >nul && "${ADB_PATH}" -s ${deviceId} tcpip 5555`,
+        `"${ADB_PATH}" -s ${deviceId} shell ip route`,
         { encoding: "utf8" },
-        (error, stdout, stderr) => {
-          if (error) {
-            logger.error(`Failed to enable TCP/IP for ${deviceId}`, {
-              error,
-              stderr,
-            });
-            resolve({ success: false, error: error.message });
-            return;
+        (error2, stdout2, stderr2) => {
+          let ip = "";
+          if (!error2 && stdout2) {
+            const match = stdout2.match(/src\s+(\d+\.\d+\.\d+\.\d+)/);
+            if (match) {
+              ip = match[1];
+              logger.info(`Got IP address for ${deviceId}: ${ip}`);
+            }
           }
 
-          logger.debug(`TCP/IP enabled for ${deviceId}`, { stdout });
-
-          // Get device IP address
+          // Then enable TCP/IP mode on port 5555
           exec(
-            `chcp 65001 >nul && "${ADB_PATH}" -s ${deviceId} shell ip route`,
+            `"${ADB_PATH}" -s ${deviceId} tcpip 5555`,
             { encoding: "utf8" },
-            (error2, stdout2, stderr2) => {
-              if (error2) {
-                logger.warn(
-                  `TCP/IP enabled but failed to get IP for ${deviceId}`,
-                  { error2, stderr2 }
-                );
+            (error, stdout, stderr) => {
+              if (error) {
+                logger.error(`Failed to enable TCP/IP for ${deviceId}`, {
+                  error,
+                  stderr,
+                });
+                resolve({ success: false, error: error.message });
+                return;
+              }
+
+              logger.debug(`TCP/IP enabled for ${deviceId}`, { stdout });
+
+              if (ip) {
+                resolve({ success: true, ip });
+              } else {
+                logger.warn(`TCP/IP enabled but failed to get IP for ${deviceId}`, {
+                  error2,
+                  stderr2,
+                });
                 resolve({
                   success: true,
                   error:
                     "TCP/IP 模式已启用，但无法获取 IP 地址。请手动输入设备 IP。",
-                });
-                return;
-              }
-
-              logger.debug(`IP route output for ${deviceId}`, { stdout2 });
-
-              // Parse IP address from output
-              const match = stdout2.match(/src\s+(\d+\.\d+\.\d+\.\d+)/);
-              if (match) {
-                const ip = match[1];
-                logger.info(`Got IP address for ${deviceId}: ${ip}`);
-                resolve({ success: true, ip });
-              } else {
-                logger.warn(`Could not parse IP from output for ${deviceId}`, {
-                  stdout2,
-                });
-                resolve({
-                  success: true,
-                  error:
-                    "TCP/IP 模式已启用，但无法解析 IP 地址。请手动输入设备 IP。",
                 });
               }
             }
@@ -388,7 +382,7 @@ async function connectWifiDevice(
 
     logger.info(`Connecting to WiFi device: ${deviceId}`);
     exec(
-      `chcp 65001 >nul && "${ADB_PATH}" connect ${deviceId}`,
+      `"${ADB_PATH}" connect ${deviceId}`,
       { encoding: "utf8" },
       (error, stdout, stderr) => {
         if (error) {
@@ -436,20 +430,28 @@ ipcMain.handle(
       }
     }
 
-    // Build scrcpy args
+    // Build scrcpy args - minimal for testing
     const args = ["-s", deviceId];
     const { display, encoding, server } = settings;
 
-    if (display.maxSize) args.push(`--max-size=${display.maxSize}`);
-    if (display.videoBitrate)
-      args.push(`--video-bitrate=${display.videoBitrate}M`);
-    if (display.frameRate) args.push(`--frame-rate=${display.frameRate}`);
+    if (display.maxSize) args.push("--max-size", String(display.maxSize));
+    if (display.videoBitrate) args.push("--video-bit-rate", `${display.videoBitrate}M`);
+    if (display.frameRate) args.push("--max-fps", String(display.frameRate));
     if (display.alwaysOnTop) args.push("--always-on-top");
     if (display.fullscreen) args.push("--fullscreen");
     if (display.stayAwake) args.push("--stay-awake");
 
-    if (encoding.videoCodec) args.push(`--video-codec=${encoding.videoCodec}`);
-    if (encoding.audioCodec) args.push(`--audio-codec=${encoding.audioCodec}`);
+    // Video and audio toggle (disable if set to false)
+    if (!display.enableVideo) args.push("--no-video");
+    if (!display.enableAudio) args.push("--no-audio");
+
+    // Only add codec options if explicitly different from default
+    if (encoding.videoCodec && encoding.videoCodec !== "h264") {
+      args.push("--video-codec", encoding.videoCodec);
+    }
+    if (encoding.audioCodec && encoding.audioCodec !== "opus") {
+      args.push("--audio-codec", encoding.audioCodec);
+    }
 
     if (server.tunnelMode === "forward") args.push("--tunnel-forward");
     if (server.cleanup === false) args.push("--no-cleanup");
@@ -463,22 +465,48 @@ ipcMain.handle(
       return { success: true, deviceId };
     }
 
-    // Spawn scrcpy
-    const proc = spawn(SCRCPY_PATH, args, {
-      detached: true,
-      stdio: "ignore",
-      windowsHide: true,
+    // Verify scrcpy path exists
+    const fs = require("fs");
+    if (!fs.existsSync(SCRCPY_PATH)) {
+      logger.error(`Scrcpy not found at: ${SCRCPY_PATH}`);
+      return { success: false, error: `Scrcpy not found at: ${SCRCPY_PATH}` };
+    }
+
+    // Build command like escrcpy: quote the path and append all args
+    const commandArgs = [`"${SCRCPY_PATH}"`, ...args];
+
+    logger.debug(`Executing: ${commandArgs.join(" ")}`);
+
+    // Use shell spawn like escrcpy - this handles Windows path issues
+    const proc = spawn(commandArgs[0], commandArgs.slice(1), {
+      env: { ...process.env, ADB: ADB_PATH },
+      shell: true,
+      encoding: "utf8",
+      stdio: ["pipe", "pipe", "pipe"],
+      windowsHide: false,
+      cwd: process.cwd(),
+    });
+
+    // Capture stdout/stderr for debugging
+    let stderrOutput = "";
+    proc.stdout?.on("data", (data) => {
+      logger.debug(`Scrcpy stdout: ${data}`);
+    });
+    proc.stderr?.on("data", (data) => {
+      const msg = data.toString();
+      stderrOutput += msg;
+      logger.info(`Scrcpy stderr: ${msg}`);
     });
 
     proc.unref();
     proc.on("error", (err) => {
-      logger.error(`Scrcpy error for ${deviceId}`, err);
+      logger.error(`Scrcpy spawn error for ${deviceId}`, err);
       deviceProcesses.delete(deviceId);
       connectedDevices.delete(deviceId);
     });
 
     proc.on("exit", (code) => {
-      logger.info(`Scrcpy exited for ${deviceId}`, { code });
+      logger.info(`Scrcpy exited for ${deviceId}`, { code, stderr: stderrOutput || "(no output)" });
       deviceProcesses.delete(deviceId);
       connectedDevices.delete(deviceId);
     });
@@ -490,13 +518,13 @@ ipcMain.handle(
   }
 );
 
-// Disconnect device
+// Disconnect device - only stop scrcpy, don't disconnect ADB
 ipcMain.handle(
   "disconnect-device",
   async (_, deviceId: string): Promise<{ success: boolean }> => {
-    logger.info(`Disconnecting device: ${deviceId}`);
+    logger.info(`Stopping scrcpy for device: ${deviceId}`);
 
-    // Kill scrcpy process
+    // Kill scrcpy process - this only stops screen mirroring
     const proc = deviceProcesses.get(deviceId);
     if (proc && !TEST_MODE) {
       if (proc.pid) {
@@ -516,24 +544,12 @@ ipcMain.handle(
     deviceProcesses.delete(deviceId);
     connectedDevices.delete(deviceId);
 
-    if (TEST_MODE) {
-      return { success: true };
-    }
+    // Note: We do NOT call ADB disconnect here
+    // The ADB connection should remain for future reconnections
+    // Only the screen mirroring (scrcpy) is stopped
 
-    return new Promise((resolve) => {
-      exec(
-        `chcp 65001 >nul && "${ADB_PATH}" disconnect ${deviceId}`,
-        { encoding: "utf8" },
-        (error, stdout, stderr) => {
-          if (error) {
-            logger.error(`Failed to disconnect ${deviceId}`, { error, stderr });
-          } else {
-            logger.info(`Disconnected ${deviceId}`, { stdout });
-          }
-          resolve({ success: !error });
-        }
-      );
-    });
+    logger.info(`Scrcpy stopped for ${deviceId}, ADB connection preserved`);
+    return { success: true };
   }
 );
 
