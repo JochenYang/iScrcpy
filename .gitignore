@@ -1,0 +1,35 @@
+# Electron
+node_modules/
+dist/
+dist-win/
+out/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Settings
+settings.json
+
+# Build
+*.exe
+*.dll
+*.exe.manifest
+
+# Temp
+temp/
+tmp/
+
+
+#log
+*.log
