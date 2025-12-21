@@ -1,3 +1,5 @@
+import { Smartphone } from "lucide-react";
+
 interface DeviceCardProps {
   device: {
     id: string;
@@ -23,10 +25,7 @@ export default function DeviceCard({
   return (
     <div className={`device-card ${isConnected ? "connected" : ""}`}>
       <div className="device-icon">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-          <rect x="5" y="2" width="14" height="20" rx="2" />
-          <rect x="8" y="18" width="8" height="2" />
-        </svg>
+        <Smartphone size={24} />
       </div>
       <div className="device-info">
         <div className="device-name">{device.name}</div>

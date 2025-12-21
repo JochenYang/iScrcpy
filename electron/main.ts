@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, shell } from "electron";
 import { join } from "path";
-import { spawn, exec, ChildProcess } from "child_process";
+import { spawn, exec } from "child_process";
 import { logger } from "./logger";
 
 // Test mode flag
@@ -47,12 +47,12 @@ interface ServerSettings {
 
 // Device history entry for saved WiFi connections
 interface DeviceHistory {
-  id: string;        // Device ID (e.g., "192.168.5.5:5555")
-  name: string;      // Device name (e.g., "PJD110")
-  ip: string;        // IP address (e.g., "192.168.5.5")
-  port: number;      // Port (default 5555)
-  lastConnected: number;  // Timestamp
-  autoConnect: boolean;   // Whether to auto-connect on startup
+  id: string; // Device ID (e.g., "192.168.5.5:5555")
+  name: string; // Device name (e.g., "PJD110")
+  ip: string; // IP address (e.g., "192.168.5.5")
+  port: number; // Port (default 5555)
+  lastConnected: number; // Timestamp
+  autoConnect: boolean; // Whether to auto-connect on startup
 }
 
 interface Settings {
@@ -71,7 +71,7 @@ interface DeviceInfo {
 
 // State
 let mainWindow: BrowserWindow | null = null;
-const deviceProcesses = new Map<string, ChildProcess>();
+const deviceProcesses = new Map<string, { pid: number; proc: any }>();
 const connectedDevices = new Set<string>();
 
 // Default settings
@@ -247,7 +247,7 @@ function createWindow(): void {
           process.kill(-proc.pid);
         } catch (e) {
           try {
-            proc.kill();
+            proc.proc?.kill();
           } catch (e2) {}
         }
       }
@@ -371,10 +371,13 @@ ipcMain.handle(
               if (ip) {
                 resolve({ success: true, ip });
               } else {
-                logger.warn(`TCP/IP enabled but failed to get IP for ${deviceId}`, {
-                  error2,
-                  stderr2,
-                });
+                logger.warn(
+                  `TCP/IP enabled but failed to get IP for ${deviceId}`,
+                  {
+                    error2,
+                    stderr2,
+                  }
+                );
                 resolve({
                   success: true,
                   error:
@@ -455,7 +458,8 @@ ipcMain.handle(
     const { display, encoding, server } = settings;
 
     if (display.maxSize) args.push("--max-size", String(display.maxSize));
-    if (display.videoBitrate) args.push("--video-bit-rate", `${display.videoBitrate}M`);
+    if (display.videoBitrate)
+      args.push("--video-bit-rate", `${display.videoBitrate}M`);
     if (display.frameRate) args.push("--max-fps", String(display.frameRate));
     if (display.alwaysOnTop) args.push("--always-on-top");
     if (display.fullscreen) args.push("--fullscreen");
@@ -492,60 +496,90 @@ ipcMain.handle(
       return { success: false, error: `Scrcpy not found at: ${SCRCPY_PATH}` };
     }
 
-    // Build command like escrcpy: quote the path and append all args
-    const commandArgs = [`"${SCRCPY_PATH}"`, ...args];
+    logger.debug(`Executing: ${SCRCPY_PATH} ${args.join(" ")}`);
 
-    logger.debug(`Executing: ${commandArgs.join(" ")}`);
-
-    // Use shell spawn like escrcpy - this handles Windows path issues
-    const proc = spawn(commandArgs[0], commandArgs.slice(1), {
+    // Spawn scrcpy directly without cmd.exe wrapper
+    const proc = spawn(SCRCPY_PATH, args, {
       env: { ...process.env, ADB: ADB_PATH },
-      shell: true,
-      encoding: "utf8",
-      stdio: ["pipe", "pipe", "pipe"],
+      detached: false,
+      stdio: "pipe",
       windowsHide: false,
-      cwd: process.cwd(),
     });
 
-    // Capture stdout/stderr for debugging
-    let stderrOutput = "";
-    proc.stdout?.on("data", (data) => {
-      logger.debug(`Scrcpy stdout: ${data}`);
-    });
-    proc.stderr?.on("data", (data) => {
-      const msg = data.toString();
-      stderrOutput += msg;
-      logger.info(`Scrcpy stderr: ${msg}`);
-    });
+    // Track the pid for monitoring
+    const scrcpyPid = proc.pid;
+    if (!scrcpyPid) {
+      logger.error(`Failed to get PID for scrcpy process`);
+      return { success: false, error: "Failed to start scrcpy process" };
+    }
 
-    proc.unref();
-    proc.on("error", (err) => {
-      logger.error(`Scrcpy spawn error for ${deviceId}`, err);
+    deviceProcesses.set(deviceId, { pid: scrcpyPid, proc: proc });
+    connectedDevices.add(deviceId);
+    logger.info(
+      `Scrcpy started successfully for ${deviceId} (PID: ${scrcpyPid})`
+    );
+
+    // Helper function to notify renderer about scrcpy exit
+    const notifyScrcpyExit = () => {
       deviceProcesses.delete(deviceId);
       connectedDevices.delete(deviceId);
-    });
-
-    proc.on("exit", (code) => {
-      logger.info(`Scrcpy exited for ${deviceId}`, { code, stderr: stderrOutput || "(no output)" });
-      deviceProcesses.delete(deviceId);
-      connectedDevices.delete(deviceId);
-
-      // Notify renderer to update device status
       if (mainWindow) {
         mainWindow.webContents.send("scrcpy-exit", deviceId);
       }
+    };
+
+    // Capture scrcpy output for debugging
+    proc.stdout?.on("data", (data: Buffer) => {
+      logger.debug(`Scrcpy stdout [${deviceId}]: ${data.toString().trim()}`);
     });
 
-    deviceProcesses.set(deviceId, proc);
-    connectedDevices.add(deviceId);
-    logger.info(`Scrcpy started successfully for ${deviceId}`);
+    proc.stderr?.on("data", (data: Buffer) => {
+      logger.debug(`Scrcpy stderr [${deviceId}]: ${data.toString().trim()}`);
+    });
+
+    // Monitor scrcpy process status
+    proc.on("error", (err: any) => {
+      logger.error(`Scrcpy spawn error for ${deviceId}`, err);
+      notifyScrcpyExit();
+    });
+
+    proc.on("close", (code: any) => {
+      logger.info(`Scrcpy exited for ${deviceId}`, { code });
+      notifyScrcpyExit();
+    });
+
+    // Check if scrcpy is still running periodically (every 2 seconds)
+    const checkInterval = setInterval(() => {
+      const procInfo = deviceProcesses.get(deviceId);
+      if (!procInfo) {
+        clearInterval(checkInterval);
+        return;
+      }
+
+      try {
+        // Check if process is still running using Windows tasklist
+        exec(`tasklist /FI "PID eq ${procInfo.pid}" /FO CSV`, (err, stdout) => {
+          if (err || !stdout.includes(String(procInfo.pid))) {
+            // Process no longer exists, notify exit
+            clearInterval(checkInterval);
+            notifyScrcpyExit();
+          }
+        });
+      } catch (e) {
+        // Error checking, assume process is dead
+        clearInterval(checkInterval);
+        notifyScrcpyExit();
+      }
+    }, 2000);
 
     // Save WiFi device to history
     if (isWifi) {
       const [ip, portStr] = deviceId.split(":");
       const port = parseInt(portStr) || 5555;
       // Check if already in history
-      const existingDevice = settings.deviceHistory.find((d) => d.id === deviceId);
+      const existingDevice = settings.deviceHistory.find(
+        (d) => d.id === deviceId
+      );
       if (existingDevice) {
         // Update last connected time
         existingDevice.lastConnected = Date.now();
@@ -570,11 +604,12 @@ ipcMain.handle(
     if (proc && !TEST_MODE) {
       if (proc.pid) {
         try {
-          process.kill(-proc.pid);
+          // 使用 taskkill 强制终止 scrcpy 进程
+          exec(`taskkill /PID ${proc.pid} /F /T`);
           logger.debug(`Killed scrcpy process for ${deviceId}`);
         } catch (e) {
           try {
-            proc.kill();
+            proc.proc?.kill();
             logger.debug(`Killed scrcpy process (fallback) for ${deviceId}`);
           } catch (e2) {
             logger.warn(`Failed to kill scrcpy process for ${deviceId}`, e2);
@@ -584,6 +619,11 @@ ipcMain.handle(
     }
     deviceProcesses.delete(deviceId);
     connectedDevices.delete(deviceId);
+
+    // 通知渲染进程更新状态
+    if (mainWindow) {
+      mainWindow.webContents.send("scrcpy-exit", deviceId);
+    }
 
     // Note: We do NOT call ADB disconnect here
     // The ADB connection should remain for future reconnections
@@ -674,10 +714,7 @@ function removeDeviceFromHistory(deviceId: string): void {
   fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
 }
 
-function updateDeviceAutoConnect(
-  deviceId: string,
-  autoConnect: boolean
-): void {
+function updateDeviceAutoConnect(deviceId: string, autoConnect: boolean): void {
   const device = settings.deviceHistory.find((d) => d.id === deviceId);
   if (device) {
     device.autoConnect = autoConnect;
@@ -695,12 +732,9 @@ ipcMain.handle("load-settings", async (): Promise<Settings> => {
 });
 
 // Device history IPC handlers
-ipcMain.handle(
-  "get-device-history",
-  async (): Promise<DeviceHistory[]> => {
-    return settings.deviceHistory;
-  }
-);
+ipcMain.handle("get-device-history", async (): Promise<DeviceHistory[]> => {
+  return settings.deviceHistory;
+});
 
 ipcMain.handle(
   "remove-device-history",
@@ -712,7 +746,11 @@ ipcMain.handle(
 
 ipcMain.handle(
   "update-device-auto-connect",
-  async (_, deviceId: string, autoConnect: boolean): Promise<{ success: boolean }> => {
+  async (
+    _,
+    deviceId: string,
+    autoConnect: boolean
+  ): Promise<{ success: boolean }> => {
     updateDeviceAutoConnect(deviceId, autoConnect);
     return { success: true };
   }

@@ -5,6 +5,7 @@ import { resolve } from "path";
 export default defineConfig({
   main: {
     build: {
+      // @ts-ignore - electron-vite types are incomplete
       lib: {
         entry: resolve(__dirname, "electron/main.ts"),
         formats: ["cjs"],
@@ -13,6 +14,7 @@ export default defineConfig({
   },
   preload: {
     build: {
+      // @ts-ignore - electron-vite types are incomplete
       lib: {
         entry: resolve(__dirname, "electron/preload.ts"),
         formats: ["cjs"],
@@ -22,6 +24,7 @@ export default defineConfig({
   renderer: {
     root: ".",
     build: {
+      // @ts-ignore - electron-vite types are incomplete
       rollupOptions: {
         input: resolve(__dirname, "index.html"),
       },

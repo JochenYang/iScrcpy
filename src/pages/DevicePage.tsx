@@ -1,14 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { electronAPI } from "../utils/electron";
 import DeviceCard from "../components/DeviceCard";
 import { useDeviceStore } from "../store/deviceStore";
-
-interface Device {
-  id: string;
-  name: string;
-  type: "usb" | "wifi";
-  status: string;
-}
 
 export default function DevicePage() {
   const {
@@ -22,7 +15,7 @@ export default function DevicePage() {
   const [wifiIp, setWifiIp] = useState("");
   const [showWifiInput, setShowWifiInput] = useState(false);
 
-  const loadDevices = async () => {
+  const loadDevices = useCallback(async () => {
     setRefreshing(true);
     try {
       const result = await electronAPI.adbDevices();
@@ -33,14 +26,15 @@ export default function DevicePage() {
       console.error("Failed to load devices:", error);
     }
     setRefreshing(false);
-  };
+  }, [setDevices]);
 
   const connectDevice = async (deviceId: string) => {
     const result = await electronAPI.connectDevice(deviceId);
     if (result.success) {
       addConnectedDevice(deviceId);
-      showToast(`${getDeviceName(deviceId)} 投屏已启动`);
-      await loadDevices(); // 重新加载设备列表
+      const device = devices.find((d) => d.id === deviceId);
+      showToast(`${device?.name || deviceId} 投屏已启动`);
+      await loadDevices();
     } else {
       showToast(`投屏失败: ${result.error || "未知错误"}`);
     }
@@ -50,8 +44,9 @@ export default function DevicePage() {
     const result = await electronAPI.disconnectDevice(deviceId);
     if (result.success) {
       removeConnectedDevice(deviceId);
-      showToast(`${getDeviceName(deviceId)} 已断开投屏`);
-      await loadDevices(); // 重新加载设备列表
+      const device = devices.find((d) => d.id === deviceId);
+      showToast(`${device?.name || deviceId} 已断开投屏`);
+      await loadDevices();
     }
   };
 
@@ -69,7 +64,7 @@ export default function DevicePage() {
       showToast(`WiFi 设备 ${deviceAddress} 连接成功`);
       setWifiIp("");
       setShowWifiInput(false);
-      await loadDevices(); // 重新加载设备列表
+      await loadDevices();
     } else {
       showToast(`WiFi 连接失败: ${result.error || "未知错误"}`);
     }
@@ -100,11 +95,6 @@ export default function DevicePage() {
     }
   };
 
-  const getDeviceName = (deviceId: string) => {
-    const device = devices.find((d) => d.id === deviceId);
-    return device?.name || deviceId;
-  };
-
   const connectAll = async () => {
     const disconnected = devices.filter(
       (d) => !connectedDevices.has(d.id) && d.status !== "unauthorized"
@@ -132,24 +122,29 @@ export default function DevicePage() {
 
   useEffect(() => {
     loadDevices();
+  }, [loadDevices]);
 
-    // Listen for scrcpy exit events (if available in production)
-    const handleScrcpyExit = (deviceId: string) => {
+  // Separate effect for scrcpy exit event listener
+  useEffect(() => {
+    const handleScrcpyExit = async (deviceId: string) => {
       console.log(`Scrcpy exited for device: ${deviceId}`);
       removeConnectedDevice(deviceId);
-      showToast(`投屏已断开`);
+      // Use deviceId directly since devices state might be stale in closure
+      const device = devices.find((d) => d.id === deviceId);
+      showToast(`${device?.name || deviceId} 投屏已断开`);
+      await loadDevices();
     };
 
-    if (typeof electronAPI.onScrcpyExit === 'function') {
+    if (typeof electronAPI.onScrcpyExit === "function") {
       electronAPI.onScrcpyExit(handleScrcpyExit);
     }
 
     return () => {
-      if (typeof electronAPI.removeScrcpyExitListener === 'function') {
+      if (typeof electronAPI.removeScrcpyExitListener === "function") {
         electronAPI.removeScrcpyExitListener();
       }
     };
-  }, []);
+  }, [devices, removeConnectedDevice]);
 
   const usbDevices = devices.filter((d) => d.type === "usb");
   const wifiDevices = devices.filter((d) => d.type === "wifi");
@@ -237,7 +232,7 @@ export default function DevicePage() {
               placeholder="输入设备 IP 地址 (例如: 192.168.1.100 或 192.168.1.100:5555)"
               value={wifiIp}
               onChange={(e) => setWifiIp(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && connectWifiDevice()}
+              onKeyDown={(e) => e.key === "Enter" && connectWifiDevice()}
               style={{
                 flex: 1,
                 padding: "0.5rem",

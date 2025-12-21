@@ -9,6 +9,11 @@ export const electronAPI = {
   disconnectDevice: (deviceId: string) =>
     window.electronAPI.disconnectDevice(deviceId),
 
+  // Scrcpy exit event listeners
+  onScrcpyExit: (callback: (deviceId: string) => void) =>
+    window.electronAPI.onScrcpyExit(callback),
+  removeScrcpyExitListener: () => window.electronAPI.removeScrcpyExitListener(),
+
   // Settings
   saveSettings: (type: string, settings: object) =>
     window.electronAPI.saveSettings(type, settings),
