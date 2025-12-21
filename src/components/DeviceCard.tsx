@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Smartphone } from "lucide-react";
 
 interface DeviceCardProps {
@@ -20,7 +21,10 @@ export default function DeviceCard({
   onDisconnect,
   onEnableWifi,
 }: DeviceCardProps) {
-  const statusText = isConnected ? "投屏中" : "未连接";
+  const { t } = useTranslation();
+  const statusText = isConnected
+    ? t("devices.connecting")
+    : t("devices.connect");
 
   return (
     <div className={`device-card ${isConnected ? "connected" : ""}`}>
@@ -48,7 +52,7 @@ export default function DeviceCard({
             <button
               className="btn btn-outline btn-small"
               onClick={() => onEnableWifi(device.id)}
-              title="启用 WiFi 调试模式"
+              title={t("devices.enableWifi")}
             >
               WiFi
             </button>
@@ -58,14 +62,14 @@ export default function DeviceCard({
             className="btn btn-small"
             onClick={() => onDisconnect(device.id)}
           >
-            断开投屏
+            {t("devices.disconnect")}
           </button>
         ) : (
           <button
             className="btn btn-primary btn-small"
             onClick={() => onConnect(device.id)}
           >
-            开始投屏
+            {t("devices.connect")}
           </button>
         )}
       </div>

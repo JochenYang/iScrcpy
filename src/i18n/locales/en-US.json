@@ -1,0 +1,109 @@
+{
+  "app": {
+    "name": "iScrcpy"
+  },
+  "sidebar": {
+    "devices": "Devices",
+    "display": "Display",
+    "encoding": "Encoding",
+    "server": "Server",
+    "about": "About",
+    "expand": "Expand",
+    "collapse": "Collapse"
+  },
+  "devices": {
+    "title": "Device List",
+    "refresh": "Refresh",
+    "connectAll": "Connect All",
+    "usbDevices": "USB Devices",
+    "wifiDevices": "WiFi Devices",
+    "addWifiDevice": "Add WiFi Device",
+    "connect": "Start Mirroring",
+    "disconnect": "Stop Mirroring",
+    "connecting": "Mirroring",
+    "enableWifi": "Enable WiFi",
+    "noDevices": "No Devices Detected",
+    "noDevicesDesc": "Please connect an Android device and enable USB debugging",
+    "inputIpPlaceholder": "Enter device IP address (e.g., 192.168.1.100 or 192.168.1.100:5555)",
+    "connectBtn": "Connect",
+    "cancel": "Cancel",
+    "toast": {
+      "screenMirroringStarted": "Screen mirroring started",
+      "screenMirroringStopped": "Screen mirroring stopped",
+      "screenMirroringDisconnected": "Screen mirroring disconnected",
+      "screenMirroringFailed": "Screen mirroring failed",
+      "wifiConnected": "WiFi device {address} connected successfully",
+      "wifiConnectFailed": "WiFi connection failed",
+      "enablingWifiMode": "Enabling WiFi mode for device {deviceId}...",
+      "wifiModeEnabled": "WiFi mode enabled! Device IP: {ip}:5555",
+      "wifiModeEnabledManual": "WiFi mode enabled, please enter device IP manually",
+      "wifiModeEnableFailed": "Failed to enable WiFi mode",
+      "autoConnected": "Auto-connected to WiFi device {ip}:5555",
+      "noDevicesToConnect": "No devices to connect",
+      "enterIpAddress": "Please enter device IP address",
+      "unknownError": "Unknown error"
+    }
+  },
+  "display": {
+    "title": "Display Settings",
+    "maxSize": "Max Resolution",
+    "maxSizeDesc": "Limit the maximum size (width or height) of the video",
+    "videoBitrate": "Video Bitrate",
+    "videoBitrateDesc": "Bitrate for video encoding (Mbps)",
+    "frameRate": "Frame Rate",
+    "frameRateDesc": "Limit the maximum frame rate",
+    "alwaysOnTop": "Always on Top",
+    "alwaysOnTopDesc": "Keep the mirroring window always on top",
+    "fullscreen": "Fullscreen",
+    "fullscreenDesc": "Start in fullscreen mode",
+    "stayAwake": "Stay Awake",
+    "stayAwakeDesc": "Keep device screen on during mirroring",
+    "enableVideo": "Enable Video",
+    "enableVideoDesc": "Enable video streaming",
+    "enableAudio": "Enable Audio",
+    "enableAudioDesc": "Enable audio streaming",
+    "save": "Save Settings",
+    "saved": "Settings saved"
+  },
+  "encoding": {
+    "title": "Encoding Settings",
+    "videoCodec": "Video Codec",
+    "videoCodecDesc": "Select video encoding format",
+    "audioCodec": "Audio Codec",
+    "audioCodecDesc": "Select audio encoding format",
+    "bitrateMode": "Bitrate Mode",
+    "bitrateModeDesc": "Select bitrate control mode",
+    "vbr": "Variable Bitrate (VBR)",
+    "cbr": "Constant Bitrate (CBR)",
+    "save": "Save Settings",
+    "saved": "Settings saved"
+  },
+  "server": {
+    "title": "Server Settings",
+    "tunnelMode": "Tunnel Mode",
+    "tunnelModeDesc": "Select ADB tunnel forwarding mode",
+    "reverse": "Reverse Tunnel",
+    "forward": "Forward Tunnel",
+    "cleanup": "Auto Cleanup",
+    "cleanupDesc": "Automatically cleanup server on disconnect",
+    "save": "Save Settings",
+    "saved": "Settings saved"
+  },
+  "about": {
+    "title": "About",
+    "version": "Version Information",
+    "scrcpyVersion": "Scrcpy Version",
+    "adbVersion": "ADB Version",
+    "electronVersion": "Electron Version",
+    "chromeVersion": "Chrome Version",
+    "links": "Links",
+    "officialWebsite": "Official Website",
+    "github": "GitHub Repository",
+    "documentation": "Documentation",
+    "openLogsFolder": "Open Logs Folder",
+    "description": "Android screen mirroring tool powered by Scrcpy"
+  },
+  "statusBar": {
+    "language": "Language"
+  }
+}

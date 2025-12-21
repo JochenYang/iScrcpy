@@ -1,0 +1,109 @@
+{
+  "app": {
+    "name": "iScrcpy"
+  },
+  "sidebar": {
+    "devices": "기기",
+    "display": "디스플레이",
+    "encoding": "인코딩",
+    "server": "서버",
+    "about": "정보",
+    "expand": "펼치기",
+    "collapse": "접기"
+  },
+  "devices": {
+    "title": "기기 목록",
+    "refresh": "새로고침",
+    "connectAll": "모두 연결",
+    "usbDevices": "USB 기기",
+    "wifiDevices": "WiFi 기기",
+    "addWifiDevice": "WiFi 기기 추가",
+    "connect": "미러링 시작",
+    "disconnect": "미러링 중지",
+    "connecting": "미러링 중",
+    "enableWifi": "WiFi 활성화",
+    "noDevices": "기기가 감지되지 않음",
+    "noDevicesDesc": "Android 기기를 연결하고 USB 디버깅을 활성화하세요",
+    "inputIpPlaceholder": "기기 IP 주소 입력 (예: 192.168.1.100 또는 192.168.1.100:5555)",
+    "connectBtn": "연결",
+    "cancel": "취소",
+    "toast": {
+      "screenMirroringStarted": "미러링이 시작되었습니다",
+      "screenMirroringStopped": "미러링이 중지되었습니다",
+      "screenMirroringDisconnected": "미러링 연결이 끊어졌습니다",
+      "screenMirroringFailed": "미러링 실패",
+      "wifiConnected": "WiFi 기기 {address} 연결 성공",
+      "wifiConnectFailed": "WiFi 연결 실패",
+      "enablingWifiMode": "기기 {deviceId}의 WiFi 모드 활성화 중...",
+      "wifiModeEnabled": "WiFi 모드가 활성화되었습니다! 기기 IP: {ip}:5555",
+      "wifiModeEnabledManual": "WiFi 모드가 활성화되었습니다. 수동으로 기기 IP를 입력하세요",
+      "wifiModeEnableFailed": "WiFi 모드 활성화 실패",
+      "autoConnected": "WiFi 기기 {ip}:5555에 자동 연결되었습니다",
+      "noDevicesToConnect": "연결할 기기가 없습니다",
+      "enterIpAddress": "기기 IP 주소를 입력하세요",
+      "unknownError": "알 수 없는 오류"
+    }
+  },
+  "display": {
+    "title": "디스플레이 설정",
+    "maxSize": "최대 해상도",
+    "maxSizeDesc": "비디오의 최대 크기(너비 또는 높이) 제한",
+    "videoBitrate": "비디오 비트레이트",
+    "videoBitrateDesc": "비디오 인코딩 비트레이트 (Mbps)",
+    "frameRate": "프레임 레이트",
+    "frameRateDesc": "최대 프레임 레이트 제한",
+    "alwaysOnTop": "항상 위",
+    "alwaysOnTopDesc": "미러링 창을 항상 맨 위에 유지",
+    "fullscreen": "전체 화면",
+    "fullscreenDesc": "전체 화면 모드로 시작",
+    "stayAwake": "화면 켜짐 유지",
+    "stayAwakeDesc": "미러링 중 기기 화면을 항상 켜짐 상태로 유지",
+    "enableVideo": "비디오 활성화",
+    "enableVideoDesc": "비디오 스트리밍 활성화",
+    "enableAudio": "오디오 활성화",
+    "enableAudioDesc": "오디오 스트리밍 활성화",
+    "save": "설정 저장",
+    "saved": "설정이 저장되었습니다"
+  },
+  "encoding": {
+    "title": "인코딩 설정",
+    "videoCodec": "비디오 코덱",
+    "videoCodecDesc": "비디오 인코딩 형식 선택",
+    "audioCodec": "오디오 코덱",
+    "audioCodecDesc": "오디오 인코딩 형식 선택",
+    "bitrateMode": "비트레이트 모드",
+    "bitrateModeDesc": "비트레이트 제어 모드 선택",
+    "vbr": "가변 비트레이트 (VBR)",
+    "cbr": "고정 비트레이트 (CBR)",
+    "save": "설정 저장",
+    "saved": "설정이 저장되었습니다"
+  },
+  "server": {
+    "title": "서버 설정",
+    "tunnelMode": "터널 모드",
+    "tunnelModeDesc": "ADB 터널 전달 모드 선택",
+    "reverse": "역방향 터널",
+    "forward": "정방향 터널",
+    "cleanup": "자동 정리",
+    "cleanupDesc": "연결 해제 시 서버 자동 정리",
+    "save": "설정 저장",
+    "saved": "설정이 저장되었습니다"
+  },
+  "about": {
+    "title": "정보",
+    "version": "버전 정보",
+    "scrcpyVersion": "Scrcpy 버전",
+    "adbVersion": "ADB 버전",
+    "electronVersion": "Electron 버전",
+    "chromeVersion": "Chrome 버전",
+    "links": "링크",
+    "officialWebsite": "공식 웹사이트",
+    "github": "GitHub 저장소",
+    "documentation": "문서",
+    "openLogsFolder": "로그 폴더 열기",
+    "description": "Scrcpy 기반 Android 화면 미러링 도구"
+  },
+  "statusBar": {
+    "language": "언어"
+  }
+}

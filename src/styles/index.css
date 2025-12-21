@@ -1,4 +1,3 @@
-
 @import "tw-animate-css";
 
 @plugin "tailwindcss-animate";
@@ -109,6 +108,147 @@ body {
   display: flex;
   flex: 1;
   height: calc(100vh - 40px);
+}
+
+/* TitleBar Language Selector */
+.language-selector-titlebar {
+  position: relative;
+  -webkit-app-region: no-drag;
+}
+
+.language-btn-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  height: 40px;
+  border: none;
+  background: transparent;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 12px;
+}
+
+.language-btn-titlebar:hover {
+  background: var(--surface-lighter);
+  color: var(--on-surface);
+}
+
+.language-menu-titlebar {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: var(--surface-light);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  min-width: 180px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+/* Status Bar */
+.status-bar {
+  height: 28px;
+  background: var(--surface);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  font-size: 12px;
+  color: var(--on-surface-variant);
+}
+
+.status-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.status-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Language Selector */
+.language-selector {
+  position: relative;
+}
+
+.language-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: none;
+  background: transparent;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s;
+  font-size: 12px;
+}
+
+.language-btn:hover {
+  background: var(--surface-light);
+  color: var(--on-surface);
+}
+
+.language-menu {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  margin-bottom: 4px;
+  background: var(--surface-light);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  min-width: 180px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.language-item {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+  border-bottom: 1px solid var(--surface-lighter);
+}
+
+.language-item:last-child {
+  border-bottom: none;
+}
+
+.language-item:hover {
+  background: var(--surface);
+}
+
+.language-item.active {
+  background: rgba(99, 102, 241, 0.15);
+}
+
+.language-item.active .language-native {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.language-native {
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.language-name {
+  font-size: 11px;
+  color: var(--on-surface-variant);
 }
 
 /* TitleBar */
@@ -540,7 +680,7 @@ body {
   border-bottom: none;
 }
 
-.form-group.select-form-group > label {
+.form-group.select-form-group>label {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -549,7 +689,7 @@ body {
   font-size: 14px;
 }
 
-.form-group.select-form-group > label svg {
+.form-group.select-form-group>label svg {
   flex-shrink: 0;
 }
 
@@ -672,11 +812,11 @@ body {
   transition: 0.3s;
 }
 
-.toggle-switch input:checked + .toggle-slider {
+.toggle-switch input:checked+.toggle-slider {
   background: var(--primary);
 }
 
-.toggle-switch input:checked + .toggle-slider::before {
+.toggle-switch input:checked+.toggle-slider::before {
   transform: translateX(20px);
 }
 
@@ -690,7 +830,7 @@ body {
   border-bottom: none;
 }
 
-.select-item > label {
+.select-item>label {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -699,7 +839,7 @@ body {
   font-size: 14px;
 }
 
-.select-item > label svg {
+.select-item>label svg {
   flex-shrink: 0;
 }
 
@@ -778,6 +918,7 @@ body {
     opacity: 0;
     transform: translateX(-50%) translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
@@ -796,7 +937,9 @@ body {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Scrollbar */
@@ -1123,6 +1266,7 @@ body {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }

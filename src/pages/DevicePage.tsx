@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { electronAPI } from "../utils/electron";
 import DeviceCard from "../components/DeviceCard";
 import { useDeviceStore } from "../store/deviceStore";
 
 export default function DevicePage() {
+  const { t } = useTranslation();
   const {
     devices,
     setDevices,
@@ -33,10 +35,17 @@ export default function DevicePage() {
     if (result.success) {
       addConnectedDevice(deviceId);
       const device = devices.find((d) => d.id === deviceId);
-      showToast(`${device?.name || deviceId} 投屏已启动`);
+      showToast(
+        t("devices.toast.screenMirroringStarted", {
+          defaultValue: `${device?.name || deviceId} 投屏已启动`,
+        })
+      );
       await loadDevices();
     } else {
-      showToast(`投屏失败: ${result.error || "未知错误"}`);
+      showToast(
+        t("devices.toast.screenMirroringFailed") +
+          `: ${result.error || t("devices.toast.unknownError")}`
+      );
     }
   };
 
@@ -45,53 +54,61 @@ export default function DevicePage() {
     if (result.success) {
       removeConnectedDevice(deviceId);
       const device = devices.find((d) => d.id === deviceId);
-      showToast(`${device?.name || deviceId} 已断开投屏`);
+      showToast(
+        t("devices.toast.screenMirroringStopped", {
+          defaultValue: `${device?.name || deviceId} 已断开投屏`,
+        })
+      );
       await loadDevices();
     }
   };
 
   const connectWifiDevice = async () => {
     if (!wifiIp.trim()) {
-      showToast("请输入设备 IP 地址");
+      showToast(t("devices.toast.enterIpAddress"));
       return;
     }
 
-    // 添加默认端口 5555 如果没有指定
     const deviceAddress = wifiIp.includes(":") ? wifiIp : `${wifiIp}:5555`;
 
     const result = await electronAPI.connectWifi(deviceAddress);
     if (result.success) {
-      showToast(`WiFi 设备 ${deviceAddress} 连接成功`);
+      showToast(t("devices.toast.wifiConnected", { address: deviceAddress }));
       setWifiIp("");
       setShowWifiInput(false);
       await loadDevices();
     } else {
-      showToast(`WiFi 连接失败: ${result.error || "未知错误"}`);
+      showToast(
+        t("devices.toast.wifiConnectFailed") +
+          `: ${result.error || t("devices.toast.unknownError")}`
+      );
     }
   };
 
   const enableWifiMode = async (deviceId: string) => {
-    showToast(`正在为设备 ${deviceId} 启用 WiFi 模式...`);
+    showToast(t("devices.toast.enablingWifiMode", { deviceId }));
     const result = await electronAPI.enableTcpip(deviceId);
 
     if (result.success) {
       if (result.ip) {
-        showToast(`WiFi 模式已启用！设备 IP: ${result.ip}:5555`);
-        // 自动连接到 WiFi 设备
+        showToast(t("devices.toast.wifiModeEnabled", { ip: result.ip }));
         setTimeout(async () => {
           const connectResult = await electronAPI.connectWifi(
             `${result.ip}:5555`
           );
           if (connectResult.success) {
-            showToast(`已自动连接到 WiFi 设备 ${result.ip}:5555`);
+            showToast(t("devices.toast.autoConnected", { ip: result.ip }));
             await loadDevices();
           }
         }, 2000);
       } else {
-        showToast(result.error || "WiFi 模式已启用，请手动输入设备 IP 连接");
+        showToast(result.error || t("devices.toast.wifiModeEnabledManual"));
       }
     } else {
-      showToast(`启用 WiFi 模式失败: ${result.error || "未知错误"}`);
+      showToast(
+        t("devices.toast.wifiModeEnableFailed") +
+          `: ${result.error || t("devices.toast.unknownError")}`
+      );
     }
   };
 
@@ -100,7 +117,7 @@ export default function DevicePage() {
       (d) => !connectedDevices.has(d.id) && d.status !== "unauthorized"
     );
     if (disconnected.length === 0) {
-      showToast("没有可连接的设备");
+      showToast(t("devices.toast.noDevicesToConnect"));
       return;
     }
     for (const device of disconnected) {
@@ -124,14 +141,16 @@ export default function DevicePage() {
     loadDevices();
   }, [loadDevices]);
 
-  // Separate effect for scrcpy exit event listener
   useEffect(() => {
     const handleScrcpyExit = async (deviceId: string) => {
       console.log(`Scrcpy exited for device: ${deviceId}`);
       removeConnectedDevice(deviceId);
-      // Use deviceId directly since devices state might be stale in closure
       const device = devices.find((d) => d.id === deviceId);
-      showToast(`${device?.name || deviceId} 投屏已断开`);
+      showToast(
+        t("devices.toast.screenMirroringDisconnected", {
+          defaultValue: `${device?.name || deviceId} 投屏已断开`,
+        })
+      );
       await loadDevices();
     };
 
@@ -144,7 +163,7 @@ export default function DevicePage() {
         electronAPI.removeScrcpyExitListener();
       }
     };
-  }, [devices, removeConnectedDevice]);
+  }, [devices, removeConnectedDevice, t, loadDevices]);
 
   const usbDevices = devices.filter((d) => d.type === "usb");
   const wifiDevices = devices.filter((d) => d.type === "wifi");
@@ -152,7 +171,7 @@ export default function DevicePage() {
   return (
     <div className="content-wrapper">
       <div className="page-header">
-        <h1>设备列表</h1>
+        <h1>{t("devices.title")}</h1>
         <div className="header-actions">
           <button
             className="btn btn-outline"
@@ -177,10 +196,10 @@ export default function DevicePage() {
                 <path d="M14 2v3h-3" />
               </svg>
             )}
-            刷新
+            {t("devices.refresh")}
           </button>
           <button className="btn btn-outline" onClick={connectAll}>
-            连接全部
+            {t("devices.connectAll")}
           </button>
         </div>
       </div>
@@ -191,7 +210,7 @@ export default function DevicePage() {
             <rect x="2" y="4" width="4" height="8" rx="1" />
             <rect x="10" y="4" width="4" height="8" rx="1" />
           </svg>
-          USB 设备
+          {t("devices.usbDevices")}
         </h2>
         <div className="device-list" id="usb-devices">
           {usbDevices.map((device) => (
@@ -218,7 +237,7 @@ export default function DevicePage() {
             />
             <circle cx="8" cy="8" r="2" stroke="currentColor" strokeWidth="2" />
           </svg>
-          WIFI 设备
+          {t("devices.wifiDevices")}
         </h2>
 
         {showWifiInput && (
@@ -229,7 +248,7 @@ export default function DevicePage() {
             <input
               type="text"
               className="wifi-input"
-              placeholder="输入设备 IP 地址 (例如: 192.168.1.100 或 192.168.1.100:5555)"
+              placeholder={t("devices.inputIpPlaceholder")}
               value={wifiIp}
               onChange={(e) => setWifiIp(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && connectWifiDevice()}
@@ -246,7 +265,7 @@ export default function DevicePage() {
               className="btn btn-primary btn-small"
               onClick={connectWifiDevice}
             >
-              连接
+              {t("devices.connectBtn")}
             </button>
             <button
               className="btn btn-outline btn-small"
@@ -255,7 +274,7 @@ export default function DevicePage() {
                 setWifiIp("");
               }}
             >
-              取消
+              {t("devices.cancel")}
             </button>
           </div>
         )}
@@ -280,7 +299,7 @@ export default function DevicePage() {
             >
               <path d="M8 2v12M2 8h12" strokeWidth="2" />
             </svg>
-            添加 WiFi 设备
+            {t("devices.addWifiDevice")}
           </button>
         )}
 
@@ -310,8 +329,8 @@ export default function DevicePage() {
             <rect x="20" y="48" width="24" height="4" />
             <circle cx="32" cy="28" r="6" />
           </svg>
-          <p>未检测到设备</p>
-          <span>请连接 Android 设备并开启 USB 调试</span>
+          <p>{t("devices.noDevices")}</p>
+          <span>{t("devices.noDevicesDesc")}</span>
         </div>
       )}
     </div>

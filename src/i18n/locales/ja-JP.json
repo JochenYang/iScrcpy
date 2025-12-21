@@ -1,0 +1,109 @@
+{
+  "app": {
+    "name": "iScrcpy"
+  },
+  "sidebar": {
+    "devices": "デバイス",
+    "display": "ディスプレイ",
+    "encoding": "エンコード",
+    "server": "サーバー",
+    "about": "について",
+    "expand": "展開",
+    "collapse": "折りたたむ"
+  },
+  "devices": {
+    "title": "デバイスリスト",
+    "refresh": "更新",
+    "connectAll": "すべて接続",
+    "usbDevices": "USBデバイス",
+    "wifiDevices": "WiFiデバイス",
+    "addWifiDevice": "WiFiデバイスを追加",
+    "connect": "ミラーリング開始",
+    "disconnect": "ミラーリング停止",
+    "connecting": "ミラーリング中",
+    "enableWifi": "WiFi有効化",
+    "noDevices": "デバイスが検出されません",
+    "noDevicesDesc": "Androidデバイスを接続し、USBデバッグを有効にしてください",
+    "inputIpPlaceholder": "デバイスのIPアドレスを入力 (例: 192.168.1.100 または 192.168.1.100:5555)",
+    "connectBtn": "接続",
+    "cancel": "キャンセル",
+    "toast": {
+      "screenMirroringStarted": "ミラーリングを開始しました",
+      "screenMirroringStopped": "ミラーリングを停止しました",
+      "screenMirroringDisconnected": "ミラーリングが切断されました",
+      "screenMirroringFailed": "ミラーリングに失敗しました",
+      "wifiConnected": "WiFiデバイス {address} に接続しました",
+      "wifiConnectFailed": "WiFi接続に失敗しました",
+      "enablingWifiMode": "デバイス {deviceId} のWiFiモードを有効化中...",
+      "wifiModeEnabled": "WiFiモードが有効になりました！デバイスIP: {ip}:5555",
+      "wifiModeEnabledManual": "WiFiモードが有効になりました。手動でデバイスIPを入力してください",
+      "wifiModeEnableFailed": "WiFiモードの有効化に失敗しました",
+      "autoConnected": "WiFiデバイス {ip}:5555 に自動接続しました",
+      "noDevicesToConnect": "接続可能なデバイスがありません",
+      "enterIpAddress": "デバイスのIPアドレスを入力してください",
+      "unknownError": "不明なエラー"
+    }
+  },
+  "display": {
+    "title": "ディスプレイ設定",
+    "maxSize": "最大解像度",
+    "maxSizeDesc": "ビデオの最大サイズ（幅または高さ）を制限",
+    "videoBitrate": "ビデオビットレート",
+    "videoBitrateDesc": "ビデオエンコードのビットレート（Mbps）",
+    "frameRate": "フレームレート",
+    "frameRateDesc": "最大フレームレートを制限",
+    "alwaysOnTop": "常に最前面",
+    "alwaysOnTopDesc": "ミラーリングウィンドウを常に最前面に表示",
+    "fullscreen": "フルスクリーン",
+    "fullscreenDesc": "フルスクリーンモードで起動",
+    "stayAwake": "スリープ防止",
+    "stayAwakeDesc": "ミラーリング中はデバイス画面を常にオンに保つ",
+    "enableVideo": "ビデオを有効化",
+    "enableVideoDesc": "ビデオストリーミングを有効化",
+    "enableAudio": "オーディオを有効化",
+    "enableAudioDesc": "オーディオストリーミングを有効化",
+    "save": "設定を保存",
+    "saved": "設定を保存しました"
+  },
+  "encoding": {
+    "title": "エンコード設定",
+    "videoCodec": "ビデオコーデック",
+    "videoCodecDesc": "ビデオエンコード形式を選択",
+    "audioCodec": "オーディオコーデック",
+    "audioCodecDesc": "オーディオエンコード形式を選択",
+    "bitrateMode": "ビットレートモード",
+    "bitrateModeDesc": "ビットレート制御モードを選択",
+    "vbr": "可変ビットレート (VBR)",
+    "cbr": "固定ビットレート (CBR)",
+    "save": "設定を保存",
+    "saved": "設定を保存しました"
+  },
+  "server": {
+    "title": "サーバー設定",
+    "tunnelMode": "トンネルモード",
+    "tunnelModeDesc": "ADBトンネル転送モードを選択",
+    "reverse": "リバーストンネル",
+    "forward": "フォワードトンネル",
+    "cleanup": "自動クリーンアップ",
+    "cleanupDesc": "切断時にサーバーを自動的にクリーンアップ",
+    "save": "設定を保存",
+    "saved": "設定を保存しました"
+  },
+  "about": {
+    "title": "について",
+    "version": "バージョン情報",
+    "scrcpyVersion": "Scrcpyバージョン",
+    "adbVersion": "ADBバージョン",
+    "electronVersion": "Electronバージョン",
+    "chromeVersion": "Chromeバージョン",
+    "links": "リンク",
+    "officialWebsite": "公式ウェブサイト",
+    "github": "GitHubリポジトリ",
+    "documentation": "ドキュメント",
+    "openLogsFolder": "ログフォルダを開く",
+    "description": "Scrcpyベースのandroid画面ミラーリングツール"
+  },
+  "statusBar": {
+    "language": "言語"
+  }
+}

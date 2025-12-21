@@ -1,114 +1,124 @@
-import { useState, useEffect } from 'react'
-import { electronAPI } from '../utils/electron'
-import { Folder, Network, Info, Terminal } from 'lucide-react'
+import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import { electronAPI } from "../utils/electron";
+import { Folder, Network, Info } from "lucide-react";
 
 interface ServerSettings {
-  tunnelMode: string
-  cleanup: boolean
+  tunnelMode: string;
+  cleanup: boolean;
 }
 
 interface VersionInfo {
-  scrcpy: string
-  adb: string
-  server: boolean
+  scrcpy: string;
+  adb: string;
+  server: boolean;
 }
 
 export default function ServerPage() {
+  const { t } = useTranslation();
   const [settings, setSettings] = useState<ServerSettings>({
-    tunnelMode: 'reverse',
+    tunnelMode: "reverse",
     cleanup: true,
-  })
-  const [scrcpyPath, setScrcpyPath] = useState('app/scrcpy.exe')
-  const [adbPath, setAdbPath] = useState('app/adb.exe')
-  const [versions, setVersions] = useState<VersionInfo>({ scrcpy: '', adb: '', server: false })
-  const [saving, setSaving] = useState(false)
+  });
+  const [scrcpyPath] = useState("app/scrcpy.exe");
+  const [adbPath] = useState("app/adb.exe");
+  const [versions, setVersions] = useState<VersionInfo>({
+    scrcpy: "",
+    adb: "",
+    server: false,
+  });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    loadSettings()
-    loadVersionInfo()
-  }, [])
+    loadSettings();
+    loadVersionInfo();
+  }, []);
 
   const loadSettings = async () => {
-    const result = await electronAPI.loadSettings()
+    const result = await electronAPI.loadSettings();
     if (result.server) {
-      setSettings((prev) => ({ ...prev, ...result.server }))
+      setSettings((prev) => ({ ...prev, ...result.server }));
     }
-  }
+  };
 
   const loadVersionInfo = async () => {
     const [scrcpy, adb] = await Promise.all([
       electronAPI.getVersion(),
       electronAPI.getAdbVersion(),
-    ])
+    ]);
     setVersions({
-      scrcpy: scrcpy.success ? scrcpy.version || '' : '',
-      adb: adb.success ? adb.version || '' : '',
+      scrcpy: scrcpy.success ? scrcpy.version || "" : "",
+      adb: adb.success ? adb.version || "" : "",
       server: true,
-    })
-  }
+    });
+  };
 
   const handleSave = async () => {
-    setSaving(true)
-    await electronAPI.saveSettings('server', settings)
-    showToast('服务器设置已保存')
-    setSaving(false)
-  }
+    setSaving(true);
+    await electronAPI.saveSettings("server", settings);
+    showToast(t("server.saved"));
+    setSaving(false);
+  };
 
   const openScrcpyFolder = () => {
-    electronAPI.openFolder('app/')
-  }
+    electronAPI.openFolder("app/");
+  };
 
   const showToast = (message: string) => {
-    const toast = document.createElement('div')
-    toast.className = 'toast'
-    toast.textContent = message
-    document.body.appendChild(toast)
+    const toast = document.createElement("div");
+    toast.className = "toast";
+    toast.textContent = message;
+    document.body.appendChild(toast);
     setTimeout(() => {
-      toast.classList.add('fade-out')
-      setTimeout(() => toast.remove(), 300)
-    }, 2000)
-  }
+      toast.classList.add("fade-out");
+      setTimeout(() => toast.remove(), 300);
+    }, 2000);
+  };
 
   return (
     <div className="content-wrapper">
       <div className="page-header">
-        <h1>服务器配置</h1>
-        <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-          {saving ? '保存中...' : '保存设置'}
+        <h1>{t("server.title")}</h1>
+        <button
+          className="btn btn-primary"
+          onClick={handleSave}
+          disabled={saving}
+        >
+          {saving ? t("server.save") + "..." : t("server.save")}
         </button>
       </div>
 
       <div className="settings-card">
         <div className="card-header">
           <Folder size={20} />
-          程序路径
+          Scrcpy / ADB
         </div>
         <div className="card-body">
           <div className="form-group">
-            <label>Scrcpy 路径</label>
+            <label>Scrcpy</label>
             <div className="path-input">
               <input
                 type="text"
                 value={scrcpyPath}
-                onChange={(e) => setScrcpyPath(e.target.value)}
+                readOnly
                 placeholder="app/scrcpy.exe"
               />
               <button className="btn btn-small" onClick={openScrcpyFolder}>
-                浏览
+                {t("about.openLogsFolder")}
               </button>
             </div>
           </div>
           <div className="form-group">
-            <label>ADB 路径</label>
+            <label>ADB</label>
             <div className="path-input">
               <input
                 type="text"
                 value={adbPath}
-                onChange={(e) => setAdbPath(e.target.value)}
+                readOnly
                 placeholder="app/adb.exe"
               />
               <button className="btn btn-small" onClick={openScrcpyFolder}>
-                浏览
+                {t("about.openLogsFolder")}
               </button>
             </div>
           </div>
@@ -118,28 +128,35 @@ export default function ServerPage() {
       <div className="settings-card">
         <div className="card-header">
           <Network size={20} />
-          连接设置
+          {t("server.tunnelMode")}
         </div>
         <div className="card-body">
           <div className="form-group">
-            <label>隧道模式</label>
+            <label>{t("server.tunnelMode")}</label>
             <select
               value={settings.tunnelMode}
-              onChange={(e) => setSettings({ ...settings, tunnelMode: e.target.value })}
+              onChange={(e) =>
+                setSettings({ ...settings, tunnelMode: e.target.value })
+              }
             >
-              <option value="reverse">反向 (adb reverse)</option>
-              <option value="forward">正向 (adb forward)</option>
-              <option value="auto">自动选择</option>
+              <option value="reverse">{t("server.reverse")}</option>
+              <option value="forward">{t("server.forward")}</option>
             </select>
           </div>
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={settings.cleanup}
-              onChange={(e) => setSettings({ ...settings, cleanup: e.target.checked })}
-            />
-            <span className="checkmark" />
-            断开后清理服务器
+          <label className="toggle-item">
+            <div className="toggle-item-left">
+              <span>{t("server.cleanup")}</span>
+            </div>
+            <div className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={settings.cleanup}
+                onChange={(e) =>
+                  setSettings({ ...settings, cleanup: e.target.checked })
+                }
+              />
+              <span className="toggle-slider" />
+            </div>
           </label>
         </div>
       </div>
@@ -147,16 +164,23 @@ export default function ServerPage() {
       <div className="settings-card">
         <div className="card-header">
           <Info size={20} />
-          版本信息
+          {t("about.version")}
         </div>
         <div className="card-body">
           <div className="version-info">
-            {versions.scrcpy && <span>scrcpy: {versions.scrcpy}</span>}
-            {versions.adb && <span>ADB: {versions.adb}</span>}
-            <span>服务器: {versions.server ? '已安装' : '未找到'}</span>
+            {versions.scrcpy && (
+              <span>
+                {t("about.scrcpyVersion")}: {versions.scrcpy}
+              </span>
+            )}
+            {versions.adb && (
+              <span>
+                {t("about.adbVersion")}: {versions.adb}
+              </span>
+            )}
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -1,8 +1,9 @@
 # Electron
 node_modules/
-dist/
-dist-win/
 out/
+dist/
+dist-electron/
+dist-win/
 
 # IDE
 .idea/
@@ -29,7 +30,3 @@ settings.json
 # Temp
 temp/
 tmp/
-
-
-#log
-*.log
