@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react'
 import { TabType } from '../App'
+import { Smartphone, Monitor, Code2, Server, Info, ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface SidebarProps {
   activeTab: TabType
@@ -6,60 +8,50 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
+  // Initialize from localStorage, default to expanded (false)
+  // If this is first run (no localStorage), default to expanded
+  const [collapsed, setCollapsed] = useState(() => {
+    const saved = localStorage.getItem('sidebar-collapsed')
+    // If never set before, default to expanded (false)
+    if (saved === null) return false
+    return saved === 'true'
+  })
+
+  // Persist state changes
+  useEffect(() => {
+    localStorage.setItem('sidebar-collapsed', String(collapsed))
+  }, [collapsed])
+
   const navItems = [
-    { id: 'devices' as TabType, label: '设备', icon: DevicesIcon },
-    { id: 'display' as TabType, label: '投屏', icon: DisplayIcon },
-    { id: 'encoding' as TabType, label: '编码', icon: EncodingIcon },
-    { id: 'server' as TabType, label: '服务器', icon: ServerIcon },
+    { id: 'devices' as TabType, label: '设备', icon: Smartphone },
+    { id: 'display' as TabType, label: '投屏', icon: Monitor },
+    { id: 'encoding' as TabType, label: '编码', icon: Code2 },
+    { id: 'server' as TabType, label: '服务器', icon: Server },
+    { id: 'about' as TabType, label: '关于', icon: Info },
   ]
 
   return (
-    <nav className="sidebar">
-      {navItems.map((item) => (
-        <div
-          key={item.id}
-          className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
-          onClick={() => onTabChange(item.id)}
-        >
-          <item.icon />
-          <span>{item.label}</span>
-        </div>
-      ))}
-    </nav>
-  )
-}
-
-function DevicesIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-      <path d="M4 6h12v8H4V6zm2 2v4h8V8H6zM4 16h12v2H4v-2z" />
-    </svg>
-  )
-}
-
-function DisplayIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-      <rect x="2" y="3" width="16" height="12" rx="1" />
-      <path d="M2 17h16v1H2z" />
-    </svg>
-  )
-}
-
-function EncodingIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-      <path d="M4 4l12 6-4 2-4-4-4 4-4-2 12-6z" />
-    </svg>
-  )
-}
-
-function ServerIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-      <rect x="3" y="2" width="14" height="16" rx="2" />
-      <line x1="3" y1="6" x2="17" y2="6" stroke="currentColor" strokeWidth="2" />
-      <circle cx="10" cy="12" r="2" fill="currentColor" />
-    </svg>
+    <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
+      <div className="nav-items-container">
+        {navItems.map((item) => (
+          <div
+            key={item.id}
+            className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
+            onClick={() => onTabChange(item.id)}
+            title={collapsed ? item.label : undefined}
+          >
+            <item.icon className="nav-icon" size={20} />
+            {!collapsed && <span>{item.label}</span>}
+          </div>
+        ))}
+      </div>
+      <button
+        className="toggle-btn"
+        onClick={() => setCollapsed(!collapsed)}
+        title={collapsed ? '展开' : '收缩'}
+      >
+        {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+      </button>
+    </aside>
   )
 }

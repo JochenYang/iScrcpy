@@ -45,10 +45,21 @@ interface ServerSettings {
   cleanup: boolean;
 }
 
+// Device history entry for saved WiFi connections
+interface DeviceHistory {
+  id: string;        // Device ID (e.g., "192.168.5.5:5555")
+  name: string;      // Device name (e.g., "PJD110")
+  ip: string;        // IP address (e.g., "192.168.5.5")
+  port: number;      // Port (default 5555)
+  lastConnected: number;  // Timestamp
+  autoConnect: boolean;   // Whether to auto-connect on startup
+}
+
 interface Settings {
   display: DisplaySettings;
   encoding: EncodingSettings;
   server: ServerSettings;
+  deviceHistory: DeviceHistory[];
 }
 
 interface DeviceInfo {
@@ -84,6 +95,7 @@ const settings: Settings = {
     tunnelMode: "reverse",
     cleanup: true,
   },
+  deviceHistory: [],
 };
 
 // Load settings from file
@@ -162,7 +174,11 @@ function getScrcpyVersion(): Promise<{
           resolve({ success: false, error: error.message });
           return;
         }
-        const match = stdout.match(/scrcpy v(\S+)/);
+        // Try multiple patterns to match different scrcpy version output formats
+        let match = stdout.match(/scrcpy v(\S+)/);
+        if (!match) match = stdout.match(/scrcpy\s+(\S+)/);
+        if (!match) match = stdout.match(/version[:\s]+(\S+)/i);
+        if (!match) match = stdout.match(/(\d+\.\d+\.\d+)/);
         resolve({ success: true, version: match ? match[1] : "unknown" });
       }
     );
@@ -217,6 +233,10 @@ function createWindow(): void {
 
   mainWindow.once("ready-to-show", () => {
     mainWindow?.show();
+    // Auto-connect to saved devices after window is shown
+    setTimeout(() => {
+      autoConnectSavedDevices();
+    }, 1000);
   });
 
   mainWindow.on("closed", () => {
@@ -509,11 +529,32 @@ ipcMain.handle(
       logger.info(`Scrcpy exited for ${deviceId}`, { code, stderr: stderrOutput || "(no output)" });
       deviceProcesses.delete(deviceId);
       connectedDevices.delete(deviceId);
+
+      // Notify renderer to update device status
+      if (mainWindow) {
+        mainWindow.webContents.send("scrcpy-exit", deviceId);
+      }
     });
 
     deviceProcesses.set(deviceId, proc);
     connectedDevices.add(deviceId);
     logger.info(`Scrcpy started successfully for ${deviceId}`);
+
+    // Save WiFi device to history
+    if (isWifi) {
+      const [ip, portStr] = deviceId.split(":");
+      const port = parseInt(portStr) || 5555;
+      // Check if already in history
+      const existingDevice = settings.deviceHistory.find((d) => d.id === deviceId);
+      if (existingDevice) {
+        // Update last connected time
+        existingDevice.lastConnected = Date.now();
+      } else {
+        // Add to history with autoConnect=false by default
+        addDeviceToHistory(deviceId, "Unknown Device", ip, port, false);
+      }
+    }
+
     return { success: true, deviceId };
   }
 );
@@ -576,6 +617,8 @@ ipcMain.handle(
         ...settings.server,
         ...(newSettings as Partial<ServerSettings>),
       };
+    } else if (type === "deviceHistory") {
+      settings.deviceHistory = newSettings as DeviceHistory[];
     }
 
     const fs = require("fs");
@@ -586,14 +629,118 @@ ipcMain.handle(
   }
 );
 
+// Device history management functions
+function addDeviceToHistory(
+  deviceId: string,
+  name: string,
+  ip: string,
+  port: number = 5555,
+  autoConnect: boolean = false
+): void {
+  // Remove existing entry with same device ID
+  settings.deviceHistory = settings.deviceHistory.filter(
+    (d) => d.id !== deviceId
+  );
+
+  // Add new entry at the beginning
+  settings.deviceHistory.unshift({
+    id: deviceId,
+    name,
+    ip,
+    port,
+    lastConnected: Date.now(),
+    autoConnect,
+  });
+
+  // Keep only last 20 devices
+  if (settings.deviceHistory.length > 20) {
+    settings.deviceHistory = settings.deviceHistory.slice(0, 20);
+  }
+
+  // Save to file
+  const fs = require("fs");
+  const settingsPath = join(__dirname, "..", "settings.json");
+  fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+}
+
+function removeDeviceFromHistory(deviceId: string): void {
+  settings.deviceHistory = settings.deviceHistory.filter(
+    (d) => d.id !== deviceId
+  );
+
+  // Save to file
+  const fs = require("fs");
+  const settingsPath = join(__dirname, "..", "settings.json");
+  fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+}
+
+function updateDeviceAutoConnect(
+  deviceId: string,
+  autoConnect: boolean
+): void {
+  const device = settings.deviceHistory.find((d) => d.id === deviceId);
+  if (device) {
+    device.autoConnect = autoConnect;
+
+    // Save to file
+    const fs = require("fs");
+    const settingsPath = join(__dirname, "..", "settings.json");
+    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+  }
+}
+
 // Load settings
 ipcMain.handle("load-settings", async (): Promise<Settings> => {
   return settings;
 });
 
+// Device history IPC handlers
+ipcMain.handle(
+  "get-device-history",
+  async (): Promise<DeviceHistory[]> => {
+    return settings.deviceHistory;
+  }
+);
+
+ipcMain.handle(
+  "remove-device-history",
+  async (_, deviceId: string): Promise<{ success: boolean }> => {
+    removeDeviceFromHistory(deviceId);
+    return { success: true };
+  }
+);
+
+ipcMain.handle(
+  "update-device-auto-connect",
+  async (_, deviceId: string, autoConnect: boolean): Promise<{ success: boolean }> => {
+    updateDeviceAutoConnect(deviceId, autoConnect);
+    return { success: true };
+  }
+);
+
+// Auto-connect to saved devices on startup
+async function autoConnectSavedDevices(): Promise<void> {
+  const autoConnectDevices = settings.deviceHistory.filter(
+    (d) => d.autoConnect
+  );
+
+  for (const device of autoConnectDevices) {
+    if (mainWindow) {
+      logger.info(`Auto-connecting to saved device: ${device.id}`);
+      await connectWifiDevice(device.id);
+    }
+  }
+}
+
 // Version info
 ipcMain.handle("get-version", getScrcpyVersion);
 ipcMain.handle("get-adb-version", getAdbVersion);
+ipcMain.handle("get-electron-version", async () => {
+  return { version: process.versions.electron };
+});
+ipcMain.handle("get-chrome-version", async () => {
+  return { version: process.versions.chrome };
+});
 
 // Window controls
 ipcMain.handle("window-minimize", () => mainWindow?.minimize());
@@ -612,6 +759,11 @@ ipcMain.handle("open-folder", async (_, folderPath: string) => {
   if (fs.existsSync(folderPath)) {
     shell.openPath(folderPath);
   }
+});
+
+// Open external URL
+ipcMain.handle("open-external", async (_, url: string) => {
+  shell.openExternal(url);
 });
 
 // App lifecycle

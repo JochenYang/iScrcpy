@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { electronAPI } from '../utils/electron'
+import { Folder, Network, Info, Terminal } from 'lucide-react'
 
 interface ServerSettings {
   tunnelMode: string
@@ -17,6 +18,8 @@ export default function ServerPage() {
     tunnelMode: 'reverse',
     cleanup: true,
   })
+  const [scrcpyPath, setScrcpyPath] = useState('app/scrcpy.exe')
+  const [adbPath, setAdbPath] = useState('app/adb.exe')
   const [versions, setVersions] = useState<VersionInfo>({ scrcpy: '', adb: '', server: false })
   const [saving, setSaving] = useState(false)
 
@@ -40,7 +43,7 @@ export default function ServerPage() {
     setVersions({
       scrcpy: scrcpy.success ? scrcpy.version || '' : '',
       adb: adb.success ? adb.version || '' : '',
-      server: true, // Server file always exists if scrcpy works
+      server: true,
     })
   }
 
@@ -67,7 +70,7 @@ export default function ServerPage() {
   }
 
   return (
-    <div>
+    <div className="content-wrapper">
       <div className="page-header">
         <h1>服务器配置</h1>
         <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
@@ -77,27 +80,35 @@ export default function ServerPage() {
 
       <div className="settings-card">
         <div className="card-header">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-            <rect x="4" y="2" width="12" height="16" rx="1" />
-          </svg>
+          <Folder size={20} />
           程序路径
         </div>
         <div className="card-body">
           <div className="form-group">
             <label>Scrcpy 路径</label>
             <div className="path-input">
-              <input type="text" value="app/scrcpy.exe" readOnly />
+              <input
+                type="text"
+                value={scrcpyPath}
+                onChange={(e) => setScrcpyPath(e.target.value)}
+                placeholder="app/scrcpy.exe"
+              />
               <button className="btn btn-small" onClick={openScrcpyFolder}>
-                打开
+                浏览
               </button>
             </div>
           </div>
           <div className="form-group">
             <label>ADB 路径</label>
             <div className="path-input">
-              <input type="text" value="app/adb.exe" readOnly />
+              <input
+                type="text"
+                value={adbPath}
+                onChange={(e) => setAdbPath(e.target.value)}
+                placeholder="app/adb.exe"
+              />
               <button className="btn btn-small" onClick={openScrcpyFolder}>
-                打开
+                浏览
               </button>
             </div>
           </div>
@@ -106,11 +117,7 @@ export default function ServerPage() {
 
       <div className="settings-card">
         <div className="card-header">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-            <circle cx="10" cy="10" r="6" />
-            <circle cx="10" cy="10" r="2" />
-            <line x1="10" y1="2" x2="10" y2="6" stroke="currentColor" strokeWidth="2" />
-          </svg>
+          <Network size={20} />
           连接设置
         </div>
         <div className="card-body">
@@ -139,10 +146,7 @@ export default function ServerPage() {
 
       <div className="settings-card">
         <div className="card-header">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-            <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="2" fill="none" />
-            <path d="M10 6v4l2 2" stroke="currentColor" strokeWidth="2" fill="none" />
-          </svg>
+          <Info size={20} />
           版本信息
         </div>
         <div className="card-body">

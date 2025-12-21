@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { electronAPI } from '../utils/electron'
+import { Film, Music, Zap, Settings2 } from 'lucide-react'
 
 interface EncodingSettings {
   videoCodec: string
@@ -45,7 +46,7 @@ export default function EncodingPage() {
   }
 
   return (
-    <div>
+    <div className="content-wrapper">
       <div className="page-header">
         <h1>编码设置</h1>
         <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
@@ -55,9 +56,7 @@ export default function EncodingPage() {
 
       <div className="settings-card">
         <div className="card-header">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M4 4l12 6-4 2-4-4-4 4-4-2 12-6z" />
-          </svg>
+          <Film size={20} />
           视频编码
         </div>
         <div className="card-body">
@@ -67,8 +66,8 @@ export default function EncodingPage() {
               value={settings.videoCodec}
               onChange={(e) => setSettings({ ...settings, videoCodec: e.target.value })}
             >
-              <option value="h264">H.264</option>
-              <option value="h265">H.265</option>
+              <option value="h264">H.264 (AVC)</option>
+              <option value="h265">H.265 (HEVC)</option>
               <option value="av1">AV1</option>
             </select>
           </div>
@@ -88,9 +87,7 @@ export default function EncodingPage() {
 
       <div className="settings-card">
         <div className="card-header">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M4 8v4h12V8H4zm0-2h12v2H4V6z" />
-          </svg>
+          <Music size={20} />
           音频编码
         </div>
         <div className="card-body">

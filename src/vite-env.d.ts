@@ -23,5 +23,6 @@ interface Window {
 
     // File operations
     openFolder: (path: string) => void
+    openExternal: (url: string) => void
   }
 }

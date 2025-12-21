@@ -132,13 +132,30 @@ export default function DevicePage() {
 
   useEffect(() => {
     loadDevices();
+
+    // Listen for scrcpy exit events (if available in production)
+    const handleScrcpyExit = (deviceId: string) => {
+      console.log(`Scrcpy exited for device: ${deviceId}`);
+      removeConnectedDevice(deviceId);
+      showToast(`投屏已断开`);
+    };
+
+    if (typeof electronAPI.onScrcpyExit === 'function') {
+      electronAPI.onScrcpyExit(handleScrcpyExit);
+    }
+
+    return () => {
+      if (typeof electronAPI.removeScrcpyExitListener === 'function') {
+        electronAPI.removeScrcpyExitListener();
+      }
+    };
   }, []);
 
   const usbDevices = devices.filter((d) => d.type === "usb");
   const wifiDevices = devices.filter((d) => d.type === "wifi");
 
   return (
-    <div>
+    <div className="content-wrapper">
       <div className="page-header">
         <h1>设备列表</h1>
         <div className="header-actions">

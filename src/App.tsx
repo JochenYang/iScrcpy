@@ -5,8 +5,9 @@ import DevicePage from './pages/DevicePage'
 import DisplayPage from './pages/DisplayPage'
 import EncodingPage from './pages/EncodingPage'
 import ServerPage from './pages/ServerPage'
+import AboutPage from './pages/AboutPage'
 
-export type TabType = 'devices' | 'display' | 'encoding' | 'server'
+export type TabType = 'devices' | 'display' | 'encoding' | 'server' | 'about'
 
 function App() {
   const [activeTab, setActiveTab] = useState<TabType>('devices')
@@ -21,6 +22,8 @@ function App() {
         return <EncodingPage />
       case 'server':
         return <ServerPage />
+      case 'about':
+        return <AboutPage />
       default:
         return <DevicePage />
     }

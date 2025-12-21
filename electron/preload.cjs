@@ -55,18 +55,33 @@ import_electron.contextBridge.exposeInMainWorld("electronAPI", {
   // Device management
   adbDevices: () => import_electron.ipcRenderer.invoke("adb-devices"),
   connectWifi: (deviceId) => import_electron.ipcRenderer.invoke("connect-wifi", deviceId),
+  enableTcpip: (deviceId) => import_electron.ipcRenderer.invoke("enable-tcpip", deviceId),
   connectDevice: (deviceId) => import_electron.ipcRenderer.invoke("connect-device", deviceId),
   disconnectDevice: (deviceId) => import_electron.ipcRenderer.invoke("disconnect-device", deviceId),
+  // Listen for scrcpy exit events
+  onScrcpyExit: (callback) => {
+    import_electron.ipcRenderer.on("scrcpy-exit", (_, deviceId) => callback(deviceId));
+  },
+  removeScrcpyExitListener: () => {
+    import_electron.ipcRenderer.removeAllListeners("scrcpy-exit");
+  },
+  // Device history
+  getDeviceHistory: () => import_electron.ipcRenderer.invoke("get-device-history"),
+  removeDeviceHistory: (deviceId) => import_electron.ipcRenderer.invoke("remove-device-history", deviceId),
+  updateDeviceAutoConnect: (deviceId, autoConnect) => import_electron.ipcRenderer.invoke("update-device-auto-connect", deviceId, autoConnect),
   // Settings
   saveSettings: (type, settings) => import_electron.ipcRenderer.invoke("save-settings", type, settings),
   loadSettings: () => import_electron.ipcRenderer.invoke("load-settings"),
   // Version info
   getVersion: () => import_electron.ipcRenderer.invoke("get-version"),
   getAdbVersion: () => import_electron.ipcRenderer.invoke("get-adb-version"),
+  getElectronVersion: () => import_electron.ipcRenderer.invoke("get-electron-version"),
+  getChromeVersion: () => import_electron.ipcRenderer.invoke("get-chrome-version"),
   // Window controls
   windowMinimize: () => import_electron.ipcRenderer.invoke("window-minimize"),
   windowMaximize: () => import_electron.ipcRenderer.invoke("window-maximize"),
   windowClose: () => import_electron.ipcRenderer.invoke("window-close"),
   // File operations
-  openFolder: (path) => import_electron.ipcRenderer.invoke("open-folder", path)
+  openFolder: (path) => import_electron.ipcRenderer.invoke("open-folder", path),
+  openExternal: (url) => import_electron.ipcRenderer.invoke("open-external", url)
 });

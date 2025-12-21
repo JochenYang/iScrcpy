@@ -25,4 +25,5 @@ export const electronAPI = {
 
   // File operations
   openFolder: (path: string) => window.electronAPI.openFolder(path),
+  openExternal: (url: string) => window.electronAPI.openExternal(url),
 };
