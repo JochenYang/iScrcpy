@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, shell, dialog } from "electron";
 import { join } from "path";
-import { spawn, exec } from "child_process";
+import { spawn, exec, execSync } from "child_process";
 import { logger } from "./logger";
 
 // Test mode flag
@@ -567,12 +567,11 @@ ipcMain.handle(
 
     logger.info(`Executing: ${currentScrcpyPath} ${args.join(" ")}`);
 
-    // Spawn scrcpy directly without cmd.exe wrapper
+    // Spawn scrcpy process
     const proc = spawn(currentScrcpyPath, args, {
       env: { ...process.env, ADB: currentAdbPath },
       detached: false,
       stdio: "pipe",
-      windowsHide: false,
     });
 
     // Track the pid for monitoring
@@ -863,25 +862,29 @@ ipcMain.handle(
   ): Promise<{ success: boolean; error?: string }> => {
     logger.info(`Starting recording for device: ${deviceId}`);
 
-    // Stop current scrcpy process
+    // Stop current scrcpy process quickly
     const proc = deviceProcesses.get(deviceId);
     if (proc && !TEST_MODE) {
       if (proc.pid) {
-        try {
-          logger.info(`Killing existing scrcpy process PID: ${proc.pid}`);
-          exec(`taskkill /PID ${proc.pid} /F /T`);
-          logger.info(`Waiting for process to terminate...`);
-          // Wait for the process to be fully terminated
-          await new Promise(resolve => setTimeout(resolve, 500));
-        } catch (e) {
-          logger.warn(`Failed to kill scrcpy process, trying alternative method`);
+        logger.info(`Stopping scrcpy process PID: ${proc.pid}`);
+        // Send stdin quit first
+        const procAny = proc.proc as { stdin?: { write: (data: string) => void; destroyed: boolean } };
+        if (procAny.stdin && !procAny.stdin.destroyed) {
           try {
-            proc.proc?.kill();
-            await new Promise(resolve => setTimeout(resolve, 500));
-          } catch (e2) {
-            logger.error(`Failed to kill scrcpy process:`, e2);
-          }
+            procAny.stdin.write("q\n");
+          } catch (e) {}
         }
+        // Try taskkill
+        try {
+          execSync(`taskkill /PID ${proc.pid}`, { encoding: "utf8" });
+        } catch (e) {}
+        // Quick wait
+        await new Promise(resolve => setTimeout(resolve, 500));
+        // Force kill if still running
+        try {
+          execSync(`tasklist /FI "PID eq ${proc.pid}"`, { encoding: "utf8" });
+          exec(`taskkill /PID ${proc.pid} /F /T`);
+        } catch (e) {}
       }
     }
     deviceProcesses.delete(deviceId);
@@ -920,6 +923,7 @@ ipcMain.handle(
     const recordPath = display.recordPath || getDefaultRecordPath(deviceId);
     args.push(recordPath);
     logger.info(`Recording path: ${recordPath}`);
+    // Note: --record-audio requires scrcpy 1.17+ with audio support
     if (display.recordAudio) args.push("--record-audio");
 
     if (encoding.videoCodec && encoding.videoCodec !== "h264") {
@@ -952,7 +956,6 @@ ipcMain.handle(
       env: { ...process.env, ADB: currentAdbPath },
       detached: false,
       stdio: "pipe",
-      windowsHide: false,
     });
 
     const scrcpyPid = newProc.pid;
@@ -971,7 +974,16 @@ ipcMain.handle(
       logger.debug(`[SCRCPY STDOUT ${deviceId}]: ${data.toString().trim()}`);
     });
     newProc.stderr?.on("data", (data: Buffer) => {
-      logger.debug(`[SCRCPY STDERR ${deviceId}]: ${data.toString().trim()}`);
+      const msg = data.toString().trim();
+      logger.debug(`[SCRCPY STDERR ${deviceId}]: ${msg}`);
+      // Log FFmpeg warnings that might indicate recording issues
+      if (msg.includes("Warning") || msg.includes("Error")) {
+        logger.warn(`[SCRCPY ${deviceId}]: ${msg}`);
+      }
+      // Check for recording started message
+      if (msg.includes("Recording started")) {
+        logger.info(`[SCRCPY ${deviceId}] Recording started successfully`);
+      }
     });
 
     // Notify renderer that scrcpy has started (for recording)
@@ -1001,7 +1013,144 @@ ipcMain.handle(
   }
 );
 
-// Stop recording
+// Helper function to send CTRL+C to a process group on Windows
+// This is more reliable than taskkill for gracefully stopping scrcpy
+async function sendCtrlC(pid: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    try {
+      // On Windows, we create a process group and send CTRL+C to it
+      // This requires CREATE_NEW_PROCESS_GROUP flag when spawning
+      // Since we didn't use that flag, we'll try an alternative approach
+
+      // Try using taskkill with /T (terminate tree) first without /F (force)
+      // This tries to gracefully terminate the process
+      exec(`taskkill /PID ${pid} /T`, { encoding: "utf8" }, (err, stdout, stderr) => {
+        if (err) {
+          // If graceful termination fails, try force kill
+          logger.debug(`Graceful taskkill failed, trying force kill`);
+          resolve(false);
+        } else {
+          logger.debug(`Graceful taskkill sent to PID ${pid}`);
+          resolve(true);
+        }
+      });
+    } catch (e) {
+      logger.debug(`Failed to send CTRL+C to PID ${pid}: ${e}`);
+      resolve(false);
+    }
+  });
+}
+
+// Helper function to repair corrupted MP4 recording files
+async function repairRecordingFile(filePath: string): Promise<boolean> {
+  const fs = require("fs");
+  const { spawn } = require("child_process");
+
+  if (!fs.existsSync(filePath)) {
+    logger.warn(`Repair failed: file not found: ${filePath}`);
+    return false;
+  }
+
+  const fixedPath = filePath.replace(/\.mp4$/i, "_fixed.mp4");
+
+  return new Promise((resolve) => {
+    logger.info(`Starting FFmpeg repair for: ${filePath}`);
+
+    // Try multiple repair strategies
+    const repairStrategies = [
+      // Strategy 1: Re-mux with empty moov (for files with missing moov)
+      [
+        "-i", filePath,
+        "-c", "copy",
+        "-movflags", "+faststart+empty_moov+default_base_moov",
+        "-y", fixedPath
+      ],
+      // Strategy 2: Re-encode if copy fails (more robust but slower)
+      [
+        "-i", filePath,
+        "-c", "libx264",
+        "-preset", "ultrafast",
+        "-crf", "23",
+        "-movflags", "+faststart",
+        "-y", fixedPath
+      ]
+    ];
+
+    let currentStrategy = 0;
+
+    const tryNextStrategy = () => {
+      if (currentStrategy >= repairStrategies.length) {
+        logger.warn(`All repair strategies failed for: ${filePath}`);
+        // Clean up partial fixed file if it exists
+        if (fs.existsSync(fixedPath)) {
+          try { fs.unlinkSync(fixedPath); } catch (e) {}
+        }
+        resolve(false);
+        return;
+      }
+
+      const args = repairStrategies[currentStrategy];
+      logger.info(`Trying repair strategy ${currentStrategy + 1}: ffmpeg ${args.join(" ")}`);
+
+      const repairProc = spawn("ffmpeg", args, {
+        stdio: ["ignore", "pipe", "pipe"],
+        windowsHide: true
+      });
+
+      const timeout = setTimeout(() => {
+        repairProc.kill();
+        currentStrategy++;
+        tryNextStrategy();
+      }, 10000); // 10 second timeout per strategy
+
+      let stderrData = "";
+
+      repairProc.stderr?.on("data", (data: Buffer) => {
+        stderrData += data.toString();
+      });
+
+      repairProc.on("close", (code: number) => {
+        clearTimeout(timeout);
+
+        if (code === 0 && fs.existsSync(fixedPath)) {
+          const origSize = fs.statSync(filePath).size;
+          const fixedSize = fs.statSync(fixedPath).size;
+          logger.info(`Repair strategy ${currentStrategy + 1} succeeded: ${origSize} -> ${fixedSize} bytes`);
+
+          // Replace original with fixed file
+          try {
+            fs.unlinkSync(filePath);
+            fs.renameSync(fixedPath, filePath);
+            logger.info(`Successfully repaired: ${filePath}`);
+            resolve(true);
+          } catch (e) {
+            logger.warn(`Failed to replace file: ${e}`);
+            // Keep the fixed file with different name
+            try {
+              fs.renameSync(fixedPath, filePath.replace(/\.mp4$/i, "_repaired.mp4"));
+            } catch (e2) {}
+            resolve(false);
+          }
+        } else {
+          logger.warn(`Repair strategy ${currentStrategy + 1} failed with code ${code}`);
+          currentStrategy++;
+          tryNextStrategy();
+        }
+      });
+
+      repairProc.on("error", (err: Error) => {
+        clearTimeout(timeout);
+        logger.warn(`Repair strategy ${currentStrategy + 1} error: ${err.message}`);
+        currentStrategy++;
+        tryNextStrategy();
+      });
+    };
+
+    tryNextStrategy();
+  });
+}
+
+// Stop recording - optimized version with fast file handling
 ipcMain.handle(
   "stop-recording",
   async (
@@ -1012,26 +1161,175 @@ ipcMain.handle(
 
     // Stop current scrcpy process
     const proc = deviceProcesses.get(deviceId);
+    const recordPath = settings.display.recordPath || getDefaultRecordPath(deviceId);
+    let recordingSaved = false;
+
     if (proc && !TEST_MODE) {
       if (proc.pid) {
-        try {
-          exec(`taskkill /PID ${proc.pid} /F /T`);
-        } catch (e) {
+        logger.info(`Stopping recording scrcpy process PID: ${proc.pid}`);
+
+        // Try to send quit command via stdin
+        const procAny = proc.proc as { stdin?: { write: (data: string) => void; destroyed: boolean } };
+        if (procAny.stdin && !procAny.stdin.destroyed) {
           try {
-            proc.proc?.kill();
-          } catch (e2) {}
+            procAny.stdin.write("q\n");
+            logger.info(`Sent 'q' command to scrcpy stdin`);
+          } catch (e) {
+            logger.debug(`Failed to write to stdin: ${e}`);
+          }
+        }
+
+        // Wait briefly for graceful shutdown
+        await new Promise(resolve => setTimeout(resolve, 800));
+
+        // Check if process exited gracefully
+        try {
+          execSync(`tasklist /FI "PID eq ${proc.pid}"`, { encoding: "utf8" });
+          // Process still running, try taskkill
+          logger.info(`Process still running, sending taskkill`);
+          try {
+            execSync(`taskkill /PID ${proc.pid}`, { encoding: "utf8" });
+            await new Promise(resolve => setTimeout(resolve, 500));
+          } catch (e) {
+            logger.debug(`Taskkill failed: ${e}`);
+          }
+        } catch (e) {
+          logger.info(`Process exited gracefully`);
+          recordingSaved = true;
+        }
+
+        // Force kill if still running
+        if (!recordingSaved) {
+          try {
+            execSync(`tasklist /FI "PID eq ${proc.pid}"`, { encoding: "utf8" });
+            logger.warn(`Force killing PID: ${proc.pid}`);
+            exec(`taskkill /PID ${proc.pid} /F /T`);
+            await new Promise(resolve => setTimeout(resolve, 300));
+          } catch (e) {
+            recordingSaved = true;
+            logger.info(`Process terminated`);
+          }
+        }
+
+        // Quick file check - only repair if file is clearly corrupted
+        const fs = require("fs");
+        if (fs.existsSync(recordPath)) {
+          const stats = fs.statSync(recordPath);
+          const fileSize = stats.size;
+          logger.info(`Recording file: ${fileSize} bytes`);
+
+          // Only repair very small files (<5KB = definitely corrupted)
+          if (fileSize < 5000) {
+            logger.info(`File too small, attempting repair`);
+            await repairRecordingFile(recordPath);
+          } else {
+            logger.info(`Recording saved successfully`);
+          }
         }
       }
     }
     deviceProcesses.delete(deviceId);
     connectedDevices.delete(deviceId);
 
-    if (mainWindow) {
-      mainWindow.webContents.send("scrcpy-exit", deviceId);
-    }
-
     // Update settings to disable recording
     settings.display.record = false;
+
+    // Restart scrcpy without recording to continue mirroring
+    const isWifi = deviceId.includes(":");
+    if (isWifi) {
+      await connectWifiDevice(deviceId);
+    }
+
+    const args = ["-s", deviceId];
+    const { display, encoding, server } = settings;
+
+    if (display.maxSize && typeof display.maxSize === "number")
+      args.push("--max-size", String(display.maxSize));
+    if (display.videoBitrate && typeof display.videoBitrate === "number")
+      args.push("--video-bit-rate", `${display.videoBitrate}M`);
+    if (display.frameRate && typeof display.frameRate === "number")
+      args.push("--max-fps", String(display.frameRate));
+    if (display.alwaysOnTop) args.push("--always-on-top");
+    if (display.fullscreen) args.push("--fullscreen");
+    if (display.stayAwake) args.push("--stay-awake");
+    if (!display.enableVideo) args.push("--no-video");
+    if (!display.enableAudio) args.push("--no-audio");
+
+    if (encoding.videoCodec && encoding.videoCodec !== "h264") {
+      args.push("--video-codec", encoding.videoCodec);
+    }
+    if (encoding.audioCodec && encoding.audioCodec !== "opus") {
+      args.push("--audio-codec", encoding.audioCodec);
+    }
+
+    if (server.tunnelMode === "forward") args.push("--tunnel-forward");
+    if (server.cleanup === false) args.push("--no-cleanup");
+
+    if (TEST_MODE) {
+      return { success: true };
+    }
+
+    const fs = require("fs");
+    const currentScrcpyPath = getScrcpyPath();
+    const currentAdbPath = getAdbPath();
+    logger.info(`Stop recording - Scrcpy path: ${currentScrcpyPath}`);
+    logger.info(`Stop recording - Args: ${args.join(" ")}`);
+
+    if (!fs.existsSync(currentScrcpyPath)) {
+      return { success: false, error: `Scrcpy not found at: ${currentScrcpyPath}` };
+    }
+
+    const newProc = spawn(currentScrcpyPath, args, {
+      env: { ...process.env, ADB: currentAdbPath },
+      detached: false,
+      stdio: "pipe",
+    });
+
+    const scrcpyPid = newProc.pid;
+    logger.info(`Stop recording - Scrcpy restarted with PID: ${scrcpyPid}`);
+
+    if (!scrcpyPid) {
+      logger.error(`Failed to get PID for restart recording scrcpy process`);
+      return { success: false, error: "Failed to start scrcpy process" };
+    }
+
+    deviceProcesses.set(deviceId, { pid: scrcpyPid, proc: newProc });
+    connectedDevices.add(deviceId);
+
+    // Capture stdout/stderr for debugging
+    newProc.stdout?.on("data", (data: Buffer) => {
+      logger.debug(`[SCRCPY STDOUT ${deviceId}]: ${data.toString().trim()}`);
+    });
+    newProc.stderr?.on("data", (data: Buffer) => {
+      const msg = data.toString().trim();
+      logger.debug(`[SCRCPY STDERR ${deviceId}]: ${msg}`);
+      if (msg.includes("Recording complete")) {
+        logger.info(`[SCRCPY ${deviceId}] Recording completed successfully`);
+      }
+    });
+
+    // Notify renderer that scrcpy has restarted
+    if (mainWindow) {
+      mainWindow.webContents.send("scrcpy-started", deviceId);
+    }
+
+    const notifyScrcpyExit = (code: any) => {
+      logger.info(`Scrcpy exited for ${deviceId} with code: ${code}`);
+      deviceProcesses.delete(deviceId);
+      connectedDevices.delete(deviceId);
+      if (mainWindow) {
+        mainWindow.webContents.send("scrcpy-exit", deviceId);
+      }
+    };
+
+    newProc.on("error", (err: any) => {
+      logger.error(`Scrcpy error for ${deviceId}:`, err);
+      notifyScrcpyExit(1);
+    });
+    newProc.on("close", (code: any) => {
+      logger.info(`Scrcpy close for ${deviceId}: code ${code}`);
+      notifyScrcpyExit(code);
+    });
 
     return { success: true };
   }
@@ -1051,19 +1349,25 @@ ipcMain.handle(
     const proc = deviceProcesses.get(deviceId);
     if (proc && !TEST_MODE) {
       if (proc.pid) {
+        logger.info(`Killing existing scrcpy process PID: ${proc.pid}`);
+        // Method 1: Try Node.js SIGINT first
         try {
-          logger.info(`Killing existing scrcpy process PID: ${proc.pid}`);
-          exec(`taskkill /PID ${proc.pid} /F /T`);
-          logger.info(`Waiting for process to terminate...`);
-          // Wait for the process to be fully terminated
-          await new Promise(resolve => setTimeout(resolve, 500));
+          proc.proc?.kill("SIGINT");
+          logger.info(`Sent SIGINT to PID ${proc.pid}`);
+          await new Promise(resolve => setTimeout(resolve, 2000));
         } catch (e) {
-          logger.warn(`Failed to kill scrcpy process, trying alternative method`);
+          logger.debug(`SIGINT failed, trying taskkill: ${e}`);
+          // Method 2: Try graceful taskkill
           try {
-            proc.proc?.kill();
-            await new Promise(resolve => setTimeout(resolve, 500));
+            execSync(`taskkill /PID ${proc.pid} /T`, { encoding: "utf8" });
+            await new Promise(resolve => setTimeout(resolve, 1500));
           } catch (e2) {
-            logger.error(`Failed to kill scrcpy process:`, e2);
+            // Method 3: Force kill
+            try {
+              exec(`taskkill /PID ${proc.pid} /F /T`);
+            } catch (e3) {
+              logger.warn(`Failed to kill scrcpy process: ${e3}`);
+            }
           }
         }
       }
@@ -1130,7 +1434,6 @@ ipcMain.handle(
       env: { ...process.env, ADB: currentAdbPath },
       detached: false,
       stdio: "pipe",
-      windowsHide: false,
     });
 
     const scrcpyPid = newProc.pid;
@@ -1268,7 +1571,6 @@ ipcMain.handle(
       env: { ...process.env, ADB: currentAdbPath },
       detached: false,
       stdio: "pipe",
-      windowsHide: false,
     });
 
     const scrcpyPid = newProc.pid;
@@ -1352,7 +1654,6 @@ ipcMain.handle(
       env: { ...process.env, ADB: currentAdbPath },
       detached: false,
       stdio: "pipe",
-      windowsHide: false,
     });
 
     const scrcpyPid = newProc.pid;

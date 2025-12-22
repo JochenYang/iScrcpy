@@ -10,7 +10,6 @@ export default function DevicePage() {
     devices,
     setDevices,
     mirroringDevices,
-    recordingDevices,
     addMirroringDevice,
     removeMirroringDevice,
     addRecordingDevice,
@@ -40,7 +39,8 @@ export default function DevicePage() {
       addMirroringDevice(deviceId);
       // Initialize audio state from settings
       const settings = await electronAPI.loadSettings();
-      const audioEnabled = settings.display?.enableAudio !== false;
+      const displaySettings = settings.display as { enableAudio?: boolean } | undefined;
+      const audioEnabled = displaySettings?.enableAudio !== false;
       if (audioEnabled) {
         setAudioEnabled(deviceId, true);
       }

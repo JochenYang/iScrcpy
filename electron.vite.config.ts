@@ -6,7 +6,7 @@ export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin()],
     build: {
-      // @ts-ignore - electron-vite types are incomplete
+      // @ts-expect-error - electron-vite types are incomplete
       rollupOptions: {
         input: {
           main: resolve(__dirname, "electron/main.ts"),
@@ -21,7 +21,7 @@ export default defineConfig({
   preload: {
     plugins: [externalizeDepsPlugin()],
     build: {
-      // @ts-ignore - electron-vite types are incomplete
+      // @ts-expect-error - electron-vite types are incomplete
       rollupOptions: {
         input: {
           preload: resolve(__dirname, "electron/preload.ts"),
@@ -36,6 +36,7 @@ export default defineConfig({
   renderer: {
     root: ".",
     build: {
+      // @ts-expect-error - electron-vite types are incomplete
       rollupOptions: {
         input: resolve(__dirname, "index.html"),
       },
