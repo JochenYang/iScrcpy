@@ -12,6 +12,9 @@ import {
   Maximize2,
   Zap,
   Clock,
+  Camera,
+  Radio,
+  Folder,
 } from "lucide-react";
 
 interface DisplaySettings {
@@ -23,6 +26,13 @@ interface DisplaySettings {
   stayAwake: boolean;
   enableVideo: boolean;
   enableAudio: boolean;
+  record: boolean;
+  recordAudio: boolean;
+  recordPath: string;
+  camera: boolean;
+  cameraId: string;
+  cameraSize: string;
+  cameraFps: number;
 }
 
 export default function DisplayPage() {
@@ -36,6 +46,13 @@ export default function DisplayPage() {
     stayAwake: false,
     enableVideo: true,
     enableAudio: true,
+    record: false,
+    recordAudio: false,
+    recordPath: "",
+    camera: false,
+    cameraId: "",
+    cameraSize: "1920x1080",
+    cameraFps: 30,
   });
   const [saving, setSaving] = useState(false);
   const [customMaxSize, setCustomMaxSize] = useState("");
@@ -85,6 +102,16 @@ export default function DisplayPage() {
     if (settings.alwaysOnTop) parts.push("--always-on-top");
     if (settings.fullscreen) parts.push("--fullscreen");
     if (settings.stayAwake) parts.push("--stay-awake");
+    if (settings.record) {
+      parts.push("--record");
+      parts.push(settings.recordPath || "recording.mp4");
+    }
+    if (settings.recordAudio) parts.push("--record-audio");
+    if (settings.camera) {
+      if (settings.cameraId) parts.push(`--camera-id=${settings.cameraId}`);
+      parts.push(`--camera-size=${settings.cameraSize}`);
+      if (settings.cameraFps !== 30) parts.push(`--camera-fps=${settings.cameraFps}`);
+    }
     return parts.join(" ");
   };
 
@@ -144,6 +171,17 @@ export default function DisplayPage() {
       setSettings({ ...settings, frameRate: value });
     } else if (customFps === "") {
       setSettings({ ...settings, frameRate: 60 });
+    }
+  };
+
+  const handleSelectFolder = async () => {
+    try {
+      const result = await electronAPI.selectFolder(settings.recordPath);
+      if (result.success && result.path) {
+        setSettings({ ...settings, recordPath: result.path });
+      }
+    } catch (error) {
+      console.error("Failed to select folder:", error);
     }
   };
 
@@ -373,6 +411,133 @@ export default function DisplayPage() {
               <span className="toggle-slider" />
             </div>
           </label>
+        </div>
+      </div>
+
+      <div className="settings-card">
+        <div className="card-header">
+          <Radio size={20} />
+          {t("display.recordTitle")}
+        </div>
+        <div className="card-body">
+          <label className="toggle-item">
+            <div className="toggle-item-left">
+              <Radio size={18} />
+              <span>{t("display.record")}</span>
+            </div>
+            <div className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={settings.record}
+                onChange={(e) =>
+                  setSettings({ ...settings, record: e.target.checked })
+                }
+              />
+              <span className="toggle-slider" />
+            </div>
+          </label>
+
+          <label className="toggle-item">
+            <div className="toggle-item-left">
+              <Volume2 size={18} />
+              <span>{t("display.recordAudio")}</span>
+            </div>
+            <div className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={settings.recordAudio}
+                onChange={(e) =>
+                  setSettings({ ...settings, recordAudio: e.target.checked })
+                }
+              />
+              <span className="toggle-slider" />
+            </div>
+          </label>
+
+          <div className="form-group select-form-group">
+            <label>
+              <Folder size={16} />
+              {t("display.recordPath")}
+            </label>
+            <div className="path-input">
+              <input
+                type="text"
+                placeholder={t("display.recordPathPlaceholder")}
+                value={settings.recordPath}
+                onChange={(e) =>
+                  setSettings({ ...settings, recordPath: e.target.value })
+                }
+              />
+              <button
+                className="btn btn-outline btn-small"
+                onClick={handleSelectFolder}
+                title="Browse"
+              >
+                <Folder size={14} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="settings-card">
+        <div className="card-header">
+          <Camera size={20} />
+          {t("display.cameraTitle")}
+        </div>
+        <div className="card-body">
+          <label className="toggle-item">
+            <div className="toggle-item-left">
+              <Camera size={18} />
+              <span>{t("display.camera")}</span>
+            </div>
+            <div className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={settings.camera}
+                onChange={(e) =>
+                  setSettings({ ...settings, camera: e.target.checked })
+                }
+              />
+              <span className="toggle-slider" />
+            </div>
+          </label>
+
+          <div className="form-group">
+            <label>{t("display.cameraSize")}</label>
+            <select
+              value={settings.cameraSize}
+              onChange={(e) =>
+                setSettings({ ...settings, cameraSize: e.target.value })
+              }
+            >
+              <option value="640x480">640x480 (VGA)</option>
+              <option value="1280x720">1280x720 (720p)</option>
+              <option value="1920x1080">1920x1080 (1080p)</option>
+              <option value="2560x1440">2560x1440 (2K)</option>
+              <option value="3840x2160">3840x2160 (4K)</option>
+            </select>
+          </div>
+
+          <div className="form-group select-form-group">
+            <label>
+              <Clock size={16} />
+              {t("display.cameraFps")}
+            </label>
+            <select
+              value={settings.cameraFps}
+              onChange={(e) =>
+                setSettings({ ...settings, cameraFps: parseInt(e.target.value) })
+              }
+            >
+              <option value="15">15 fps</option>
+              <option value="24">24 fps</option>
+              <option value="30">30 fps</option>
+              <option value="60">60 fps</option>
+              <option value="90">90 fps</option>
+              <option value="120">120 fps</option>
+            </select>
+          </div>
         </div>
       </div>
 

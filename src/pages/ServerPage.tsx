@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { electronAPI } from "../utils/electron";
-import { Folder, Network, Info } from "lucide-react";
+import { Folder, Network, Info, FileCode } from "lucide-react";
 
 interface ServerSettings {
   tunnelMode: string;
   cleanup: boolean;
+  scrcpyPath?: string;
+  adbPath?: string;
 }
 
 interface VersionInfo {
@@ -19,9 +21,9 @@ export default function ServerPage() {
   const [settings, setSettings] = useState<ServerSettings>({
     tunnelMode: "reverse",
     cleanup: true,
+    scrcpyPath: "",
+    adbPath: "",
   });
-  const [scrcpyPath] = useState("app/scrcpy.exe");
-  const [adbPath] = useState("app/adb.exe");
   const [versions, setVersions] = useState<VersionInfo>({
     scrcpy: "",
     adb: "",
@@ -60,8 +62,26 @@ export default function ServerPage() {
     setSaving(false);
   };
 
-  const openScrcpyFolder = () => {
-    electronAPI.openFolder("app/");
+  const selectScrcpyPath = async () => {
+    const result = await electronAPI.selectFile({
+      title: "Select Scrcpy Executable",
+      filters: [{ name: "Executable", extensions: ["exe"] }, { name: "All Files", extensions: ["*"] }],
+    });
+    if (result.success && result.path) {
+      setSettings({ ...settings, scrcpyPath: result.path });
+      await electronAPI.setScrcpyPath(result.path);
+    }
+  };
+
+  const selectAdbPath = async () => {
+    const result = await electronAPI.selectFile({
+      title: "Select ADB Executable",
+      filters: [{ name: "Executable", extensions: ["exe"] }, { name: "All Files", extensions: ["*"] }],
+    });
+    if (result.success && result.path) {
+      setSettings({ ...settings, adbPath: result.path });
+      await electronAPI.setAdbPath(result.path);
+    }
   };
 
   const showToast = (message: string) => {
@@ -74,6 +94,9 @@ export default function ServerPage() {
       setTimeout(() => toast.remove(), 300);
     }, 2000);
   };
+
+  const displayScrcpyPath = settings.scrcpyPath || "app/scrcpy.exe (default)";
+  const displayAdbPath = settings.adbPath || "app/adb.exe (default)";
 
   return (
     <div className="content-wrapper">
@@ -90,35 +113,41 @@ export default function ServerPage() {
 
       <div className="settings-card">
         <div className="card-header">
-          <Folder size={20} />
+          <FileCode size={20} />
           Scrcpy / ADB
         </div>
         <div className="card-body">
-          <div className="form-group">
-            <label>Scrcpy</label>
+          <div className="form-group select-form-group">
+            <label>
+              <FileCode size={16} />
+              Scrcpy
+            </label>
             <div className="path-input">
               <input
                 type="text"
-                value={scrcpyPath}
+                value={displayScrcpyPath}
                 readOnly
-                placeholder="app/scrcpy.exe"
+                placeholder="Select scrcpy executable"
               />
-              <button className="btn btn-small" onClick={openScrcpyFolder}>
-                {t("about.openLogsFolder")}
+              <button className="btn btn-outline btn-small" onClick={selectScrcpyPath} title="Browse">
+                <Folder size={14} />
               </button>
             </div>
           </div>
-          <div className="form-group">
-            <label>ADB</label>
+          <div className="form-group select-form-group">
+            <label>
+              <Folder size={16} />
+              ADB
+            </label>
             <div className="path-input">
               <input
                 type="text"
-                value={adbPath}
+                value={displayAdbPath}
                 readOnly
-                placeholder="app/adb.exe"
+                placeholder="Select ADB executable"
               />
-              <button className="btn btn-small" onClick={openScrcpyFolder}>
-                {t("about.openLogsFolder")}
+              <button className="btn btn-outline btn-small" onClick={selectAdbPath} title="Browse">
+                <Folder size={14} />
               </button>
             </div>
           </div>

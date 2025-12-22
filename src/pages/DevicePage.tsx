@@ -9,9 +9,13 @@ export default function DevicePage() {
   const {
     devices,
     setDevices,
-    connectedDevices,
-    addConnectedDevice,
-    removeConnectedDevice,
+    mirroringDevices,
+    recordingDevices,
+    addMirroringDevice,
+    removeMirroringDevice,
+    addRecordingDevice,
+    removeRecordingDevice,
+    setAudioEnabled,
   } = useDeviceStore();
   const [refreshing, setRefreshing] = useState(false);
   const [wifiIp, setWifiIp] = useState("");
@@ -33,7 +37,13 @@ export default function DevicePage() {
   const connectDevice = async (deviceId: string) => {
     const result = await electronAPI.connectDevice(deviceId);
     if (result.success) {
-      addConnectedDevice(deviceId);
+      addMirroringDevice(deviceId);
+      // Initialize audio state from settings
+      const settings = await electronAPI.loadSettings();
+      const audioEnabled = settings.display?.enableAudio !== false;
+      if (audioEnabled) {
+        setAudioEnabled(deviceId, true);
+      }
       const device = devices.find((d) => d.id === deviceId);
       showToast(
         t("devices.toast.screenMirroringStarted", {
@@ -52,7 +62,7 @@ export default function DevicePage() {
   const disconnectDevice = async (deviceId: string) => {
     const result = await electronAPI.disconnectDevice(deviceId);
     if (result.success) {
-      removeConnectedDevice(deviceId);
+      removeMirroringDevice(deviceId);
       const device = devices.find((d) => d.id === deviceId);
       showToast(
         t("devices.toast.screenMirroringStopped", {
@@ -60,6 +70,55 @@ export default function DevicePage() {
         })
       );
       await loadDevices();
+    }
+  };
+
+  // Quick action handlers
+  const startRecord = async (deviceId: string) => {
+    const result = await electronAPI.startRecording(deviceId);
+    if (result.success) {
+      addRecordingDevice(deviceId);
+      showToast(t("devices.toast.recordingStarted"));
+    } else {
+      showToast(result.error || t("devices.toast.unknownError"));
+    }
+  };
+
+  const stopRecord = async (deviceId: string) => {
+    const result = await electronAPI.stopRecording(deviceId);
+    if (result.success) {
+      removeRecordingDevice(deviceId);
+      showToast(t("devices.toast.recordingStopped"));
+    } else {
+      showToast(result.error || t("devices.toast.unknownError"));
+    }
+  };
+
+  const toggleAudio = async (deviceId: string, enabled: boolean) => {
+    const result = await electronAPI.toggleAudio(deviceId, enabled);
+    if (result.success) {
+      setAudioEnabled(deviceId, enabled);
+      const status = enabled ? t("devices.toast.audioToggled").replace("{status}", t("devices.audio").toLowerCase()) : t("devices.toast.audioToggled").replace("{status}", "关闭");
+      showToast(status);
+    } else {
+      showToast(result.error || t("devices.toast.unknownError"));
+    }
+  };
+
+  // Independent camera handlers
+  const startCamera = async (deviceId: string) => {
+    const result = await electronAPI.startCamera(deviceId);
+    if (result.success) {
+      showToast(t("devices.toast.cameraStarted"));
+    } else {
+      showToast(result.error || t("devices.toast.unknownError"));
+    }
+  };
+
+  const stopCamera = async (deviceId: string) => {
+    const result = await electronAPI.stopCamera(deviceId);
+    if (result.success) {
+      showToast(t("devices.toast.cameraStopped"));
     }
   };
 
@@ -114,7 +173,7 @@ export default function DevicePage() {
 
   const connectAll = async () => {
     const disconnected = devices.filter(
-      (d) => !connectedDevices.has(d.id) && d.status !== "unauthorized"
+      (d) => !mirroringDevices.has(d.id) && d.status !== "unauthorized"
     );
     if (disconnected.length === 0) {
       showToast(t("devices.toast.noDevicesToConnect"));
@@ -144,7 +203,7 @@ export default function DevicePage() {
   useEffect(() => {
     const handleScrcpyExit = async (deviceId: string) => {
       console.log(`Scrcpy exited for device: ${deviceId}`);
-      removeConnectedDevice(deviceId);
+      removeMirroringDevice(deviceId);
       const device = devices.find((d) => d.id === deviceId);
       showToast(
         t("devices.toast.screenMirroringDisconnected", {
@@ -154,16 +213,44 @@ export default function DevicePage() {
       await loadDevices();
     };
 
+    const handleCameraExit = (deviceId: string) => {
+      console.log(`Camera exited for device: ${deviceId}`);
+      showToast(
+        t("devices.toast.cameraStopped", {
+          defaultValue: `相机已关闭`,
+        })
+      );
+    };
+
+    const handleScrcpyStarted = (deviceId: string) => {
+      console.log(`Scrcpy started for device: ${deviceId}`);
+      addMirroringDevice(deviceId);
+    };
+
     if (typeof electronAPI.onScrcpyExit === "function") {
       electronAPI.onScrcpyExit(handleScrcpyExit);
+    }
+
+    if (typeof electronAPI.onScrcpyStarted === "function") {
+      electronAPI.onScrcpyStarted(handleScrcpyStarted);
+    }
+
+    if (typeof electronAPI.onCameraExit === "function") {
+      electronAPI.onCameraExit(handleCameraExit);
     }
 
     return () => {
       if (typeof electronAPI.removeScrcpyExitListener === "function") {
         electronAPI.removeScrcpyExitListener();
       }
+      if (typeof electronAPI.removeScrcpyStartedListener === "function") {
+        electronAPI.removeScrcpyStartedListener();
+      }
+      if (typeof electronAPI.removeCameraExitListener === "function") {
+        electronAPI.removeCameraExitListener();
+      }
     };
-  }, [devices, removeConnectedDevice, t, loadDevices]);
+  }, [devices, addMirroringDevice, removeMirroringDevice, t, loadDevices]);
 
   const usbDevices = devices.filter((d) => d.type === "usb");
   const wifiDevices = devices.filter((d) => d.type === "wifi");
@@ -217,10 +304,16 @@ export default function DevicePage() {
             <DeviceCard
               key={device.id}
               device={device}
-              isConnected={connectedDevices.has(device.id)}
+              isConnected={device.status === "device" || device.status === "connected"}
+              isMirroring={mirroringDevices.has(device.id)}
               onConnect={connectDevice}
               onDisconnect={disconnectDevice}
               onEnableWifi={enableWifiMode}
+              onStartRecord={startRecord}
+              onStopRecord={stopRecord}
+              onToggleAudio={toggleAudio}
+              onStartCamera={startCamera}
+              onStopCamera={stopCamera}
             />
           ))}
         </div>
@@ -308,9 +401,15 @@ export default function DevicePage() {
             <DeviceCard
               key={device.id}
               device={device}
-              isConnected={connectedDevices.has(device.id)}
+              isConnected={device.status === "device" || device.status === "connected"}
+              isMirroring={mirroringDevices.has(device.id)}
               onConnect={connectDevice}
               onDisconnect={disconnectDevice}
+              onStartRecord={startRecord}
+              onStopRecord={stopRecord}
+              onToggleAudio={toggleAudio}
+              onStartCamera={startCamera}
+              onStopCamera={stopCamera}
             />
           ))}
         </div>
