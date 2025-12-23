@@ -57,7 +57,7 @@ jobs:
         uses: mikepenz/release-changelog-builder-action@v3
         with:
           ignorePreReleases: false
-          ${{ github.token }}
+          github_token: ${{ github.token }}
 
       - name: Create or update release
         id: release
