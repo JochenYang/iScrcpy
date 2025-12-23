@@ -19,12 +19,12 @@ interface SidebarProps {
 export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
   const { t } = useTranslation();
 
-  // Initialize from localStorage, default to expanded (false)
-  // If this is first run (no localStorage), default to expanded
+  // Initialize from localStorage, default to collapsed (true)
+  // If this is first run (no localStorage), default to collapsed
   const [collapsed, setCollapsed] = useState(() => {
     const saved = localStorage.getItem("sidebar-collapsed");
-    // If never set before, default to expanded (false)
-    if (saved === null) return false;
+    // If never set before, default to collapsed (true) for better visual
+    if (saved === null) return true;
     return saved === "true";
   });
 

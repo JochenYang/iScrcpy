@@ -8,24 +8,109 @@ module.exports = {
   entry: path.join(__dirname, 'electron', 'main.ts'),
   packagerConfig: {
     asar: true,
+    name: 'iScrcpy',
+    executableName: 'iScrcpy',
+    appBundleId: 'com.iscrcpy.app',
+    appCategoryType: 'public.app-category.productivity',
+    protocols: [
+      {
+        name: 'iScrcpy Protocol',
+        schemes: ['iscrcpy']
+      }
+    ]
   },
   rebuildConfig: {},
   makers: [
+    // Windows Installer (NSIS)
     {
       name: '@electron-forge/maker-squirrel',
-      config: {},
+      config: {
+        name: 'iScrcpy',
+        description: 'Android screen mirroring tool',
+        authors: 'iScrcpy Contributors',
+        iconUrl: 'https://raw.githubusercontent.com/JochenYang/iScrcpy/main/images/iScrcpy.png',
+        setupIcon: './images/iScrcpy.png',
+        remoteReleases: false,
+        certificateFile: './certificates/windows.pfx',
+        certificatePassword: process.env.WIN_CERTIFICATE_PASSWORD
+      }
     },
+    // macOS DMG/ZIP
     {
       name: '@electron-forge/maker-zip',
       platforms: ['darwin'],
+      config: {
+        name: 'iScrcpy',
+        id: 'com.iscrcpy.app',
+        productName: 'iScrcpy',
+        appBundleId: 'com.iscrcpy.app',
+        osxSign: {
+          identity: '-',
+          'hardened-runtime': true,
+          entitlements: 'entitlements.plist',
+          'entitlements-inherit': 'entitlements.plist',
+          signature-flags: 'library'
+        },
+        osxNotarize: process.env.APPLE_ID_PASSWORD ? {
+          appleId: process.env.APPLE_ID || process.env.APPLE_ID_EMAIL,
+          appleIdPassword: process.env.APPLE_ID_PASSWORD,
+          teamId: process.env.APPLE_TEAM_ID
+        } : false
+      }
     },
+    // Linux DEB
     {
       name: '@electron-forge/maker-deb',
-      config: {},
+      config: {
+        name: 'iscrcpy',
+        productName: 'iScrcpy',
+        genericName: 'Android Mirroring Tool',
+        description: 'Android screen mirroring tool powered by scrcpy',
+        authors: 'iScrcpy Contributors',
+        section: 'utils',
+        priority: 'optional',
+        compression: 'gz',
+        depends: [
+          'libglib2.0-0',
+          'libnss3',
+          'libnspr4',
+          'libatk1.0-0',
+          'libatk-bridge2.0-0',
+          'libdrm2',
+          'libxkbcommon0',
+          'libxcomposite1',
+          'libxdamage1',
+          'libxfixes3',
+          'libxrandr2',
+          'libgbm1',
+          'libasound2'
+        ]
+      }
     },
+    // Linux RPM
     {
       name: '@electron-forge/maker-rpm',
-      config: {},
+      config: {
+        name: 'iscrcpy',
+        productName: 'iScrcpy',
+        genericName: 'Android Mirroring Tool',
+        description: 'Android screen mirroring tool powered by scrcpy',
+        license: 'Apache-2.0',
+        requires: [
+          'glib2',
+          'nss',
+          'atk',
+          'at-spi2-atk',
+          'drm',
+          'libxkbcommon',
+          'libXcomposite',
+          'libXdamage',
+          'libXfixes',
+          'libXrandr',
+          'gbm',
+          'alsa-lib'
+        ]
+      }
     },
   ],
   plugins: [

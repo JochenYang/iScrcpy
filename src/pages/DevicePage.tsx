@@ -197,7 +197,15 @@ export default function DevicePage() {
   };
 
   useEffect(() => {
+    // Initial load
     loadDevices();
+
+    // Poll for device changes every 3 seconds
+    const pollInterval = setInterval(() => {
+      loadDevices();
+    }, 3000);
+
+    return () => clearInterval(pollInterval);
   }, [loadDevices]);
 
   useEffect(() => {

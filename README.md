@@ -2,11 +2,16 @@
 
 Android screen mirroring tool powered by scrcpy. A modern Electron desktop application built with React + Vite.
 
+![iScrcpy Interface](images/iScrcpy.png)
+
 ## Features
 
 - **Multi-language Support**: 7 languages (Chinese, English, Japanese, Korean, Spanish, French, Turkish)
-- **Device Management**: Scan and connect USB/WiFi devices
-- **Display Settings**: Customize resolution, bitrate, frame rate, window options
+- **Device Management**: Scan and connect USB/WiFi devices with real-time monitoring
+- **Display Settings**: Customize resolution, bitrate, frame rate, window options, recording time limit
+- **Window Options**: Borderless mode, disable screensaver, always on top, fullscreen
+- **Recording**: Auto record, time limit, custom save path
+- **Camera Mirroring**: Mirror device camera instead of screen
 - **Encoding Settings**: Configure video/audio codecs and bitrate mode
 - **Server Configuration**: Manage scrcpy server paths and ADB settings
 - **Windows Native**: Custom window with minimize/maximize/close buttons
@@ -24,15 +29,37 @@ Android screen mirroring tool powered by scrcpy. A modern Electron desktop appli
 
 ## Supported Languages
 
-- 简体中文 (Simplified Chinese)
-- English
-- 日本語 (Japanese)
-- 한국어 (Korean)
-- Español (Spanish)
-- Français (French)
-- Türkçe (Turkish)
+iScrcpy is available in 7 languages:
+
+| Language | Code | Native Name |
+|----------|------|-------------|
+| English | `en-US` | English |
+| 简体中文 | `zh-CN` | 简体中文 |
+| 日本語 | `ja-JP` | 日本語 |
+| 한국어 | `ko-KR` | 한국어 |
+| Español | `es-ES` | Español |
+| Français | `fr-FR` | Français |
+| Türkçe | `tr-TR` | Türkçe |
 
 Language can be switched from the language selector in the title bar (next to minimize button).
+
+## Documentation
+
+Comprehensive user guides are available in multiple languages:
+
+| Language | Document |
+|----------|----------|
+| English | [documents/en-US.md](documents/en-US.md) |
+| 简体中文 | [documents/zh-CN.md](documents/zh-CN.md) |
+
+### Quick Links
+
+- [Getting Started](documents/en-US.md#quick-start)
+- [Connecting Devices](documents/en-US.md#connecting-devices)
+- [Display Settings](documents/en-US.md#display-settings)
+- [Recording Guide](documents/en-US.md#recording)
+- [Camera Mirroring](documents/en-US.md#camera-mirroring)
+- [FAQ](documents/en-US.md#faq)
 
 ## Project Structure
 
@@ -77,10 +104,16 @@ iscrcpy/
 │   ├── utils/             # Utilities
 │   │   └── electron.ts    # Electron API bridge
 │   └── vite-env.d.ts      # TypeScript declarations
-├── doc/                    # scrcpy official documentation
+├── documents/              # User documentation
+│   ├── en-US.md           # English user guide
+│   └── zh-CN.md           # Chinese user guide
+├── README_CN.md           # Chinese version of README
+├── images/                 # Screenshots and assets
+│   └── iScrcpy.png        # Main interface screenshot
 ├── logs/                   # Application logs
 ├── index.html              # HTML entry
 ├── vite.config.ts          # Vite configuration
+├── electron.vite.config.ts # Electron Vite configuration
 ├── package.json            # Dependencies
 └── tsconfig.json           # TypeScript configuration
 ```
@@ -115,18 +148,23 @@ This will create an `.exe` installer in the `dist-win/` folder.
 
 ## scrcpy Options
 
-| Option                | Description                    |
-|-----------------------|--------------------------------|
-| `--max-size=<n>`      | Max video size (default: 1920) |
-| `--video-bitrate=<n>` | Video bitrate in Mbps          |
-| `--frame-rate=<n>`    | Frame rate                     |
-| `--video-codec=<c>`   | Video codec (h264, h265, av1)  |
-| `--audio-codec=<c>`   | Audio codec (opus, aac)        |
-| `--always-on-top`     | Keep window on top             |
-| `--fullscreen`        | Start in fullscreen            |
-| `--stay-awake`        | Keep screen on                 |
-| `--tunnel-forward`    | Use forward tunnel mode        |
-| `--no-cleanup`        | Don't cleanup server on exit   |
+| Option                      | Description                        |
+|-----------------------------|------------------------------------|
+| `--max-size=<n>`            | Max video size                     |
+| `--video-bit-rate=<n>`      | Video bitrate in Mbps              |
+| `--max-fps=<n>`             | Maximum frame rate                 |
+| `--video-codec=<c>`         | Video codec (h264, h265, av1)      |
+| `--audio-codec=<c>`         | Audio codec (opus, aac)            |
+| `--video-encoder=<name>`    | Specific video encoder name        |
+| `--always-on-top`           | Keep window on top                 |
+| `--fullscreen` / `-f`       | Start in fullscreen                |
+| `--stay-awake`              | Keep screen on                     |
+| `--window-borderless`       | Borderless window mode             |
+| `--disable-screensaver`     | Disable screensaver                |
+| `--record=<file>`           | Record screen to file              |
+| `--time-limit=<s>`          | Recording time limit in seconds    |
+| `--tunnel-forward`          | Use forward tunnel mode            |
+| `--no-cleanup`              | Don't cleanup server on exit       |
 
 ## Development
 
@@ -168,6 +206,35 @@ export default function MyComponent() {
 }
 ```
 
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+### Ways to Contribute
+
+- Report bugs or suggest features via GitHub Issues
+- Add new translations for additional languages
+- Improve documentation
+- Submit code improvements
+
+## Acknowledgments
+
+- [scrcpy](https://github.com/Genymobile/scrcpy) - The amazing Android screen mirroring tool
+- [shadcn/ui](https://ui.shadcn.com/) - UI components inspiration
+- All contributors and translators
+
 ## License
 
-MIT License
+Apache License 2.0
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.

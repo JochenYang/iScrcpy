@@ -7,6 +7,9 @@
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
+    "make": "electron-forge make",
+    "package": "electron-forge package",
+    "publish": "electron-forge publish",
     "postinstall": "electron-vite postinstall",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "generate-icons": "node scripts/convert-icon.mjs"
@@ -74,6 +77,18 @@
     "electron",
     "react"
   ],
-  "author": "iScrcpy",
-  "license": "MIT"
+  "author": "iScrcpy Contributors",
+  "license": "Apache-2.0",
+  "publishers": [
+    {
+      "name": "@electron-forge/publisher-github",
+      "config": {
+        "repository": {
+          "owner": "${{ github.repository_owner }}",
+          "name": "${{ github.event.repository.name }}"
+        },
+        "draftRelease": true
+      }
+    }
+  ]
 }

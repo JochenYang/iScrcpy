@@ -15,6 +15,8 @@ import {
   Camera,
   Radio,
   Folder,
+  Disc,
+  Maximize,
 } from "lucide-react";
 
 interface DisplaySettings {
@@ -29,14 +31,28 @@ interface DisplaySettings {
   record: boolean;
   recordAudio: boolean;
   recordPath: string;
+  recordTimeLimit: number; // 0 = unlimited
   camera: boolean;
   cameraId: string;
   cameraSize: string;
   cameraFps: number;
+  windowBorderless: boolean;
+  disableScreensaver: boolean;
+}
+
+interface EncodingSettings {
+  videoCodec: string;
+  audioCodec: string;
+  bitrateMode: string;
 }
 
 export default function DisplayPage() {
   const { t } = useTranslation();
+  const [encodingSettings, setEncodingSettings] = useState<EncodingSettings>({
+    videoCodec: "h264",
+    audioCodec: "opus",
+    bitrateMode: "vbr",
+  });
   const [settings, setSettings] = useState<DisplaySettings>({
     maxSize: 1080,
     videoBitrate: 8,
@@ -49,10 +65,13 @@ export default function DisplayPage() {
     record: false,
     recordAudio: false,
     recordPath: "",
+    recordTimeLimit: 0, // 0 = unlimited
     camera: false,
     cameraId: "",
     cameraSize: "1920x1080",
     cameraFps: 30,
+    windowBorderless: false,
+    disableScreensaver: false,
   });
   const [saving, setSaving] = useState(false);
   const [customMaxSize, setCustomMaxSize] = useState("");
@@ -68,11 +87,15 @@ export default function DisplayPage() {
     if (result.display) {
       setSettings((prev) => ({ ...prev, ...result.display }));
     }
+    if (result.encoding) {
+      setEncodingSettings((prev) => ({ ...prev, ...result.encoding }));
+    }
   };
 
   const handleSave = async () => {
     setSaving(true);
     await electronAPI.saveSettings("display", settings);
+    await electronAPI.saveSettings("encoding", encodingSettings);
     showToast(t("display.saved"));
     setSaving(false);
   };
@@ -102,9 +125,14 @@ export default function DisplayPage() {
     if (settings.alwaysOnTop) parts.push("--always-on-top");
     if (settings.fullscreen) parts.push("--fullscreen");
     if (settings.stayAwake) parts.push("--stay-awake");
+    if (settings.windowBorderless) parts.push("--window-borderless");
+    if (settings.disableScreensaver) parts.push("--disable-screensaver");
     if (settings.record) {
       parts.push("--record");
       parts.push(settings.recordPath || "recording.mp4");
+    }
+    if (settings.recordTimeLimit > 0) {
+      parts.push(`--time-limit=${settings.recordTimeLimit}`);
     }
     if (settings.recordAudio) parts.push("--record-audio");
     if (settings.camera) {
@@ -477,6 +505,68 @@ export default function DisplayPage() {
               </button>
             </div>
           </div>
+
+          <div className="form-group select-form-group">
+            <label>
+              <Clock size={16} />
+              {t("display.recordTimeLimit")}
+            </label>
+            <div className="number-input">
+              <input
+                type="number"
+                min="0"
+                max="86400"
+                placeholder={t("display.recordTimeLimitPlaceholder")}
+                value={settings.recordTimeLimit || ""}
+                onChange={(e) =>
+                  setSettings({ ...settings, recordTimeLimit: parseInt(e.target.value) || 0 })
+                }
+              />
+              <span className="input-suffix">{t("display.seconds")}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="settings-card">
+        <div className="card-header">
+          <Maximize size={20} />
+          {t("display.windowTitle")}
+        </div>
+        <div className="card-body">
+          <label className="toggle-item">
+            <div className="toggle-item-left">
+              <Layout size={18} />
+              <span>{t("display.windowBorderless")}</span>
+            </div>
+            <div className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={settings.windowBorderless}
+                onChange={(e) =>
+                  setSettings({ ...settings, windowBorderless: e.target.checked })
+                }
+              />
+              <span className="toggle-slider" />
+            </div>
+          </label>
+
+          <label className="toggle-item">
+            <div className="toggle-item-left">
+              <Disc size={18} />
+              <span>{t("display.disableScreensaver")}</span>
+            </div>
+            <div className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={settings.disableScreensaver}
+                onChange={(e) =>
+                  setSettings({ ...settings, disableScreensaver: e.target.checked })
+                }
+              />
+              <span className="toggle-slider" />
+            </div>
+          </label>
         </div>
       </div>
 

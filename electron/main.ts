@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, shell, dialog } from "electron";
 import { join } from "path";
 import { spawn, exec, execSync } from "child_process";
+import { existsSync, lstatSync } from "fs";
 import { logger } from "./logger";
 
 // Test mode flag
@@ -11,6 +12,38 @@ function getDefaultRecordPath(deviceId: string): string {
   const downloadsPath = app.getPath("downloads");
   const fileName = `recording_${deviceId.replace(/[:.]/g, "_")}.mp4`;
   return join(downloadsPath, fileName);
+}
+
+// Helper function to resolve recording path (handle directory vs file path)
+function resolveRecordPath(customPath: string | undefined, deviceId: string): string {
+  if (!customPath || customPath.trim() === "") {
+    return getDefaultRecordPath(deviceId);
+  }
+
+  // Check if path is a directory (ends with path separator or is a directory)
+  const path = customPath.trim();
+
+  // Check if path has file extension
+  if (path.match(/\.(mp4|mkv|webm|avi)$/i)) {
+    return path;
+  }
+
+  // Check if path is a directory (doesn't have extension or ends with backslash)
+  try {
+    if (existsSync(path) && lstatSync(path).isDirectory()) {
+      const fileName = `recording_${deviceId.replace(/[:.]/g, "_")}.mp4`;
+      return join(path, fileName);
+    }
+  } catch (e) {
+    // Path doesn't exist, will be created by scrcpy
+  }
+
+  // If no extension, append .mp4
+  if (!path.match(/\.[a-zA-Z0-9]+$/)) {
+    return path + ".mp4";
+  }
+
+  return path;
 }
 
 // Paths
@@ -42,10 +75,13 @@ interface DisplaySettings {
   record: boolean;
   recordAudio: boolean;
   recordPath: string;
+  recordTimeLimit: number; // 0 = unlimited
   camera: boolean;
   cameraId: string;
   cameraSize: string;
   cameraFps: number;
+  windowBorderless: boolean;
+  disableScreensaver: boolean;
 }
 
 interface EncodingSettings {
@@ -105,10 +141,13 @@ const settings: Settings = {
     record: false,
     recordAudio: true,
     recordPath: "",
+    recordTimeLimit: 0, // 0 = unlimited
     camera: false,
     cameraId: "",
     cameraSize: "1920x1080",
     cameraFps: 30,
+    windowBorderless: false,
+    disableScreensaver: false,
   },
   encoding: {
     videoCodec: "h264",
@@ -500,6 +539,8 @@ ipcMain.handle(
     if (display.alwaysOnTop) args.push("--always-on-top");
     if (display.fullscreen) args.push("--fullscreen");
     if (display.stayAwake) args.push("--stay-awake");
+    if (display.windowBorderless) args.push("--window-borderless");
+    if (display.disableScreensaver) args.push("--disable-screensaver");
 
     // Video and audio toggle (disable if set to false)
     if (!display.enableVideo) args.push("--no-video");
@@ -509,7 +550,11 @@ ipcMain.handle(
     // Note: --record-audio requires scrcpy version 1.17+ with audio support compiled in
     if (display.record) {
       args.push("--record");
-      args.push(display.recordPath || getDefaultRecordPath(deviceId));
+      args.push(resolveRecordPath(display.recordPath, deviceId));
+    }
+    // Time limit for recording (0 = unlimited)
+    if (display.recordTimeLimit > 0) {
+      args.push("--time-limit", String(display.recordTimeLimit));
     }
     // Skip --record-audio as it's not supported in scrcpy 3.3.4
     // if (display.recordAudio) args.push("--record-audio");
@@ -920,7 +965,7 @@ ipcMain.handle(
 
     // Recording options
     args.push("--record");
-    const recordPath = display.recordPath || getDefaultRecordPath(deviceId);
+    const recordPath = resolveRecordPath(display.recordPath, deviceId);
     args.push(recordPath);
     logger.info(`Recording path: ${recordPath}`);
     // Note: --record-audio requires scrcpy 1.17+ with audio support
@@ -1161,7 +1206,7 @@ ipcMain.handle(
 
     // Stop current scrcpy process
     const proc = deviceProcesses.get(deviceId);
-    const recordPath = settings.display.recordPath || getDefaultRecordPath(deviceId);
+    const recordPath = resolveRecordPath(settings.display.recordPath, deviceId);
     let recordingSaved = false;
 
     if (proc && !TEST_MODE) {
@@ -1395,12 +1440,17 @@ ipcMain.handle(
     if (display.alwaysOnTop) args.push("--always-on-top");
     if (display.fullscreen) args.push("--fullscreen");
     if (display.stayAwake) args.push("--stay-awake");
+    if (display.windowBorderless) args.push("--window-borderless");
+    if (display.disableScreensaver) args.push("--disable-screensaver");
     if (!display.enableVideo) args.push("--no-video");
     if (!display.enableAudio) args.push("--no-audio");
 
     if (display.record) {
       args.push("--record");
-      args.push(display.recordPath || getDefaultRecordPath(deviceId));
+      args.push(resolveRecordPath(display.recordPath, deviceId));
+    }
+    if (display.recordTimeLimit > 0) {
+      args.push("--time-limit", String(display.recordTimeLimit));
     }
     if (display.recordAudio) args.push("--record-audio");
 
@@ -1533,7 +1583,7 @@ ipcMain.handle(
 
     if (display.record) {
       args.push("--record");
-      args.push(display.recordPath || getDefaultRecordPath(deviceId));
+      args.push(resolveRecordPath(display.recordPath, deviceId));
     }
     if (display.recordAudio) args.push("--record-audio");
 
