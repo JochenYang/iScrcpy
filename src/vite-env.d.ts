@@ -41,7 +41,9 @@ interface Window {
     ) => Promise<{ success: boolean; error?: string }>;
 
     // Camera (independent from mirroring)
-    startCamera: (deviceId: string) => Promise<{ success: boolean; error?: string }>;
+    startCamera: (
+      deviceId: string
+    ) => Promise<{ success: boolean; error?: string }>;
     stopCamera: (deviceId: string) => Promise<{ success: boolean }>;
 
     // Settings
@@ -56,6 +58,7 @@ interface Window {
     }>;
 
     // Version info
+    getAppVersion: () => Promise<{ version: string }>;
     getVersion: () => Promise<{
       success: boolean;
       version?: string;
@@ -90,9 +93,11 @@ interface Window {
     selectFolder: (
       defaultPath: string
     ) => Promise<{ success: boolean; path?: string }>;
-    selectFile: (
-      options: { defaultPath?: string; title?: string; filters?: { name: string; extensions: string[] }[] }
-    ) => Promise<{ success: boolean; path?: string }>;
+    selectFile: (options: {
+      defaultPath?: string;
+      title?: string;
+      filters?: { name: string; extensions: string[] }[];
+    }) => Promise<{ success: boolean; path?: string }>;
     getScrcpyPath: () => Promise<string>;
     getAdbPath: () => Promise<string>;
     setScrcpyPath: (path: string) => Promise<{ success: boolean }>;

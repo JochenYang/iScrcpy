@@ -1,9 +1,28 @@
 import { useTranslation } from "react-i18next";
 import { electronAPI } from "../utils/electron";
 import { Github, HelpCircle, ExternalLink } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export default function AboutPage() {
   const { t } = useTranslation();
+  const [appVersion, setAppVersion] = useState("...");
+  const [scrcpyVersion, setScrcpyVersion] = useState("...");
+
+  useEffect(() => {
+    // Get app version from package.json
+    electronAPI.getAppVersion().then((result) => {
+      if (result.version) {
+        setAppVersion(result.version);
+      }
+    });
+
+    // Get scrcpy version
+    electronAPI.getVersion().then((result) => {
+      if (result.success && result.version) {
+        setScrcpyVersion(result.version);
+      }
+    });
+  }, []);
 
   const openExternal = (url: string) => {
     electronAPI.openExternal(url);
@@ -42,7 +61,10 @@ export default function AboutPage() {
             />
           </svg>
           <h2>iScrcpy</h2>
-          <p className="version">Scrcpy 3.3.4</p>
+          <p className="version">v{appVersion}</p>
+          <p className="version" style={{ fontSize: "0.875rem", opacity: 0.7 }}>
+            Scrcpy {scrcpyVersion}
+          </p>
           <p className="author">Jochenyang</p>
         </div>
 

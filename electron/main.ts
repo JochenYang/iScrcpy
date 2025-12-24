@@ -15,7 +15,10 @@ function getDefaultRecordPath(deviceId: string): string {
 }
 
 // Helper function to resolve recording path (handle directory vs file path)
-function resolveRecordPath(customPath: string | undefined, deviceId: string): string {
+function resolveRecordPath(
+  customPath: string | undefined,
+  deviceId: string
+): string {
   if (!customPath || customPath.trim() === "") {
     return getDefaultRecordPath(deviceId);
   }
@@ -569,11 +572,18 @@ ipcMain.handle(
 
     // Only add codec options if explicitly different from default
     // scrcpy supports: h264 (default), h265, av1
-    if (encoding.videoCodec && encoding.videoCodec !== "h264" && encoding.videoCodec !== "h264 (default)") {
+    if (
+      encoding.videoCodec &&
+      encoding.videoCodec !== "h264" &&
+      encoding.videoCodec !== "h264 (default)"
+    ) {
       // Normalize codec name (scrcpy expects h264, h265 or av1)
       let codec = encoding.videoCodec;
       // Handle various naming conventions
-      if (codec.toLowerCase().includes("h265") || codec.toLowerCase().includes("hevc")) {
+      if (
+        codec.toLowerCase().includes("h265") ||
+        codec.toLowerCase().includes("hevc")
+      ) {
         codec = "h265";
       } else if (codec.toLowerCase().includes("av1")) {
         codec = "av1";
@@ -607,7 +617,10 @@ ipcMain.handle(
 
     if (!fs.existsSync(currentScrcpyPath)) {
       logger.error(`Scrcpy not found at: ${currentScrcpyPath}`);
-      return { success: false, error: `Scrcpy not found at: ${currentScrcpyPath}` };
+      return {
+        success: false,
+        error: `Scrcpy not found at: ${currentScrcpyPath}`,
+      };
     }
 
     logger.info(`Executing: ${currentScrcpyPath} ${args.join(" ")}`);
@@ -913,7 +926,9 @@ ipcMain.handle(
       if (proc.pid) {
         logger.info(`Stopping scrcpy process PID: ${proc.pid}`);
         // Send stdin quit first
-        const procAny = proc.proc as { stdin?: { write: (data: string) => void; destroyed: boolean } };
+        const procAny = proc.proc as {
+          stdin?: { write: (data: string) => void; destroyed: boolean };
+        };
         if (procAny.stdin && !procAny.stdin.destroyed) {
           try {
             procAny.stdin.write("q\n");
@@ -924,7 +939,7 @@ ipcMain.handle(
           execSync(`taskkill /PID ${proc.pid}`, { encoding: "utf8" });
         } catch (e) {}
         // Quick wait
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 500));
         // Force kill if still running
         try {
           execSync(`tasklist /FI "PID eq ${proc.pid}"`, { encoding: "utf8" });
@@ -989,12 +1004,17 @@ ipcMain.handle(
     const fs = require("fs");
     const currentScrcpyPath = getScrcpyPath();
     const currentAdbPath = getAdbPath();
-    logger.info(`Scrcpy path: ${currentScrcpyPath}, ADB path: ${currentAdbPath}`);
+    logger.info(
+      `Scrcpy path: ${currentScrcpyPath}, ADB path: ${currentAdbPath}`
+    );
     logger.info(`Scrcpy args: ${args.join(" ")}`);
 
     if (!fs.existsSync(currentScrcpyPath)) {
       logger.error(`Scrcpy not found at: ${currentScrcpyPath}`);
-      return { success: false, error: `Scrcpy not found at: ${currentScrcpyPath}` };
+      return {
+        success: false,
+        error: `Scrcpy not found at: ${currentScrcpyPath}`,
+      };
     }
 
     const newProc = spawn(currentScrcpyPath, args, {
@@ -1069,16 +1089,20 @@ async function sendCtrlC(pid: number): Promise<boolean> {
 
       // Try using taskkill with /T (terminate tree) first without /F (force)
       // This tries to gracefully terminate the process
-      exec(`taskkill /PID ${pid} /T`, { encoding: "utf8" }, (err, stdout, stderr) => {
-        if (err) {
-          // If graceful termination fails, try force kill
-          logger.debug(`Graceful taskkill failed, trying force kill`);
-          resolve(false);
-        } else {
-          logger.debug(`Graceful taskkill sent to PID ${pid}`);
-          resolve(true);
+      exec(
+        `taskkill /PID ${pid} /T`,
+        { encoding: "utf8" },
+        (err, stdout, stderr) => {
+          if (err) {
+            // If graceful termination fails, try force kill
+            logger.debug(`Graceful taskkill failed, trying force kill`);
+            resolve(false);
+          } else {
+            logger.debug(`Graceful taskkill sent to PID ${pid}`);
+            resolve(true);
+          }
         }
-      });
+      );
     } catch (e) {
       logger.debug(`Failed to send CTRL+C to PID ${pid}: ${e}`);
       resolve(false);
@@ -1105,20 +1129,30 @@ async function repairRecordingFile(filePath: string): Promise<boolean> {
     const repairStrategies = [
       // Strategy 1: Re-mux with empty moov (for files with missing moov)
       [
-        "-i", filePath,
-        "-c", "copy",
-        "-movflags", "+faststart+empty_moov+default_base_moov",
-        "-y", fixedPath
+        "-i",
+        filePath,
+        "-c",
+        "copy",
+        "-movflags",
+        "+faststart+empty_moov+default_base_moov",
+        "-y",
+        fixedPath,
       ],
       // Strategy 2: Re-encode if copy fails (more robust but slower)
       [
-        "-i", filePath,
-        "-c", "libx264",
-        "-preset", "ultrafast",
-        "-crf", "23",
-        "-movflags", "+faststart",
-        "-y", fixedPath
-      ]
+        "-i",
+        filePath,
+        "-c",
+        "libx264",
+        "-preset",
+        "ultrafast",
+        "-crf",
+        "23",
+        "-movflags",
+        "+faststart",
+        "-y",
+        fixedPath,
+      ],
     ];
 
     let currentStrategy = 0;
@@ -1128,18 +1162,22 @@ async function repairRecordingFile(filePath: string): Promise<boolean> {
         logger.warn(`All repair strategies failed for: ${filePath}`);
         // Clean up partial fixed file if it exists
         if (fs.existsSync(fixedPath)) {
-          try { fs.unlinkSync(fixedPath); } catch (e) {}
+          try {
+            fs.unlinkSync(fixedPath);
+          } catch (e) {}
         }
         resolve(false);
         return;
       }
 
       const args = repairStrategies[currentStrategy];
-      logger.info(`Trying repair strategy ${currentStrategy + 1}: ffmpeg ${args.join(" ")}`);
+      logger.info(
+        `Trying repair strategy ${currentStrategy + 1}: ffmpeg ${args.join(" ")}`
+      );
 
       const repairProc = spawn("ffmpeg", args, {
         stdio: ["ignore", "pipe", "pipe"],
-        windowsHide: true
+        windowsHide: true,
       });
 
       const timeout = setTimeout(() => {
@@ -1160,7 +1198,9 @@ async function repairRecordingFile(filePath: string): Promise<boolean> {
         if (code === 0 && fs.existsSync(fixedPath)) {
           const origSize = fs.statSync(filePath).size;
           const fixedSize = fs.statSync(fixedPath).size;
-          logger.info(`Repair strategy ${currentStrategy + 1} succeeded: ${origSize} -> ${fixedSize} bytes`);
+          logger.info(
+            `Repair strategy ${currentStrategy + 1} succeeded: ${origSize} -> ${fixedSize} bytes`
+          );
 
           // Replace original with fixed file
           try {
@@ -1172,12 +1212,17 @@ async function repairRecordingFile(filePath: string): Promise<boolean> {
             logger.warn(`Failed to replace file: ${e}`);
             // Keep the fixed file with different name
             try {
-              fs.renameSync(fixedPath, filePath.replace(/\.mp4$/i, "_repaired.mp4"));
+              fs.renameSync(
+                fixedPath,
+                filePath.replace(/\.mp4$/i, "_repaired.mp4")
+              );
             } catch (e2) {}
             resolve(false);
           }
         } else {
-          logger.warn(`Repair strategy ${currentStrategy + 1} failed with code ${code}`);
+          logger.warn(
+            `Repair strategy ${currentStrategy + 1} failed with code ${code}`
+          );
           currentStrategy++;
           tryNextStrategy();
         }
@@ -1185,7 +1230,9 @@ async function repairRecordingFile(filePath: string): Promise<boolean> {
 
       repairProc.on("error", (err: Error) => {
         clearTimeout(timeout);
-        logger.warn(`Repair strategy ${currentStrategy + 1} error: ${err.message}`);
+        logger.warn(
+          `Repair strategy ${currentStrategy + 1} error: ${err.message}`
+        );
         currentStrategy++;
         tryNextStrategy();
       });
@@ -1214,7 +1261,9 @@ ipcMain.handle(
         logger.info(`Stopping recording scrcpy process PID: ${proc.pid}`);
 
         // Try to send quit command via stdin
-        const procAny = proc.proc as { stdin?: { write: (data: string) => void; destroyed: boolean } };
+        const procAny = proc.proc as {
+          stdin?: { write: (data: string) => void; destroyed: boolean };
+        };
         if (procAny.stdin && !procAny.stdin.destroyed) {
           try {
             procAny.stdin.write("q\n");
@@ -1225,7 +1274,7 @@ ipcMain.handle(
         }
 
         // Wait briefly for graceful shutdown
-        await new Promise(resolve => setTimeout(resolve, 800));
+        await new Promise((resolve) => setTimeout(resolve, 800));
 
         // Check if process exited gracefully
         try {
@@ -1234,7 +1283,7 @@ ipcMain.handle(
           logger.info(`Process still running, sending taskkill`);
           try {
             execSync(`taskkill /PID ${proc.pid}`, { encoding: "utf8" });
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await new Promise((resolve) => setTimeout(resolve, 500));
           } catch (e) {
             logger.debug(`Taskkill failed: ${e}`);
           }
@@ -1249,7 +1298,7 @@ ipcMain.handle(
             execSync(`tasklist /FI "PID eq ${proc.pid}"`, { encoding: "utf8" });
             logger.warn(`Force killing PID: ${proc.pid}`);
             exec(`taskkill /PID ${proc.pid} /F /T`);
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await new Promise((resolve) => setTimeout(resolve, 300));
           } catch (e) {
             recordingSaved = true;
             logger.info(`Process terminated`);
@@ -1321,7 +1370,10 @@ ipcMain.handle(
     logger.info(`Stop recording - Args: ${args.join(" ")}`);
 
     if (!fs.existsSync(currentScrcpyPath)) {
-      return { success: false, error: `Scrcpy not found at: ${currentScrcpyPath}` };
+      return {
+        success: false,
+        error: `Scrcpy not found at: ${currentScrcpyPath}`,
+      };
     }
 
     const newProc = spawn(currentScrcpyPath, args, {
@@ -1399,13 +1451,13 @@ ipcMain.handle(
         try {
           proc.proc?.kill("SIGINT");
           logger.info(`Sent SIGINT to PID ${proc.pid}`);
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          await new Promise((resolve) => setTimeout(resolve, 2000));
         } catch (e) {
           logger.debug(`SIGINT failed, trying taskkill: ${e}`);
           // Method 2: Try graceful taskkill
           try {
             execSync(`taskkill /PID ${proc.pid} /T`, { encoding: "utf8" });
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            await new Promise((resolve) => setTimeout(resolve, 1500));
           } catch (e2) {
             // Method 3: Force kill
             try {
@@ -1472,12 +1524,17 @@ ipcMain.handle(
     const fs = require("fs");
     const currentScrcpyPath = getScrcpyPath();
     const currentAdbPath = getAdbPath();
-    logger.info(`Audio toggle - Scrcpy path: ${currentScrcpyPath}, ADB path: ${currentAdbPath}`);
+    logger.info(
+      `Audio toggle - Scrcpy path: ${currentScrcpyPath}, ADB path: ${currentAdbPath}`
+    );
     logger.info(`Audio toggle - Args: ${args.join(" ")}`);
 
     if (!fs.existsSync(currentScrcpyPath)) {
       logger.error(`Scrcpy not found at: ${currentScrcpyPath}`);
-      return { success: false, error: `Scrcpy not found at: ${currentScrcpyPath}` };
+      return {
+        success: false,
+        error: `Scrcpy not found at: ${currentScrcpyPath}`,
+      };
     }
 
     const newProc = spawn(currentScrcpyPath, args, {
@@ -1614,7 +1671,10 @@ ipcMain.handle(
     const currentScrcpyPath = getScrcpyPath();
     const currentAdbPath = getAdbPath();
     if (!fs.existsSync(currentScrcpyPath)) {
-      return { success: false, error: `Scrcpy not found at: ${currentScrcpyPath}` };
+      return {
+        success: false,
+        error: `Scrcpy not found at: ${currentScrcpyPath}`,
+      };
     }
 
     const newProc = spawn(currentScrcpyPath, args, {
@@ -1669,11 +1729,7 @@ ipcMain.handle(
     const { display, server } = settings;
 
     // Build camera args - use video-source=camera
-    const args = [
-      "-s",
-      deviceId,
-      "--video-source=camera",
-    ];
+    const args = ["-s", deviceId, "--video-source=camera"];
 
     // Camera options
     if (display.cameraId) {
@@ -1695,7 +1751,10 @@ ipcMain.handle(
     const currentAdbPath = getAdbPath();
 
     if (!fs.existsSync(currentScrcpyPath)) {
-      return { success: false, error: `Scrcpy not found at: ${currentScrcpyPath}` };
+      return {
+        success: false,
+        error: `Scrcpy not found at: ${currentScrcpyPath}`,
+      };
     }
 
     logger.info(`Starting camera with args: ${args.join(" ")}`);
@@ -1725,7 +1784,9 @@ ipcMain.handle(
     newProc.on("error", notifyCameraExit);
     newProc.on("close", notifyCameraExit);
 
-    logger.info(`Camera started successfully for ${deviceId} (PID: ${scrcpyPid})`);
+    logger.info(
+      `Camera started successfully for ${deviceId} (PID: ${scrcpyPid})`
+    );
     return { success: true };
   }
 );
@@ -1759,6 +1820,9 @@ ipcMain.handle(
 );
 
 // Version info
+ipcMain.handle("get-app-version", async () => {
+  return { version: app.getVersion() };
+});
 ipcMain.handle("get-version", getScrcpyVersion);
 ipcMain.handle("get-adb-version", getAdbVersion);
 ipcMain.handle("get-electron-version", async () => {
@@ -1822,7 +1886,11 @@ ipcMain.handle(
   "select-file",
   async (
     _,
-    options: { defaultPath?: string; title?: string; filters?: { name: string; extensions: string[] }[] }
+    options: {
+      defaultPath?: string;
+      title?: string;
+      filters?: { name: string; extensions: string[] }[];
+    }
   ): Promise<{ success: boolean; path?: string }> => {
     if (!mainWindow) {
       return { success: false };
@@ -1882,16 +1950,22 @@ ipcMain.handle(
 
 // Get current scrcpy path (use custom path if set, otherwise default)
 function getScrcpyPath(): string {
-  return settings.server.scrcpyPath || (app.isPackaged
-    ? join(process.resourcesPath, "app", "scrcpy.exe")
-    : join(process.cwd(), "app", "scrcpy.exe"));
+  return (
+    settings.server.scrcpyPath ||
+    (app.isPackaged
+      ? join(process.resourcesPath, "app", "scrcpy.exe")
+      : join(process.cwd(), "app", "scrcpy.exe"))
+  );
 }
 
 // Get current adb path (use custom path if set, otherwise default)
 function getAdbPath(): string {
-  return settings.server.adbPath || (app.isPackaged
-    ? join(process.resourcesPath, "app", "adb.exe")
-    : join(process.cwd(), "app", "adb.exe"));
+  return (
+    settings.server.adbPath ||
+    (app.isPackaged
+      ? join(process.resourcesPath, "app", "adb.exe")
+      : join(process.cwd(), "app", "adb.exe"))
+  );
 }
 
 // App lifecycle

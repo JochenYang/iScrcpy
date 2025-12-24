@@ -29,7 +29,8 @@ export const electronAPI = {
   removeScrcpyExitListener: () => window.electronAPI.removeScrcpyExitListener(),
   onScrcpyStarted: (callback: (deviceId: string) => void) =>
     window.electronAPI.onScrcpyStarted(callback),
-  removeScrcpyStartedListener: () => window.electronAPI.removeScrcpyStartedListener(),
+  removeScrcpyStartedListener: () =>
+    window.electronAPI.removeScrcpyStartedListener(),
 
   // Camera exit event listeners
   onCameraExit: (callback: (deviceId: string) => void) =>
@@ -42,6 +43,7 @@ export const electronAPI = {
   loadSettings: () => window.electronAPI.loadSettings(),
 
   // Version info
+  getAppVersion: () => window.electronAPI.getAppVersion(),
   getVersion: () => window.electronAPI.getVersion(),
   getAdbVersion: () => window.electronAPI.getAdbVersion(),
 
@@ -55,8 +57,11 @@ export const electronAPI = {
   openExternal: (url: string) => window.electronAPI.openExternal(url),
   selectFolder: (defaultPath: string) =>
     window.electronAPI.selectFolder(defaultPath),
-  selectFile: (options: { defaultPath?: string; title?: string; filters?: { name: string; extensions: string[] }[] }) =>
-    window.electronAPI.selectFile(options),
+  selectFile: (options: {
+    defaultPath?: string;
+    title?: string;
+    filters?: { name: string; extensions: string[] }[];
+  }) => window.electronAPI.selectFile(options),
   getScrcpyPath: () => window.electronAPI.getScrcpyPath(),
   getAdbPath: () => window.electronAPI.getAdbPath(),
   setScrcpyPath: (path: string) => window.electronAPI.setScrcpyPath(path),
