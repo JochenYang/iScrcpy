@@ -1,5 +1,7 @@
 # iScrcpy
 
+[English](README.md) | [简体中文](README_CN.md)
+
 Android screen mirroring tool powered by scrcpy. A modern Electron desktop application built with React + Vite.
 
 ![iScrcpy Interface](images/iScrcpy.png)
@@ -45,14 +47,19 @@ Language can be switched from the language selector in the title bar (next to mi
 
 ## Documentation
 
-Comprehensive user guides are available in multiple languages:
+Comprehensive user guides are available in 7 languages:
 
 | Language | Document |
 |----------|----------|
 | English | [documents/en-US.md](documents/en-US.md) |
 | 简体中文 | [documents/zh-CN.md](documents/zh-CN.md) |
+| 日本語 | [documents/ja-JP.md](documents/ja-JP.md) |
+| 한국어 | [documents/ko-KR.md](documents/ko-KR.md) |
+| Español | [documents/es-ES.md](documents/es-ES.md) |
+| Français | [documents/fr-FR.md](documents/fr-FR.md) |
+| Türkçe | [documents/tr-TR.md](documents/tr-TR.md) |
 
-### Quick Links
+### Quick Links (English)
 
 - [Getting Started](documents/en-US.md#quick-start)
 - [Connecting Devices](documents/en-US.md#connecting-devices)
@@ -104,9 +111,14 @@ iscrcpy/
 │   ├── utils/             # Utilities
 │   │   └── electron.ts    # Electron API bridge
 │   └── vite-env.d.ts      # TypeScript declarations
-├── documents/              # User documentation
+├── documents/              # User documentation (7 languages)
 │   ├── en-US.md           # English user guide
-│   └── zh-CN.md           # Chinese user guide
+│   ├── zh-CN.md           # Chinese user guide
+│   ├── ja-JP.md           # Japanese user guide
+│   ├── ko-KR.md           # Korean user guide
+│   ├── es-ES.md           # Spanish user guide
+│   ├── fr-FR.md           # French user guide
+│   └── tr-TR.md           # Turkish user guide
 ├── README_CN.md           # Chinese version of README
 ├── images/                 # Screenshots and assets
 │   └── iScrcpy.png        # Main interface screenshot

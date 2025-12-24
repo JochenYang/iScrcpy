@@ -222,11 +222,11 @@ Press `MOD+f` hotkey, or restart mirroring without fullscreen option.
 
 ## Support
 
-- GitHub: [https://github.com/example/iscrcpy](https://github.com/example/iscrcpy)
+- GitHub: [https://github.com/JochenYang/iScrcpy](https://github.com/JochenYang/iScrcpy)
 - Issue reporting: Please submit via GitHub Issues
 
 ---
 
 ## License
 
-MIT License
+Licensed under the Apache License, Version 2.0

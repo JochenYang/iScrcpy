@@ -49,13 +49,36 @@ function resolveRecordPath(
   return path;
 }
 
+// Platform-specific paths
+function getPlatformFolder(): string {
+  switch (process.platform) {
+    case "win32":
+      return "win";
+    case "darwin":
+      return "mac";
+    case "linux":
+      return "linux";
+    default:
+      return "win";
+  }
+}
+
+function getScrcpyExecutable(): string {
+  return process.platform === "win32" ? "scrcpy.exe" : "scrcpy";
+}
+
+function getAdbExecutable(): string {
+  return process.platform === "win32" ? "adb.exe" : "adb";
+}
+
 // Paths
+const PLATFORM_FOLDER = getPlatformFolder();
 const SCRCPY_PATH = app.isPackaged
-  ? join(process.resourcesPath, "app", "scrcpy.exe")
-  : join(process.cwd(), "app", "scrcpy.exe");
+  ? join(process.resourcesPath, "app", PLATFORM_FOLDER, getScrcpyExecutable())
+  : join(process.cwd(), "app", PLATFORM_FOLDER, getScrcpyExecutable());
 const ADB_PATH = app.isPackaged
-  ? join(process.resourcesPath, "app", "adb.exe")
-  : join(process.cwd(), "app", "adb.exe");
+  ? join(process.resourcesPath, "app", PLATFORM_FOLDER, getAdbExecutable())
+  : join(process.cwd(), "app", PLATFORM_FOLDER, getAdbExecutable());
 
 logger.info("Application paths configured", {
   scrcpyPath: SCRCPY_PATH,
@@ -161,11 +184,16 @@ const settings: Settings = {
     tunnelMode: "reverse",
     cleanup: true,
     scrcpyPath: app.isPackaged
-      ? join(process.resourcesPath, "app", "scrcpy.exe")
-      : join(process.cwd(), "app", "scrcpy.exe"),
+      ? join(
+          process.resourcesPath,
+          "app",
+          PLATFORM_FOLDER,
+          getScrcpyExecutable()
+        )
+      : join(process.cwd(), "app", PLATFORM_FOLDER, getScrcpyExecutable()),
     adbPath: app.isPackaged
-      ? join(process.resourcesPath, "app", "adb.exe")
-      : join(process.cwd(), "app", "adb.exe"),
+      ? join(process.resourcesPath, "app", PLATFORM_FOLDER, getAdbExecutable())
+      : join(process.cwd(), "app", PLATFORM_FOLDER, getAdbExecutable()),
   },
   deviceHistory: [],
 };
@@ -1953,8 +1981,13 @@ function getScrcpyPath(): string {
   return (
     settings.server.scrcpyPath ||
     (app.isPackaged
-      ? join(process.resourcesPath, "app", "scrcpy.exe")
-      : join(process.cwd(), "app", "scrcpy.exe"))
+      ? join(
+          process.resourcesPath,
+          "app",
+          PLATFORM_FOLDER,
+          getScrcpyExecutable()
+        )
+      : join(process.cwd(), "app", PLATFORM_FOLDER, getScrcpyExecutable()))
   );
 }
 
@@ -1963,8 +1996,8 @@ function getAdbPath(): string {
   return (
     settings.server.adbPath ||
     (app.isPackaged
-      ? join(process.resourcesPath, "app", "adb.exe")
-      : join(process.cwd(), "app", "adb.exe"))
+      ? join(process.resourcesPath, "app", PLATFORM_FOLDER, getAdbExecutable())
+      : join(process.cwd(), "app", PLATFORM_FOLDER, getAdbExecutable()))
   );
 }
 

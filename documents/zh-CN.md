@@ -222,11 +222,11 @@ iScrcpy 是一个基于 [scrcpy](https://github.com/Genymobile/scrcpy) 的 Andro
 
 ## 技术支持
 
-- GitHub: [https://github.com/example/iscrcpy](https://github.com/example/iscrcpy)
+- GitHub: [https://github.com/JochenYang/iScrcpy](https://github.com/JochenYang/iScrcpy)
 - 问题反馈：请在 GitHub Issues 中提交
 
 ---
 
 ## 许可证
 
-MIT License
+Apache License 2.0

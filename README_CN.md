@@ -1,5 +1,7 @@
 # iScrcpy
 
+[English](README.md) | [简体中文](README_CN.md)
+
 基于 scrcpy 的 Android 设备投屏工具。使用 React + Vite 构建的现代化 Electron 桌面应用程序。
 
 ![iScrcpy 界面](images/iScrcpy.png)
@@ -45,14 +47,19 @@ iScrcpy 支持 7 种语言：
 
 ## 文档
 
-提供多语言详细用户指南：
+提供 7 种语言的详细用户指南：
 
 | 语言 | 文档 |
 |------|------|
 | 英语 | [documents/en-US.md](documents/en-US.md) |
 | 简体中文 | [documents/zh-CN.md](documents/zh-CN.md) |
+| 日语 | [documents/ja-JP.md](documents/ja-JP.md) |
+| 韩语 | [documents/ko-KR.md](documents/ko-KR.md) |
+| 西班牙语 | [documents/es-ES.md](documents/es-ES.md) |
+| 法语 | [documents/fr-FR.md](documents/fr-FR.md) |
+| 土耳其语 | [documents/tr-TR.md](documents/tr-TR.md) |
 
-### 快速链接
+### 快速链接（中文）
 
 - [快速开始](documents/zh-CN.md#快速开始)
 - [连接设备](documents/zh-CN.md#连接设备)
@@ -104,9 +111,14 @@ iscrcpy/
 │   ├── utils/             # 工具函数
 │   │   └── electron.ts    # Electron API 桥接
 │   └── vite-env.d.ts      # TypeScript 声明
-├── documents/              # 用户文档
+├── documents/              # 用户文档（7种语言）
 │   ├── en-US.md           # 英文用户指南
-│   └── zh-CN.md           # 中文用户指南
+│   ├── zh-CN.md           # 中文用户指南
+│   ├── ja-JP.md           # 日语用户指南
+│   ├── ko-KR.md           # 韩语用户指南
+│   ├── es-ES.md           # 西班牙语用户指南
+│   ├── fr-FR.md           # 法语用户指南
+│   └── tr-TR.md           # 土耳其语用户指南
 ├── images/                 # 截图资源
 │   └── iScrcpy.png        # 主界面截图
 ├── logs/                   # 应用日志
