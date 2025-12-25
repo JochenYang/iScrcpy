@@ -308,6 +308,11 @@ function getAdbVersion(): Promise<{
 }
 
 function createWindow(): void {
+  // Get icon path
+  const iconPath = app.isPackaged
+    ? join(process.resourcesPath, "build", "icon.ico")
+    : join(process.cwd(), "build", "icon.ico");
+
   mainWindow = new BrowserWindow({
     width: 1000,
     height: 700,
@@ -316,6 +321,7 @@ function createWindow(): void {
     frame: false,
     show: false,
     backgroundColor: "#0F0F14",
+    icon: iconPath,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -328,7 +334,7 @@ function createWindow(): void {
     mainWindow.loadURL("http://localhost:5173");
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadFile(join(__dirname, "../dist/index.html"));
+    mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
   }
 
   mainWindow.once("ready-to-show", () => {
@@ -1200,7 +1206,9 @@ async function repairRecordingFile(filePath: string): Promise<boolean> {
 
       const args = repairStrategies[currentStrategy];
       logger.info(
-        `Trying repair strategy ${currentStrategy + 1}: ffmpeg ${args.join(" ")}`
+        `Trying repair strategy ${currentStrategy + 1}: ffmpeg ${args.join(
+          " "
+        )}`
       );
 
       const repairProc = spawn("ffmpeg", args, {
@@ -1227,7 +1235,9 @@ async function repairRecordingFile(filePath: string): Promise<boolean> {
           const origSize = fs.statSync(filePath).size;
           const fixedSize = fs.statSync(fixedPath).size;
           logger.info(
-            `Repair strategy ${currentStrategy + 1} succeeded: ${origSize} -> ${fixedSize} bytes`
+            `Repair strategy ${
+              currentStrategy + 1
+            } succeeded: ${origSize} -> ${fixedSize} bytes`
           );
 
           // Replace original with fixed file

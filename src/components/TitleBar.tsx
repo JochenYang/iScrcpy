@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { languages } from "../i18n";
 import { Globe } from "lucide-react";
 import { electronAPI } from "../utils/electron";
+import appIcon from "../assets/icon.png";
 
 export default function TitleBar() {
   const { t, i18n } = useTranslation();
@@ -42,7 +43,7 @@ export default function TitleBar() {
   return (
     <div className="titlebar">
       <div className="titlebar-drag">
-        <img src="app/icon.png" alt="iScrcpy" className="app-icon" />
+        <img src={appIcon} alt="iScrcpy" className="app-icon" />
         <span className="app-name">iScrcpy</span>
       </div>
       <div className="titlebar-buttons">

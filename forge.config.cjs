@@ -10,6 +10,7 @@ module.exports = {
     asar: true,
     name: 'iScrcpy',
     executableName: 'iScrcpy',
+    icon: "./build/icon.ico",
     appBundleId: 'com.iscrcpy.app',
     appCategoryType: 'public.app-category.productivity',
     protocols: [
@@ -17,6 +18,9 @@ module.exports = {
         name: 'iScrcpy Protocol',
         schemes: ['iscrcpy']
       }
+    ],
+    extraResource: [
+      "./build"
     ]
   },
   rebuildConfig: {},

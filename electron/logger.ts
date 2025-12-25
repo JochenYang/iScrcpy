@@ -1,28 +1,51 @@
 import { join } from "path";
 import { writeFileSync, existsSync, mkdirSync, appendFileSync } from "fs";
+import { app } from "electron";
 
 class Logger {
   private logDir: string;
   private logFile: string;
+  private initialized: boolean = false;
 
   constructor() {
-    // 日志目录在项目根目录的 logs 文件夹
-    this.logDir = join(process.cwd(), "logs");
+    // Delay initialization until app is ready
+    this.logDir = "";
+    this.logFile = "";
+  }
 
-    // 确保日志目录存在
-    if (!existsSync(this.logDir)) {
-      mkdirSync(this.logDir, { recursive: true });
+  private ensureInitialized() {
+    if (this.initialized) return;
+
+    try {
+      // Use userData directory for logs in packaged app
+      const basePath = app.isPackaged ? app.getPath("userData") : process.cwd();
+
+      this.logDir = join(basePath, "logs");
+
+      // Ensure log directory exists
+      if (!existsSync(this.logDir)) {
+        mkdirSync(this.logDir, { recursive: true });
+      }
+
+      // Log file name uses current date
+      const date = new Date();
+      const dateStr = `${date.getFullYear()}-${String(
+        date.getMonth() + 1
+      ).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+      this.logFile = join(this.logDir, `${dateStr}.log`);
+
+      this.initialized = true;
+
+      // Write startup log
+      this.info("=".repeat(80));
+      this.info(`Application started at ${new Date().toISOString()}`);
+      this.info(`Log directory: ${this.logDir}`);
+      this.info("=".repeat(80));
+    } catch (error) {
+      console.error("Failed to initialize logger:", error);
+      // Fallback to console only
+      this.initialized = true;
     }
-
-    // 日志文件名使用当前日期
-    const date = new Date();
-    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-    this.logFile = join(this.logDir, `${dateStr}.log`);
-
-    // 写入启动日志
-    this.info("=".repeat(80));
-    this.info(`Application started at ${new Date().toISOString()}`);
-    this.info("=".repeat(80));
   }
 
   private formatMessage(level: string, message: string, data?: any): string {
@@ -43,16 +66,19 @@ class Logger {
   }
 
   private writeLog(level: string, message: string, data?: any) {
+    this.ensureInitialized();
     const logMessage = this.formatMessage(level, message, data);
 
-    // 输出到控制台
+    // Output to console
     console.log(logMessage);
 
-    // 写入文件
-    try {
-      appendFileSync(this.logFile, logMessage + "\n", "utf8");
-    } catch (error) {
-      console.error("Failed to write log:", error);
+    // Write to file (only if logFile is set)
+    if (this.logFile) {
+      try {
+        appendFileSync(this.logFile, logMessage + "\n", "utf8");
+      } catch (error) {
+        console.error("Failed to write log:", error);
+      }
     }
   }
 
