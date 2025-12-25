@@ -165,7 +165,7 @@ const settings: Settings = {
     enableVideo: true,
     enableAudio: true,
     record: false,
-    recordAudio: true,
+    recordAudio: false,
     recordPath: "",
     recordTimeLimit: 0, // 0 = unlimited
     camera: false,
