@@ -179,6 +179,7 @@ export default function DisplayPage() {
     const value = parseInt(customMaxSize);
     if (value && value > 0 && value <= 7680) {
       setSettings({ ...settings, maxSize: value });
+      setCustomMaxSize(""); // Clear after saving
     } else if (customMaxSize === "") {
       setSettings({ ...settings, maxSize: 1080 });
     }
@@ -188,6 +189,7 @@ export default function DisplayPage() {
     const value = parseInt(customBitrate);
     if (value && value > 0 && value <= 1000) {
       setSettings({ ...settings, videoBitrate: value });
+      setCustomBitrate(""); // Clear after saving
     } else if (customBitrate === "") {
       setSettings({ ...settings, videoBitrate: 8 });
     }
@@ -197,6 +199,7 @@ export default function DisplayPage() {
     const value = parseInt(customFps);
     if (value && value > 0 && value <= 1000) {
       setSettings({ ...settings, frameRate: value });
+      setCustomFps(""); // Clear after saving
     } else if (customFps === "") {
       setSettings({ ...settings, frameRate: 60 });
     }
