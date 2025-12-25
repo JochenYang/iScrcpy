@@ -90,6 +90,7 @@
       "icon": "build/icon.ico",
       "cscLink": false,
       "forceCodeSigning": false,
+      "signAndEdit": false,
       "signAndEditExecutable": false,
       "target": [
         {

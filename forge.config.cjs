@@ -34,9 +34,7 @@ module.exports = {
         authors: 'iScrcpy Contributors',
         iconUrl: 'https://raw.githubusercontent.com/JochenYang/iScrcpy/main/images/iScrcpy.png',
         setupIcon: './images/iScrcpy.png',
-        remoteReleases: false,
-        certificateFile: './certificates/windows.pfx',
-        certificatePassword: process.env.WIN_CERTIFICATE_PASSWORD
+        remoteReleases: false
       }
     },
     // macOS DMG/ZIP
