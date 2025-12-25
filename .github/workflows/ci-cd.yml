@@ -16,9 +16,6 @@ jobs:
           - os: ubuntu-latest
             build-script: dist:linux
             output-dir: dist/linux-unpacked
-          - os: macos-latest
-            build-script: dist:mac
-            output-dir: dist/mac
           - os: windows-latest
             build-script: dist:win
             output-dir: dist/win-unpacked
@@ -68,7 +65,6 @@ jobs:
         with:
           files: |
             dist/**/iScrcpy*.exe
-            dist/**/iScrcpy*.dmg
             dist/**/iScrcpy*.deb
             dist/**/iScrcpy*.AppImage
             dist/**/iScrcpy*.tar.gz
