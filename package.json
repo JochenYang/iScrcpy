@@ -89,6 +89,8 @@
     "win": {
       "icon": "build/icon.ico",
       "cscLink": false,
+      "forceCodeSigning": false,
+      "signAndEditExecutable": false,
       "target": [
         {
           "target": "nsis",
