@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain, shell, dialog } from "electron";
 import { join } from "path";
-import { spawn, exec, execSync } from "child_process";
-import { existsSync, lstatSync } from "fs";
+import { spawn, exec, execSync, ChildProcess } from "child_process";
+import { existsSync, lstatSync, readFileSync, writeFileSync, statSync, mkdirSync, unlinkSync, renameSync, readdirSync } from "fs";
 import { logger } from "./logger";
 
 // Test mode flag
@@ -137,6 +137,7 @@ interface Settings {
   display: DisplaySettings;
   encoding: EncodingSettings;
   server: ServerSettings;
+  logLevel: string;
   deviceHistory: DeviceHistory[];
 }
 
@@ -195,17 +196,17 @@ const settings: Settings = {
       ? join(process.resourcesPath, "app", PLATFORM_FOLDER, getAdbExecutable())
       : join(process.cwd(), "app", PLATFORM_FOLDER, getAdbExecutable()),
   },
+  logLevel: "info",
   deviceHistory: [],
 };
 
 // Load settings from file
 function loadSettings(): void {
-  const fs = require("fs");
   const settingsPath = join(app.getPath("userData"), "settings.json");
-  if (fs.existsSync(settingsPath)) {
+  if (existsSync(settingsPath)) {
     try {
       const saved = JSON.parse(
-        fs.readFileSync(settingsPath, "utf8")
+        readFileSync(settingsPath, "utf8")
       ) as Partial<Settings>;
       if (saved.display) {
         settings.display = { ...settings.display, ...saved.display };
@@ -215,6 +216,10 @@ function loadSettings(): void {
       }
       if (saved.server) {
         settings.server = { ...settings.server, ...saved.server };
+      }
+      if (saved.logLevel) {
+        settings.logLevel = saved.logLevel;
+        logger.setLevel(saved.logLevel);
       }
     } catch (e) {
       console.error("Failed to load settings:", e);
@@ -635,21 +640,20 @@ ipcMain.handle(
 
     // Test mode - just log
     if (TEST_MODE) {
-      console.log("Starting scrcpy with args:", args);
+      logger.debug("Starting scrcpy with args:", { args });
       connectedDevices.add(deviceId);
       return { success: true, deviceId };
     }
 
     // Verify scrcpy path exists
-    const fs = require("fs");
     const currentScrcpyPath = getScrcpyPath();
     const currentAdbPath = getAdbPath();
 
-    console.log(`[SCRCPY DEBUG] Path: ${currentScrcpyPath}`);
-    console.log(`[SCRCPY DEBUG] ADB Path: ${currentAdbPath}`);
-    console.log(`[SCRCPY DEBUG] Args: ${args.join(" ")}`);
+    logger.debug(`[SCRCPY DEBUG] Path: ${currentScrcpyPath}`);
+    logger.debug(`[SCRCPY DEBUG] ADB Path: ${currentAdbPath}`);
+    logger.debug(`[SCRCPY DEBUG] Args: ${args.join(" ")}`);
 
-    if (!fs.existsSync(currentScrcpyPath)) {
+    if (!existsSync(currentScrcpyPath)) {
       logger.error(`Scrcpy not found at: ${currentScrcpyPath}`);
       return {
         success: false,
@@ -686,6 +690,7 @@ ipcMain.handle(
 
     // Helper function to notify renderer about scrcpy exit
     const notifyScrcpyExit = () => {
+      clearInterval(checkInterval);
       deviceProcesses.delete(deviceId);
       connectedDevices.delete(deviceId);
       if (mainWindow) {
@@ -696,26 +701,22 @@ ipcMain.handle(
     // Capture scrcpy output for debugging
     proc.stdout?.on("data", (data: Buffer) => {
       const msg = data.toString().trim();
-      console.log(`[SCRCPY STDOUT ${deviceId}]: ${msg}`);
-      logger.debug(`Scrcpy stdout [${deviceId}]: ${msg}`);
+      logger.debug(`[SCRCPY STDOUT ${deviceId}]: ${msg}`);
     });
 
     proc.stderr?.on("data", (data: Buffer) => {
       const msg = data.toString().trim();
-      console.log(`[SCRCPY STDERR ${deviceId}]: ${msg}`);
-      logger.debug(`Scrcpy stderr [${deviceId}]: ${msg}`);
+      logger.debug(`[SCRCPY STDERR ${deviceId}]: ${msg}`);
     });
 
     // Monitor scrcpy process status
     proc.on("error", (err: any) => {
-      console.log(`[SCRCPY ERROR ${deviceId}]:`, err);
-      logger.error(`Scrcpy spawn error for ${deviceId}`, err);
+      logger.error(`[SCRCPY ERROR ${deviceId}]:`, err);
       notifyScrcpyExit();
     });
 
     proc.on("close", (code: any) => {
-      console.log(`[SCRCPY CLOSE ${deviceId}]: exit code ${code}`);
-      logger.info(`Scrcpy exited for ${deviceId}`, { code });
+      logger.info(`[SCRCPY CLOSE ${deviceId}]: exit code ${code}`);
       notifyScrcpyExit();
     });
 
@@ -833,9 +834,8 @@ ipcMain.handle(
     }
 
     // Save to userData directory (works in both dev and packaged mode)
-    const fs = require("fs");
     const settingsPath = join(app.getPath("userData"), "settings.json");
-    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+    writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
 
     logger.info(`Settings saved to: ${settingsPath}`);
     return { success: true };
@@ -871,9 +871,8 @@ function addDeviceToHistory(
   }
 
   // Save to file
-  const fs = require("fs");
   const settingsPath = join(app.getPath("userData"), "settings.json");
-  fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+  writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
 }
 
 function removeDeviceFromHistory(deviceId: string): void {
@@ -882,9 +881,8 @@ function removeDeviceFromHistory(deviceId: string): void {
   );
 
   // Save to file
-  const fs = require("fs");
   const settingsPath = join(app.getPath("userData"), "settings.json");
-  fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+  writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
 }
 
 function updateDeviceAutoConnect(deviceId: string, autoConnect: boolean): void {
@@ -893,9 +891,8 @@ function updateDeviceAutoConnect(deviceId: string, autoConnect: boolean): void {
     device.autoConnect = autoConnect;
 
     // Save to file
-    const fs = require("fs");
     const settingsPath = join(app.getPath("userData"), "settings.json");
-    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+    writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
   }
 }
 
@@ -904,7 +901,7 @@ ipcMain.handle("load-settings", async (): Promise<Settings> => {
   return settings;
 });
 
-// Device history IPC handlers
+// Device history IPC handlers (kept for backward compatibility, data saved when connecting)
 ipcMain.handle("get-device-history", async (): Promise<DeviceHistory[]> => {
   return settings.deviceHistory;
 });
@@ -926,6 +923,30 @@ ipcMain.handle(
   ): Promise<{ success: boolean }> => {
     updateDeviceAutoConnect(deviceId, autoConnect);
     return { success: true };
+  }
+);
+
+ipcMain.handle("clear-device-history", async () => {
+  settings.deviceHistory = [];
+  saveSettingsToFile();
+  return { success: true };
+});
+
+// Log level control
+ipcMain.handle("get-log-level", async () => {
+  return { level: logger.getLevel() };
+});
+
+ipcMain.handle(
+  "set-log-level",
+  async (_, level: string): Promise<{ success: boolean; level?: string; error?: string }> => {
+    try {
+      logger.setLevel(level as any);
+      saveSettingsToFile();
+      return { success: true, level };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
   }
 );
 
@@ -1035,7 +1056,6 @@ ipcMain.handle(
       return { success: true };
     }
 
-    const fs = require("fs");
     const currentScrcpyPath = getScrcpyPath();
     const currentAdbPath = getAdbPath();
     logger.info(
@@ -1043,7 +1063,7 @@ ipcMain.handle(
     );
     logger.info(`Scrcpy args: ${args.join(" ")}`);
 
-    if (!fs.existsSync(currentScrcpyPath)) {
+    if (!existsSync(currentScrcpyPath)) {
       logger.error(`Scrcpy not found at: ${currentScrcpyPath}`);
       return {
         success: false,
@@ -1146,10 +1166,7 @@ async function sendCtrlC(pid: number): Promise<boolean> {
 
 // Helper function to repair corrupted MP4 recording files
 async function repairRecordingFile(filePath: string): Promise<boolean> {
-  const fs = require("fs");
-  const { spawn } = require("child_process");
-
-  if (!fs.existsSync(filePath)) {
+  if (!existsSync(filePath)) {
     logger.warn(`Repair failed: file not found: ${filePath}`);
     return false;
   }
@@ -1195,9 +1212,9 @@ async function repairRecordingFile(filePath: string): Promise<boolean> {
       if (currentStrategy >= repairStrategies.length) {
         logger.warn(`All repair strategies failed for: ${filePath}`);
         // Clean up partial fixed file if it exists
-        if (fs.existsSync(fixedPath)) {
+        if (existsSync(fixedPath)) {
           try {
-            fs.unlinkSync(fixedPath);
+            unlinkSync(fixedPath);
           } catch (e) {}
         }
         resolve(false);
@@ -1231,9 +1248,9 @@ async function repairRecordingFile(filePath: string): Promise<boolean> {
       repairProc.on("close", (code: number) => {
         clearTimeout(timeout);
 
-        if (code === 0 && fs.existsSync(fixedPath)) {
-          const origSize = fs.statSync(filePath).size;
-          const fixedSize = fs.statSync(fixedPath).size;
+        if (code === 0 && existsSync(fixedPath)) {
+          const origSize = statSync(filePath).size;
+          const fixedSize = statSync(fixedPath).size;
           logger.info(
             `Repair strategy ${
               currentStrategy + 1
@@ -1242,15 +1259,15 @@ async function repairRecordingFile(filePath: string): Promise<boolean> {
 
           // Replace original with fixed file
           try {
-            fs.unlinkSync(filePath);
-            fs.renameSync(fixedPath, filePath);
+            unlinkSync(filePath);
+            renameSync(fixedPath, filePath);
             logger.info(`Successfully repaired: ${filePath}`);
             resolve(true);
           } catch (e) {
             logger.warn(`Failed to replace file: ${e}`);
             // Keep the fixed file with different name
             try {
-              fs.renameSync(
+              renameSync(
                 fixedPath,
                 filePath.replace(/\.mp4$/i, "_repaired.mp4")
               );
@@ -1344,9 +1361,8 @@ ipcMain.handle(
         }
 
         // Quick file check - only repair if file is clearly corrupted
-        const fs = require("fs");
-        if (fs.existsSync(recordPath)) {
-          const stats = fs.statSync(recordPath);
+        if (existsSync(recordPath)) {
+          const stats = statSync(recordPath);
           const fileSize = stats.size;
           logger.info(`Recording file: ${fileSize} bytes`);
 
@@ -1401,13 +1417,12 @@ ipcMain.handle(
       return { success: true };
     }
 
-    const fs = require("fs");
     const currentScrcpyPath = getScrcpyPath();
     const currentAdbPath = getAdbPath();
     logger.info(`Stop recording - Scrcpy path: ${currentScrcpyPath}`);
     logger.info(`Stop recording - Args: ${args.join(" ")}`);
 
-    if (!fs.existsSync(currentScrcpyPath)) {
+    if (!existsSync(currentScrcpyPath)) {
       return {
         success: false,
         error: `Scrcpy not found at: ${currentScrcpyPath}`,
@@ -1559,7 +1574,6 @@ ipcMain.handle(
       return { success: true };
     }
 
-    const fs = require("fs");
     const currentScrcpyPath = getScrcpyPath();
     const currentAdbPath = getAdbPath();
     logger.info(
@@ -1567,7 +1581,7 @@ ipcMain.handle(
     );
     logger.info(`Audio toggle - Args: ${args.join(" ")}`);
 
-    if (!fs.existsSync(currentScrcpyPath)) {
+    if (!existsSync(currentScrcpyPath)) {
       logger.error(`Scrcpy not found at: ${currentScrcpyPath}`);
       return {
         success: false,
@@ -1705,10 +1719,9 @@ ipcMain.handle(
       return { success: true };
     }
 
-    const fs = require("fs");
     const currentScrcpyPath = getScrcpyPath();
     const currentAdbPath = getAdbPath();
-    if (!fs.existsSync(currentScrcpyPath)) {
+    if (!existsSync(currentScrcpyPath)) {
       return {
         success: false,
         error: `Scrcpy not found at: ${currentScrcpyPath}`,
@@ -1784,11 +1797,10 @@ ipcMain.handle(
     if (server.tunnelMode === "forward") args.push("--tunnel-forward");
     if (server.cleanup === false) args.push("--no-cleanup");
 
-    const fs = require("fs");
     const currentScrcpyPath = getScrcpyPath();
     const currentAdbPath = getAdbPath();
 
-    if (!fs.existsSync(currentScrcpyPath)) {
+    if (!existsSync(currentScrcpyPath)) {
       return {
         success: false,
         error: `Scrcpy not found at: ${currentScrcpyPath}`,
@@ -1883,9 +1895,88 @@ ipcMain.handle("window-close", () => mainWindow?.close());
 
 // Open folder
 ipcMain.handle("open-folder", async (_, folderPath: string) => {
-  const fs = require("fs");
-  if (fs.existsSync(folderPath)) {
+  if (existsSync(folderPath)) {
     shell.openPath(folderPath);
+  }
+});
+
+// Open logs folder
+ipcMain.handle("open-logs-folder", async () => {
+  const logDir = join(app.isPackaged ? app.getPath("userData") : process.cwd(), "logs");
+  if (existsSync(logDir)) {
+    shell.openPath(logDir);
+  } else {
+    // Create the folder if it doesn't exist
+    mkdirSync(logDir, { recursive: true });
+    shell.openPath(logDir);
+  }
+});
+
+// Get log statistics
+ipcMain.handle("get-log-stats", async (): Promise<{ count: number; size: string }> => {
+  const logDir = join(app.isPackaged ? app.getPath("userData") : process.cwd(), "logs");
+
+  if (!existsSync(logDir)) {
+    return { count: 0, size: "0 KB" };
+  }
+
+  try {
+    const files = readdirSync(logDir).filter((f) => f.endsWith(".log"));
+    let totalSize = 0;
+
+    for (const file of files) {
+      const filePath = join(logDir, file);
+      const stats = statSync(filePath);
+      totalSize += stats.size;
+    }
+
+    // Format size
+    let sizeStr: string;
+    if (totalSize < 1024) {
+      sizeStr = `${totalSize} B`;
+    } else if (totalSize < 1024 * 1024) {
+      sizeStr = `${(totalSize / 1024).toFixed(1)} KB`;
+    } else {
+      sizeStr = `${(totalSize / (1024 * 1024)).toFixed(1)} MB`;
+    }
+
+    return { count: files.length, size: sizeStr };
+  } catch (error) {
+    logger.error("Failed to get log stats:", error);
+    return { count: 0, size: "0 KB" };
+  }
+});
+
+// Clear old logs (older than 7 days)
+ipcMain.handle("clear-logs", async (): Promise<{ success: boolean; count: number; error?: string }> => {
+  const logDir = join(app.isPackaged ? app.getPath("userData") : process.cwd(), "logs");
+
+  if (!existsSync(logDir)) {
+    return { success: true, count: 0 };
+  }
+
+  try {
+    const files = readdirSync(logDir).filter((f) => f.endsWith(".log"));
+    const now = Date.now();
+    const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+    let deletedCount = 0;
+
+    for (const file of files) {
+      const filePath = join(logDir, file);
+      const stats = statSync(filePath);
+
+      // Delete files older than 7 days
+      if (stats.mtimeMs < sevenDaysAgo) {
+        unlinkSync(filePath);
+        deletedCount++;
+      }
+    }
+
+    logger.info(`Cleared ${deletedCount} old log files`);
+    return { success: true, count: deletedCount };
+  } catch (error) {
+    logger.error("Failed to clear logs:", error);
+    return { success: false, count: 0, error: String(error) };
   }
 });
 
@@ -1956,9 +2047,11 @@ ipcMain.handle("get-scrcpy-path", async () => {
 
 // Helper function to save settings to file
 function saveSettingsToFile(): void {
-  const fs = require("fs");
-  const settingsPath = join(__dirname, "..", "settings.json");
-  fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+  const settingsPath = join(app.getPath("userData"), "settings.json");
+  writeFileSync(settingsPath, JSON.stringify({
+    ...settings,
+    logLevel: logger.getLevel()
+  }, null, 2));
 }
 
 // Get current adb path

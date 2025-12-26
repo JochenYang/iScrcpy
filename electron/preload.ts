@@ -1,4 +1,12 @@
 import { contextBridge, ipcRenderer } from "electron";
+import type { ElectronAPI } from "../src/types/electron";
+
+// File dialog options type (for local use)
+type FileDialogOptions = {
+  defaultPath?: string;
+  title?: string;
+  filters?: { name: string; extensions: string[] }[];
+};
 
 contextBridge.exposeInMainWorld("electronAPI", {
   // Device management
@@ -55,8 +63,15 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getDeviceHistory: () => ipcRenderer.invoke("get-device-history"),
   removeDeviceHistory: (deviceId: string) =>
     ipcRenderer.invoke("remove-device-history", deviceId),
+  clearDeviceHistory: () => ipcRenderer.invoke("clear-device-history"),
   updateDeviceAutoConnect: (deviceId: string, autoConnect: boolean) =>
     ipcRenderer.invoke("update-device-auto-connect", deviceId, autoConnect),
+
+  // Log level
+  getLogLevel: () => ipcRenderer.invoke("get-log-level"),
+  setLogLevel: (level: string) => ipcRenderer.invoke("set-log-level", level),
+  getLogStats: () => ipcRenderer.invoke("get-log-stats"),
+  clearLogs: () => ipcRenderer.invoke("clear-logs"),
 
   // Settings
   saveSettings: (type: string, settings: object) =>
@@ -77,14 +92,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // File operations
   openFolder: (path: string) => ipcRenderer.invoke("open-folder", path),
+  openLogsFolder: () => ipcRenderer.invoke("open-logs-folder"),
   openExternal: (url: string) => ipcRenderer.invoke("open-external", url),
   selectFolder: (defaultPath: string) =>
     ipcRenderer.invoke("select-folder", defaultPath),
-  selectFile: (options: {
-    defaultPath?: string;
-    title?: string;
-    filters?: { name: string; extensions: string[] }[];
-  }) => ipcRenderer.invoke("select-file", options),
+  selectFile: (options: FileDialogOptions) =>
+    ipcRenderer.invoke("select-file", options),
   getScrcpyPath: () => ipcRenderer.invoke("get-scrcpy-path"),
   getAdbPath: () => ipcRenderer.invoke("get-adb-path"),
   setScrcpyPath: (path: string) => ipcRenderer.invoke("set-scrcpy-path", path),

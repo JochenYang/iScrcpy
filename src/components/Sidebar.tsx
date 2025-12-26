@@ -6,6 +6,7 @@ import {
   Monitor,
   Code2,
   Server,
+  ScrollText,
   Info,
   ChevronLeft,
   ChevronRight,
@@ -38,6 +39,7 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
     { id: "display" as TabType, label: t("sidebar.display"), icon: Monitor },
     { id: "encoding" as TabType, label: t("sidebar.encoding"), icon: Code2 },
     { id: "server" as TabType, label: t("sidebar.server"), icon: Server },
+    { id: "settings" as TabType, label: t("sidebar.settings"), icon: ScrollText },
     { id: "about" as TabType, label: t("sidebar.about"), icon: Info },
   ];
 

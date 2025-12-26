@@ -180,7 +180,30 @@ export default function DeviceCard({
           >
             {t("devices.connect")}
           </button>
-        ) : null}
+        ) : (
+          // Offline device shows connect button
+          <button
+            className="btn btn-primary btn-small"
+            onClick={() => {
+              if (device.type === "usb") {
+                // USB device offline, need physical connection
+                const toast = document.createElement("div");
+                toast.className = "toast";
+                toast.textContent = t("devices.toast.connectUsbDevice");
+                document.body.appendChild(toast);
+                setTimeout(() => {
+                  toast.classList.add("fade-out");
+                  setTimeout(() => toast.remove(), 300);
+                }, 2000);
+              } else {
+                // WiFi device offline, can connect quickly
+                onConnect(device.id);
+              }
+            }}
+          >
+            {t("devices.connect")}
+          </button>
+        )}
       </div>
     </div>
   );

@@ -5,14 +5,17 @@ interface Device {
   name: string;
   type: "usb" | "wifi";
   status: string;
+  lastSeen?: number; // Timestamp when last seen
 }
 
 interface DeviceStore {
   devices: Device[];
+  knownDevices: Device[]; // All devices ever seen (persist across disconnections)
   mirroringDevices: Set<string>; // Devices currently mirroring
   recordingDevices: Set<string>; // Devices currently recording
   audioEnabledDevices: Set<string>; // Devices with audio enabled
-  setDevices: (devices: Device[]) => void;
+  updateKnownDevice: (device: Device) => void; // Update or add device to known list
+  removeKnownDevice: (deviceId: string) => void; // Remove device from known list
   addMirroringDevice: (deviceId: string) => void;
   removeMirroringDevice: (deviceId: string) => void;
   addRecordingDevice: (deviceId: string) => void;
@@ -25,11 +28,30 @@ interface DeviceStore {
 
 export const useDeviceStore = create<DeviceStore>((set, get) => ({
   devices: [],
+  knownDevices: [],
   mirroringDevices: new Set<string>(),
   recordingDevices: new Set<string>(),
   audioEnabledDevices: new Set<string>(),
 
-  setDevices: (devices) => set({ devices }),
+  updateKnownDevice: (device) => {
+    const knownDevices = get().knownDevices;
+    const existingIndex = knownDevices.findIndex(d => d.id === device.id);
+    const updatedKnown = [...knownDevices];
+    
+    if (existingIndex >= 0) {
+      updatedKnown[existingIndex] = { ...device, lastSeen: Date.now() };
+    } else {
+      updatedKnown.push({ ...device, lastSeen: Date.now() });
+    }
+    
+    set({ knownDevices: updatedKnown });
+  },
+
+  removeKnownDevice: (deviceId) => {
+    set((state) => ({
+      knownDevices: state.knownDevices.filter(d => d.id !== deviceId),
+    }));
+  },
 
   addMirroringDevice: (deviceId) =>
     set((state) => ({

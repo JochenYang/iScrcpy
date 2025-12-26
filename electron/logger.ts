@@ -6,11 +6,31 @@ class Logger {
   private logDir: string;
   private logFile: string;
   private initialized: boolean = false;
+  private level: string = "info"; // Default log level
 
   constructor() {
     // Delay initialization until app is ready
     this.logDir = "";
     this.logFile = "";
+  }
+
+  getLevel(): string {
+    return this.level;
+  }
+
+  setLevel(level: string) {
+    const validLevels = ["error", "warn", "info", "debug"];
+    if (validLevels.includes(level)) {
+      this.level = level;
+      // Don't log here to avoid infinite loops
+    }
+  }
+
+  private shouldLog(level: string): boolean {
+    const levels = ["error", "warn", "info", "debug"];
+    const currentIndex = levels.indexOf(this.level);
+    const messageIndex = levels.indexOf(level);
+    return messageIndex <= currentIndex;
   }
 
   private ensureInitialized() {
@@ -66,6 +86,9 @@ class Logger {
   }
 
   private writeLog(level: string, message: string, data?: any) {
+    // Check if we should log this level
+    if (!this.shouldLog(level)) return;
+
     this.ensureInitialized();
     const logMessage = this.formatMessage(level, message, data);
 

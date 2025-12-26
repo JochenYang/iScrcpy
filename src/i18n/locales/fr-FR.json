@@ -5,6 +5,7 @@
     "display": "Affichage",
     "encoding": "Encodage",
     "server": "Serveur",
+    "settings": "Journaux",
     "about": "À propos",
     "expand": "Développer",
     "collapse": "Réduire"
@@ -31,30 +32,32 @@
     "connectBtn": "Connecter",
     "cancel": "Annuler",
     "toast": {
-      "screenMirroringStarted": "Duplication d'écran démarrée",
-      "screenMirroringStopped": "Duplication d'écran arrêtée",
+      "screenMirroringStarted": "{{deviceName}} duplication d'écran démarrée",
+      "screenMirroringStopped": "{{deviceName}} duplication d'écran arrêtée",
       "screenMirroringDisconnected": "Duplication d'écran déconnectée",
       "screenMirroringFailed": "Échec de la duplication d'écran",
-      "wifiConnected": "Appareil WiFi {address} connecté avec succès",
+      "wifiConnected": "Appareil WiFi {{address}} connecté avec succès",
       "wifiConnectFailed": "Échec de la connexion WiFi",
-      "enablingWifiMode": "Activation du mode WiFi pour l'appareil {deviceId}...",
-      "wifiModeEnabled": "Mode WiFi activé! IP de l'appareil: {ip}:5555",
+      "connectUsbDevice": "Veuillez connecter l'appareil via un cable USB",
+      "enablingWifiMode": "Activation du mode WiFi pour l'appareil {{deviceId}}...",
+      "wifiModeEnabled": "Mode WiFi activé! IP de l'appareil: {{ip}}:5555",
       "wifiModeEnabledManual": "Mode WiFi activé, veuillez entrer l'IP de l'appareil manuellement",
       "wifiModeEnableFailed": "Échec de l'activation du mode WiFi",
-      "autoConnected": "Connecté automatiquement à l'appareil WiFi {ip}:5555",
+      "autoConnected": "Connecté automatiquement à l'appareil WiFi {{ip}}:5555",
       "noDevicesToConnect": "Aucun appareil à connecter",
       "enterIpAddress": "Veuillez entrer l'adresse IP de l'appareil",
       "unknownError": "Erreur inconnue",
       "recordingStarted": "Enregistrement démarré",
       "recordingStopped": "Enregistrement arrêté",
-      "audioToggled": "Audio {status}",
-      "cameraToggled": "Caméra {status}"
+      "audioToggled": "Audio {{status}}",
+      "cameraToggled": "Caméra {{status}}"
     }
   },
   "display": {
     "title": "Paramètres d'Affichage",
     "maxSize": "Résolution Maximale",
     "maxSizeDesc": "Limiter la taille maximale (largeur ou hauteur) de la vidéo",
+    "originalResolution": "Résolution Originale",
     "videoBitrate": "Débit Vidéo",
     "videoBitrateDesc": "Débit pour l'encodage vidéo (Mbps)",
     "frameRate": "Fréquence d'Images",
@@ -132,5 +135,28 @@
   },
   "statusBar": {
     "language": "Langue"
+  },
+  "settings": {
+    "title": "Journaux",
+    "logLevel": "Niveau de Journal",
+    "logLevelDesc": "Niveau de sortie du journal de la console",
+    "logError": "Erreur",
+    "logErrorDesc": "Afficher uniquement les erreurs critiques",
+    "logWarn": "Avertissement",
+    "logWarnDesc": "Afficher les erreurs et les avertissements",
+    "logInfo": "Info",
+    "logInfoDesc": "Afficher les informations d'opération générale",
+    "logDebug": "Débogage",
+    "logDebugDesc": "Afficher toutes les informations de débogage",
+    "logManagement": "Gestion des Journaux",
+    "logManagementDesc": "Afficher et gérer les fichiers journaux",
+    "logFiles": "Fichiers Journaux",
+    "logSize": "Taille Totale",
+    "clearLogs": "Effacer les Anciens Journaux",
+    "clearing": "Effacement...",
+    "clearLogsConfirm": "Supprimer tous les fichiers journaux de plus de 7 jours ?",
+    "logsCleared": "{{count}} fichiers journaux effacés",
+    "clearLogsFailed": "Échec de l'effacement des journaux",
+    "saved": "Paramètres enregistrés"
   }
 }

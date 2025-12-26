@@ -1,25 +1,41 @@
 import { useTranslation } from "react-i18next";
 import { electronAPI } from "../utils/electron";
-import { Github, HelpCircle, ExternalLink } from "lucide-react";
+import { Github, ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
+
+interface VersionInfo {
+  appVersion: string;
+  scrcpyVersion: string;
+  adbVersion: string;
+}
 
 export default function AboutPage() {
   const { t } = useTranslation();
-  const [appVersion, setAppVersion] = useState("...");
-  const [scrcpyVersion, setScrcpyVersion] = useState("...");
+  const [versions, setVersions] = useState<VersionInfo>({
+    appVersion: "...",
+    scrcpyVersion: "...",
+    adbVersion: "...",
+  });
 
   useEffect(() => {
     // Get app version from package.json
     electronAPI.getAppVersion().then((result) => {
       if (result.version) {
-        setAppVersion(result.version);
+        setVersions((prev) => ({ ...prev, appVersion: result.version }));
       }
     });
 
     // Get scrcpy version
     electronAPI.getVersion().then((result) => {
       if (result.success && result.version) {
-        setScrcpyVersion(result.version);
+        setVersions((prev) => ({ ...prev, scrcpyVersion: result.version }));
+      }
+    });
+
+    // Get ADB version
+    electronAPI.getAdbVersion().then((result) => {
+      if (result.success && result.version) {
+        setVersions((prev) => ({ ...prev, adbVersion: result.version }));
       }
     });
   }, []);
@@ -30,13 +46,10 @@ export default function AboutPage() {
 
   return (
     <div className="content-wrapper about-page">
-      <div className="page-header">
-        <h1>{t("about.title")}</h1>
-      </div>
-
-      <div className="about-container">
-        <div className="about-logo">
-          <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+      {/* App Header */}
+      <div className="about-header">
+        <div className="about-logo-icon">
+          <svg width="48" height="48" viewBox="0 0 64 64" fill="none">
             <rect
               x="8"
               y="12"
@@ -60,60 +73,62 @@ export default function AboutPage() {
               strokeLinecap="round"
             />
           </svg>
-          <h2>iScrcpy</h2>
-          <p className="version">v{appVersion}</p>
-          <p className="version" style={{ fontSize: "0.875rem", opacity: 0.7 }}>
-            Scrcpy {scrcpyVersion}
-          </p>
-          <p className="author">Jochenyang</p>
         </div>
+        <h1 className="about-app-name">iScrcpy</h1>
+        <p className="about-app-version">v{versions.appVersion}</p>
+        <p className="about-tagline">{t("about.description")}</p>
+      </div>
 
-        <div className="settings-card">
-          <div className="card-header">
-            <Github size={20} />
-            {t("about.links")}
-          </div>
-          <div className="card-body">
-            <p className="description">{t("about.description")}</p>
-            <div className="github-links">
-              <button
-                className="github-link-btn"
-                onClick={() =>
-                  openExternal("https://github.com/JochenYang/iScrcpy")
-                }
-              >
-                <Github size={18} />
-                <span>iScrcpy</span>
-                <ExternalLink size={14} className="external-link-icon" />
-              </button>
-              <button
-                className="github-link-btn"
-                onClick={() =>
-                  openExternal("https://github.com/Genymobile/scrcpy")
-                }
-              >
-                <Github size={18} />
-                <span>scrcpy</span>
-                <ExternalLink size={14} className="external-link-icon" />
-              </button>
+      {/* Info Card - Version & Links combined */}
+      <div className="settings-card">
+        <div className="card-body">
+          {/* Version Info */}
+          <div className="about-version-row">
+            <div className="about-version-item">
+              <span className="about-version-label">Scrcpy</span>
+              <span className="about-version-value">{versions.scrcpyVersion}</span>
+            </div>
+            <div className="about-version-item">
+              <span className="about-version-label">ADB</span>
+              <span className="about-version-value">{versions.adbVersion}</span>
             </div>
           </div>
-        </div>
 
-        <div className="settings-card">
-          <div className="card-header">
-            <HelpCircle size={20} />
-            {t("about.documentation")}
-          </div>
-          <div className="card-body">
-            <ul className="help-list">
-              <li>USB / WiFi {t("devices.connect")}</li>
-              <li>{t("devices.connect")}</li>
-              <li>{t("display.title")}</li>
-              <li>{t("devices.wifiDevices")}</li>
-            </ul>
+          {/* Divider */}
+          <div className="about-divider"></div>
+
+          {/* Links */}
+          <div className="about-links-row">
+            <button
+              className="about-link-card"
+              onClick={() => openExternal("https://github.com/JochenYang/iScrcpy")}
+            >
+              <Github size={20} />
+              <div className="about-link-content">
+                <span className="about-link-title">iScrcpy</span>
+                <span className="about-link-desc">{t("about.github")}</span>
+              </div>
+              <ExternalLink size={14} className="about-link-arrow" />
+            </button>
+            <button
+              className="about-link-card"
+              onClick={() => openExternal("https://github.com/Genymobile/scrcpy")}
+            >
+              <Github size={20} />
+              <div className="about-link-content">
+                <span className="about-link-title">scrcpy</span>
+                <span className="about-link-desc">{t("about.github")}</span>
+              </div>
+              <ExternalLink size={14} className="about-link-arrow" />
+            </button>
           </div>
         </div>
+      </div>
+
+      <div className="about-footer" style={{ marginTop: '24px', textAlign: 'center' }}>
+        <span className="about-author" style={{ fontSize: '12px', color: 'var(--on-surface-variant)', opacity: 0.6 }}>
+          Designed by JochenYang
+        </span>
       </div>
     </div>
   );

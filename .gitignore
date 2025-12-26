@@ -9,6 +9,7 @@ dist-win/
 .idea/
 .vscode/
 *.iml
+.claude
 
 # OS
 .DS_Store

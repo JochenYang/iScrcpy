@@ -20,9 +20,13 @@ import {
 } from "lucide-react";
 
 interface DisplaySettings {
-  maxSize: number | "custom";
-  videoBitrate: number | "custom";
-  frameRate: number | "custom";
+  maxSize: number;
+  videoBitrate: number;
+  frameRate: number;
+  // Custom option values (independent from preset options)
+  customMaxSize: number;
+  customVideoBitrate: number;
+  customFrameRate: number;
   alwaysOnTop: boolean;
   fullscreen: boolean;
   stayAwake: boolean;
@@ -57,6 +61,9 @@ export default function DisplayPage() {
     maxSize: 1080,
     videoBitrate: 8,
     frameRate: 60,
+    customMaxSize: 1920,
+    customVideoBitrate: 10,
+    customFrameRate: 90,
     alwaysOnTop: false,
     fullscreen: false,
     stayAwake: false,
@@ -74,9 +81,6 @@ export default function DisplayPage() {
     disableScreensaver: false,
   });
   const [saving, setSaving] = useState(false);
-  const [customMaxSize, setCustomMaxSize] = useState("");
-  const [customBitrate, setCustomBitrate] = useState("");
-  const [customFps, setCustomFps] = useState("");
 
   useEffect(() => {
     loadSettings();
@@ -85,7 +89,12 @@ export default function DisplayPage() {
   const loadSettings = async () => {
     const result = await electronAPI.loadSettings();
     if (result.display) {
-      setSettings((prev) => ({ ...prev, ...result.display }));
+      const savedDisplay = result.display as any;
+      // Ensure custom values exist
+      if (savedDisplay.customMaxSize === undefined) savedDisplay.customMaxSize = 1920;
+      if (savedDisplay.customVideoBitrate === undefined) savedDisplay.customVideoBitrate = 10;
+      if (savedDisplay.customFrameRate === undefined) savedDisplay.customFrameRate = 90;
+      setSettings((prev) => ({ ...prev, ...savedDisplay }));
     }
     if (result.encoding) {
       setEncodingSettings((prev) => ({ ...prev, ...result.encoding }));
@@ -115,10 +124,9 @@ export default function DisplayPage() {
     const parts = ["scrcpy"];
     if (!settings.enableVideo) parts.push("--no-video");
     if (!settings.enableAudio) parts.push("--no-audio");
-    const maxSize = typeof settings.maxSize === "number" ? settings.maxSize : 0;
-    const bitrate =
-      typeof settings.videoBitrate === "number" ? settings.videoBitrate : 0;
-    const fps = typeof settings.frameRate === "number" ? settings.frameRate : 0;
+    const maxSize = settings.maxSize;
+    const bitrate = settings.videoBitrate;
+    const fps = settings.frameRate;
     if (maxSize && maxSize !== 1920) parts.push(`--max-size=${maxSize}`);
     if (bitrate) parts.push(`--video-bit-rate=${bitrate}M`);
     if (fps && fps !== 60) parts.push(`--max-fps=${fps}`);
@@ -143,13 +151,17 @@ export default function DisplayPage() {
     return parts.join(" ");
   };
 
+  // Check if a value is a preset option (1024, original = 0)
+  const isPresetMaxSize = (value: number) => [0, 480, 720, 1024, 1080, 1440, 2160].includes(value);
+  const isPresetBitrate = (value: number) => [1, 2, 4, 8, 16, 32].includes(value);
+  const isPresetFps = (value: number) => [30, 60, 90, 120, 144].includes(value);
+
   const handleMaxSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
     if (value === "custom") {
-      setSettings({ ...settings, maxSize: "custom" });
+      setSettings({ ...settings, maxSize: settings.customMaxSize });
     } else {
       setSettings({ ...settings, maxSize: parseInt(value) });
-      setCustomMaxSize("");
     }
   };
 
@@ -158,51 +170,31 @@ export default function DisplayPage() {
   ) => {
     const value = e.target.value;
     if (value === "custom") {
-      setSettings({ ...settings, videoBitrate: "custom" });
+      setSettings({ ...settings, videoBitrate: settings.customVideoBitrate });
     } else {
       setSettings({ ...settings, videoBitrate: parseInt(value) });
-      setCustomBitrate("");
     }
   };
 
   const handleFrameRateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
     if (value === "custom") {
-      setSettings({ ...settings, frameRate: "custom" });
+      setSettings({ ...settings, frameRate: settings.customFrameRate });
     } else {
       setSettings({ ...settings, frameRate: parseInt(value) });
-      setCustomFps("");
     }
   };
 
-  const handleCustomMaxSizeBlur = () => {
-    const value = parseInt(customMaxSize);
-    if (value && value > 0 && value <= 7680) {
-      setSettings({ ...settings, maxSize: value });
-      setCustomMaxSize(""); // Clear after saving
-    } else if (customMaxSize === "") {
-      setSettings({ ...settings, maxSize: 1080 });
-    }
+  const handleCustomMaxSizeChange = (value: number) => {
+    setSettings({ ...settings, maxSize: value, customMaxSize: value });
   };
 
-  const handleCustomBitrateBlur = () => {
-    const value = parseInt(customBitrate);
-    if (value && value > 0 && value <= 1000) {
-      setSettings({ ...settings, videoBitrate: value });
-      setCustomBitrate(""); // Clear after saving
-    } else if (customBitrate === "") {
-      setSettings({ ...settings, videoBitrate: 8 });
-    }
+  const handleCustomBitrateChange = (value: number) => {
+    setSettings({ ...settings, videoBitrate: value, customVideoBitrate: value });
   };
 
-  const handleCustomFpsBlur = () => {
-    const value = parseInt(customFps);
-    if (value && value > 0 && value <= 1000) {
-      setSettings({ ...settings, frameRate: value });
-      setCustomFps(""); // Clear after saving
-    } else if (customFps === "") {
-      setSettings({ ...settings, frameRate: 60 });
-    }
+  const handleCustomFpsChange = (value: number) => {
+    setSettings({ ...settings, frameRate: value, customFrameRate: value });
   };
 
   const handleSelectFolder = async () => {
@@ -216,19 +208,20 @@ export default function DisplayPage() {
     }
   };
 
+  // Helper functions for select values
   const getMaxSizeValue = () => {
-    if (settings.maxSize === "custom") return "custom";
-    return String(settings.maxSize);
+    if (isPresetMaxSize(settings.maxSize)) return String(settings.maxSize);
+    return "custom";
   };
 
   const getBitrateValue = () => {
-    if (settings.videoBitrate === "custom") return "custom";
-    return String(settings.videoBitrate);
+    if (isPresetBitrate(settings.videoBitrate)) return String(settings.videoBitrate);
+    return "custom";
   };
 
   const getFpsValue = () => {
-    if (settings.frameRate === "custom") return "custom";
-    return String(settings.frameRate);
+    if (isPresetFps(settings.frameRate)) return String(settings.frameRate);
+    return "custom";
   };
 
   return (
@@ -298,24 +291,22 @@ export default function DisplayPage() {
               {t("display.maxSize")}
             </label>
             <select value={getMaxSizeValue()} onChange={handleMaxSizeChange}>
+              <option value="0">{t("display.originalResolution")}</option>
               <option value="480">480p</option>
               <option value="720">720p</option>
+              <option value="1024">1024p</option>
               <option value="1080">1080p</option>
               <option value="1440">1440p (2K)</option>
               <option value="2160">2160p (4K)</option>
               <option value="custom">{t("display.maxSize")}...</option>
             </select>
-            {settings.maxSize === "custom" && (
+            {!isPresetMaxSize(settings.maxSize) && (
               <div className="custom-input-group">
                 <input
                   type="number"
                   placeholder="1920"
-                  value={customMaxSize}
-                  onChange={(e) => setCustomMaxSize(e.target.value)}
-                  onBlur={handleCustomMaxSizeBlur}
-                  onKeyPress={(e) =>
-                    e.key === "Enter" && handleCustomMaxSizeBlur()
-                  }
+                  value={settings.customMaxSize}
+                  onChange={(e) => handleCustomMaxSizeChange(parseInt(e.target.value) || 1920)}
                 />
                 <span className="input-suffix">px</span>
               </div>
@@ -339,17 +330,13 @@ export default function DisplayPage() {
               <option value="32">32 Mbps</option>
               <option value="custom">{t("display.videoBitrate")}...</option>
             </select>
-            {settings.videoBitrate === "custom" && (
+            {!isPresetBitrate(settings.videoBitrate) && (
               <div className="custom-input-group">
                 <input
                   type="number"
                   placeholder="10"
-                  value={customBitrate}
-                  onChange={(e) => setCustomBitrate(e.target.value)}
-                  onBlur={handleCustomBitrateBlur}
-                  onKeyPress={(e) =>
-                    e.key === "Enter" && handleCustomBitrateBlur()
-                  }
+                  value={settings.customVideoBitrate}
+                  onChange={(e) => handleCustomBitrateChange(parseInt(e.target.value) || 10)}
                 />
                 <span className="input-suffix">Mbps</span>
               </div>
@@ -369,15 +356,13 @@ export default function DisplayPage() {
               <option value="144">144 fps</option>
               <option value="custom">{t("display.frameRate")}...</option>
             </select>
-            {settings.frameRate === "custom" && (
+            {!isPresetFps(settings.frameRate) && (
               <div className="custom-input-group">
                 <input
                   type="number"
                   placeholder="90"
-                  value={customFps}
-                  onChange={(e) => setCustomFps(e.target.value)}
-                  onBlur={handleCustomFpsBlur}
-                  onKeyPress={(e) => e.key === "Enter" && handleCustomFpsBlur()}
+                  value={settings.customFrameRate}
+                  onChange={(e) => handleCustomFpsChange(parseInt(e.target.value) || 90)}
                 />
                 <span className="input-suffix">fps</span>
               </div>

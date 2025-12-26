@@ -7,6 +7,7 @@
     "display": "ディスプレイ",
     "encoding": "エンコード",
     "server": "サーバー",
+    "settings": "ログ",
     "about": "について",
     "expand": "展開",
     "collapse": "折りたたむ"
@@ -33,30 +34,32 @@
     "connectBtn": "接続",
     "cancel": "キャンセル",
     "toast": {
-      "screenMirroringStarted": "ミラーリングを開始しました",
-      "screenMirroringStopped": "ミラーリングを停止しました",
+      "screenMirroringStarted": "{{deviceName}} ミラーリングを開始しました",
+      "screenMirroringStopped": "{{deviceName}} ミラーリングを停止しました",
       "screenMirroringDisconnected": "ミラーリングが切断されました",
       "screenMirroringFailed": "ミラーリングに失敗しました",
-      "wifiConnected": "WiFiデバイス {address} に接続しました",
+      "wifiConnected": "WiFiデバイス {{address}} に接続しました",
       "wifiConnectFailed": "WiFi接続に失敗しました",
-      "enablingWifiMode": "デバイス {deviceId} のWiFiモードを有効化中...",
-      "wifiModeEnabled": "WiFiモードが有効になりました！デバイスIP: {ip}:5555",
+      "connectUsbDevice": "USBケーブルでデバイスを接続してください",
+      "enablingWifiMode": "デバイス {{deviceId}} のWiFiモードを有効化中...",
+      "wifiModeEnabled": "WiFiモードが有効になりました！デバイスIP: {{ip}}:5555",
       "wifiModeEnabledManual": "WiFiモードが有効になりました。手動でデバイスIPを入力してください",
       "wifiModeEnableFailed": "WiFiモードの有効化に失敗しました",
-      "autoConnected": "WiFiデバイス {ip}:5555 に自動接続しました",
+      "autoConnected": "WiFiデバイス {{ip}}:5555 に自動接続しました",
       "noDevicesToConnect": "接続可能なデバイスがありません",
       "enterIpAddress": "デバイスのIPアドレスを入力してください",
       "unknownError": "不明なエラー",
       "recordingStarted": "録画を開始しました",
       "recordingStopped": "録画を停止しました",
-      "audioToggled": "音声が{status}されました",
-      "cameraToggled": "カメラが{status}されました"
+      "audioToggled": "音声が{{status}}されました",
+      "cameraToggled": "カメラが{{status}}されました"
     }
   },
   "display": {
     "title": "ディスプレイ設定",
     "maxSize": "最大解像度",
     "maxSizeDesc": "ビデオの最大サイズ（幅または高さ）を制限",
+    "originalResolution": "元の解像度",
     "videoBitrate": "ビデオビットレート",
     "videoBitrateDesc": "ビデオエンコードのビットレート（Mbps）",
     "frameRate": "フレームレート",
@@ -134,5 +137,28 @@
   },
   "statusBar": {
     "language": "言語"
+  },
+  "settings": {
+    "title": "ログ",
+    "logLevel": "ログレベル",
+    "logLevelDesc": "コンソールログ出力レベル",
+    "logError": "エラー",
+    "logErrorDesc": "重大なエラーのみを表示",
+    "logWarn": "警告",
+    "logWarnDesc": "エラーと警告を表示",
+    "logInfo": "情報",
+    "logInfoDesc": "一般的な操作情報を表示",
+    "logDebug": "デバッグ",
+    "logDebugDesc": "すべてのデバッグ情報を表示",
+    "logManagement": "ログ管理",
+    "logManagementDesc": "ログファイルの表示と管理",
+    "logFiles": "ログファイル",
+    "logSize": "合計サイズ",
+    "clearLogs": "古いログを削除",
+    "clearing": "削除中...",
+    "clearLogsConfirm": "7 日より古いログファイルを削除しますか？",
+    "logsCleared": "{{count}} 個のログファイルを削除しました",
+    "clearLogsFailed": "ログの削除に失敗しました",
+    "saved": "設定を保存しました"
   }
 }

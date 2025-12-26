@@ -5,6 +5,7 @@
     "display": "Ekran",
     "encoding": "Kodlama",
     "server": "Sunucu",
+    "settings": "Günlükler",
     "about": "Hakkında",
     "expand": "Genişlet",
     "collapse": "Daralt"
@@ -31,30 +32,32 @@
     "connectBtn": "Bağlan",
     "cancel": "İptal",
     "toast": {
-      "screenMirroringStarted": "Ekran yansıtma başlatıldı",
-      "screenMirroringStopped": "Ekran yansıtma durduruldu",
+      "screenMirroringStarted": "{{deviceName}} ekran yansıtma başlatıldı",
+      "screenMirroringStopped": "{{deviceName}} ekran yansıtma durduruldu",
       "screenMirroringDisconnected": "Ekran yansıtma bağlantısı kesildi",
       "screenMirroringFailed": "Ekran yansıtma başarısız",
-      "wifiConnected": "WiFi cihazı {address} başarıyla bağlandı",
+      "wifiConnected": "WiFi cihazı {{address}} başarıyla bağlandı",
       "wifiConnectFailed": "WiFi bağlantısı başarısız",
-      "enablingWifiMode": "Cihaz {deviceId} için WiFi modu etkinleştiriliyor...",
-      "wifiModeEnabled": "WiFi modu etkinleştirildi! Cihaz IP: {ip}:5555",
+      "connectUsbDevice": "Lütfen cihazı USB kablosuyla bağlayın",
+      "enablingWifiMode": "Cihaz {{deviceId}} için WiFi modu etkinleştiriliyor...",
+      "wifiModeEnabled": "WiFi modu etkinleştirildi! Cihaz IP: {{ip}}:5555",
       "wifiModeEnabledManual": "WiFi modu etkinleştirildi, lütfen cihaz IP'sini manuel olarak girin",
       "wifiModeEnableFailed": "WiFi modu etkinleştirilemedi",
-      "autoConnected": "WiFi cihazı {ip}:5555'e otomatik bağlandı",
+      "autoConnected": "WiFi cihazı {{ip}}:5555'e otomatik bağlandı",
       "noDevicesToConnect": "Bağlanacak cihaz yok",
       "enterIpAddress": "Lütfen cihaz IP adresini girin",
       "unknownError": "Bilinmeyen hata",
       "recordingStarted": "Kayıt başlatıldı",
       "recordingStopped": "Kayıt durduruldu",
-      "audioToggled": "Ses {status}",
-      "cameraToggled": "Kamera {status}"
+      "audioToggled": "Ses {{status}}",
+      "cameraToggled": "Kamera {{status}}"
     }
   },
   "display": {
     "title": "Ekran Ayarları",
     "maxSize": "Maksimum Çözünürlük",
     "maxSizeDesc": "Videonun maksimum boyutunu (genişlik veya yükseklik) sınırla",
+    "originalResolution": "Orijinal Çözünürlük",
     "videoBitrate": "Video Bit Hızı",
     "videoBitrateDesc": "Video kodlama için bit hızı (Mbps)",
     "frameRate": "Kare Hızı",
@@ -132,5 +135,28 @@
   },
   "statusBar": {
     "language": "Dil"
+  },
+  "settings": {
+    "title": "Günlükler",
+    "logLevel": "Günlük Düzeyi",
+    "logLevelDesc": "Konsol günlük çıktı düzeyi",
+    "logError": "Hata",
+    "logErrorDesc": "Yalnızca kritik hataları göster",
+    "logWarn": "Uyarı",
+    "logWarnDesc": "Hataları ve uyarıları göster",
+    "logInfo": "Bilgi",
+    "logInfoDesc": "Genel işlem bilgilerini göster",
+    "logDebug": "Hata Ayıklama",
+    "logDebugDesc": "Tüm hata ayıklama bilgilerini göster",
+    "logManagement": "Günlük Yönetimi",
+    "logManagementDesc": "Günlük dosyalarını görüntüle ve yönet",
+    "logFiles": "Günlük Dosyaları",
+    "logSize": "Toplam Boyut",
+    "clearLogs": "Eski Günlükleri Temizle",
+    "clearing": "Temizleniyor...",
+    "clearLogsConfirm": "7 günden eski tüm günlük dosyaları silinsin mi?",
+    "logsCleared": "{{count}} günlük dosyası temizlendi",
+    "clearLogsFailed": "Günlükler temizlenemedi",
+    "saved": "Ayarlar kaydedildi"
   }
 }

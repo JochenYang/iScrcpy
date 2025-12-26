@@ -5,6 +5,7 @@
     "display": "Pantalla",
     "encoding": "Codificación",
     "server": "Servidor",
+    "settings": "Registros",
     "about": "Acerca de",
     "expand": "Expandir",
     "collapse": "Contraer"
@@ -31,30 +32,32 @@
     "connectBtn": "Conectar",
     "cancel": "Cancelar",
     "toast": {
-      "screenMirroringStarted": "Duplicación de pantalla iniciada",
-      "screenMirroringStopped": "Duplicación de pantalla detenida",
+      "screenMirroringStarted": "{{deviceName}} duplicación de pantalla iniciada",
+      "screenMirroringStopped": "{{deviceName}} duplicación de pantalla detenida",
       "screenMirroringDisconnected": "Duplicación de pantalla desconectada",
       "screenMirroringFailed": "Falló la duplicación de pantalla",
-      "wifiConnected": "Dispositivo WiFi {address} conectado exitosamente",
+      "wifiConnected": "Dispositivo WiFi {{address}} conectado exitosamente",
       "wifiConnectFailed": "Falló la conexión WiFi",
-      "enablingWifiMode": "Habilitando modo WiFi para dispositivo {deviceId}...",
-      "wifiModeEnabled": "¡Modo WiFi habilitado! IP del dispositivo: {ip}:5555",
+      "connectUsbDevice": "Por favor, conecte el dispositivo mediante cable USB",
+      "enablingWifiMode": "Habilitando modo WiFi para dispositivo {{deviceId}}...",
+      "wifiModeEnabled": "¡Modo WiFi habilitado! IP del dispositivo: {{ip}}:5555",
       "wifiModeEnabledManual": "Modo WiFi habilitado, ingrese la IP del dispositivo manualmente",
       "wifiModeEnableFailed": "Falló al habilitar el modo WiFi",
-      "autoConnected": "Conectado automáticamente al dispositivo WiFi {ip}:5555",
+      "autoConnected": "Conectado automáticamente al dispositivo WiFi {{ip}}:5555",
       "noDevicesToConnect": "No hay dispositivos para conectar",
       "enterIpAddress": "Ingrese la dirección IP del dispositivo",
       "unknownError": "Error desconocido",
       "recordingStarted": "Grabación iniciada",
       "recordingStopped": "Grabación detenida",
-      "audioToggled": "Audio {status}",
-      "cameraToggled": "Cámara {status}"
+      "audioToggled": "Audio {{status}}",
+      "cameraToggled": "Cámara {{status}}"
     }
   },
   "display": {
     "title": "Configuración de Pantalla",
     "maxSize": "Resolución Máxima",
     "maxSizeDesc": "Limitar el tamaño máximo (ancho o alto) del video",
+    "originalResolution": "Resolución Original",
     "videoBitrate": "Tasa de Bits de Video",
     "videoBitrateDesc": "Tasa de bits para codificación de video (Mbps)",
     "frameRate": "Tasa de Fotogramas",
@@ -132,5 +135,28 @@
   },
   "statusBar": {
     "language": "Idioma"
+  },
+  "settings": {
+    "title": "Registros",
+    "logLevel": "Nivel de Registro",
+    "logLevelDesc": "Nivel de salida del registro de la consola",
+    "logError": "Error",
+    "logErrorDesc": "Mostrar solo errores críticos",
+    "logWarn": "Advertencia",
+    "logWarnDesc": "Mostrar errores y advertencias",
+    "logInfo": "Info",
+    "logInfoDesc": "Mostrar información de operación general",
+    "logDebug": "Depuración",
+    "logDebugDesc": "Mostrar toda la información de depuración",
+    "logManagement": "Gestión de Registros",
+    "logManagementDesc": "Ver y gestionar archivos de registro",
+    "logFiles": "Archivos de Registro",
+    "logSize": "Tamaño Total",
+    "clearLogs": "Borrar Registros Antiguos",
+    "clearing": "Borrando...",
+    "clearLogsConfirm": "¿Eliminar todos los archivos de registro de más de 7 días?",
+    "logsCleared": "{{count}} archivos de registro eliminados",
+    "clearLogsFailed": "Error al borrar registros",
+    "saved": "Configuración guardada"
   }
 }

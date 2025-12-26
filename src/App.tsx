@@ -5,10 +5,11 @@ import DevicePage from "./pages/DevicePage";
 import DisplayPage from "./pages/DisplayPage";
 import EncodingPage from "./pages/EncodingPage";
 import ServerPage from "./pages/ServerPage";
+import SettingsPage from "./pages/SettingsPage";
 import AboutPage from "./pages/AboutPage";
 import "./i18n"; // Initialize i18n
 
-export type TabType = "devices" | "display" | "encoding" | "server" | "about";
+export type TabType = "devices" | "display" | "encoding" | "server" | "settings" | "about";
 
 function App() {
   const [activeTab, setActiveTab] = useState<TabType>("devices");
@@ -23,6 +24,8 @@ function App() {
         return <EncodingPage />;
       case "server":
         return <ServerPage />;
+      case "settings":
+        return <SettingsPage />;
       case "about":
         return <AboutPage />;
       default:

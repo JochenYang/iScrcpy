@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { electronAPI } from "../utils/electron";
 import DeviceCard from "../components/DeviceCard";
@@ -8,7 +8,7 @@ export default function DevicePage() {
   const { t } = useTranslation();
   const {
     devices,
-    setDevices,
+    knownDevices,
     mirroringDevices,
     addMirroringDevice,
     removeMirroringDevice,
@@ -20,23 +20,65 @@ export default function DevicePage() {
   const [wifiIp, setWifiIp] = useState("");
   const [showWifiInput, setShowWifiInput] = useState(false);
 
+  // Use ref to track knownDevices to avoid infinite loop
+  const knownDevicesRef = useRef(knownDevices);
+  knownDevicesRef.current = knownDevices;
+
+  // Device type definition for local use
+  interface LocalDevice {
+    id: string;
+    name: string;
+    type: "usb" | "wifi";
+    status: string;
+    lastSeen?: number;
+  }
+
   const loadDevices = useCallback(async () => {
     setRefreshing(true);
     try {
       const result = await electronAPI.adbDevices();
       if (result.success && result.devices) {
-        setDevices(result.devices);
+        const currentDevices = result.devices as LocalDevice[];
+        const now = Date.now();
+        const known = knownDevicesRef.current;
+        
+        // Merge with known devices
+        const mergedDevices = currentDevices.map(device => {
+          const existing = known.find(d => d.id === device.id);
+          return existing ? { ...device, lastSeen: existing.lastSeen } : { ...device, lastSeen: now };
+        });
+        
+        // Update known devices with offline status for devices no longer present
+        const updatedKnown = known.map(knownDevice => {
+          const current = currentDevices.find(d => d.id === knownDevice.id);
+          if (current) {
+            return { ...knownDevice, status: current.status, lastSeen: now };
+          }
+          return { ...knownDevice, status: "offline", lastSeen: now };
+        });
+        
+        // Add new devices to known list
+        for (const device of currentDevices) {
+          if (!updatedKnown.find(d => d.id === device.id)) {
+            updatedKnown.push({ ...device, lastSeen: now });
+          }
+        }
+        
+        // Use zustand's set to update both
+        useDeviceStore.setState({ devices: mergedDevices, knownDevices: updatedKnown });
       }
     } catch (error) {
       console.error("Failed to load devices:", error);
     }
     setRefreshing(false);
-  }, [setDevices]);
+  }, []);
 
-  const connectDevice = async (deviceId: string) => {
-    const result = await electronAPI.connectDevice(deviceId);
+  const connectDevice = async (deviceId: string, options?: { record?: boolean; recordAudio?: boolean; camera?: boolean }) => {
+    const device = devices.find((d) => d.id === deviceId);
+    const result = await electronAPI.connectDevice(deviceId, options);
     if (result.success) {
       addMirroringDevice(deviceId);
+      
       // Initialize audio state from settings
       const settings = await electronAPI.loadSettings();
       const displaySettings = settings.display as { enableAudio?: boolean } | undefined;
@@ -44,10 +86,10 @@ export default function DevicePage() {
       if (audioEnabled) {
         setAudioEnabled(deviceId, true);
       }
-      const device = devices.find((d) => d.id === deviceId);
+      
       showToast(
         t("devices.toast.screenMirroringStarted", {
-          defaultValue: `${device?.name || deviceId} 投屏已启动`,
+          deviceName: device?.name || deviceId,
         })
       );
       await loadDevices();
@@ -66,7 +108,7 @@ export default function DevicePage() {
       const device = devices.find((d) => d.id === deviceId);
       showToast(
         t("devices.toast.screenMirroringStopped", {
-          defaultValue: `${device?.name || deviceId} 已断开投屏`,
+          deviceName: device?.name || deviceId,
         })
       );
       await loadDevices();
@@ -161,7 +203,7 @@ export default function DevicePage() {
           }
         }, 2000);
       } else {
-        showToast(result.error || t("devices.toast.wifiModeEnabledManual"));
+        showToast(t("devices.toast.wifiModeEnabledManual"));
       }
     } else {
       showToast(
@@ -197,14 +239,10 @@ export default function DevicePage() {
   };
 
   useEffect(() => {
-    // Initial load
     loadDevices();
-
-    // Poll for device changes every 3 seconds
     const pollInterval = setInterval(() => {
       loadDevices();
     }, 3000);
-
     return () => clearInterval(pollInterval);
   }, [loadDevices]);
 
@@ -223,11 +261,7 @@ export default function DevicePage() {
 
     const handleCameraExit = (deviceId: string) => {
       console.log(`Camera exited for device: ${deviceId}`);
-      showToast(
-        t("devices.toast.cameraStopped", {
-          defaultValue: `相机已关闭`,
-        })
-      );
+      showToast(t("devices.toast.cameraStopped"));
     };
 
     const handleScrcpyStarted = (deviceId: string) => {
@@ -238,11 +272,9 @@ export default function DevicePage() {
     if (typeof electronAPI.onScrcpyExit === "function") {
       electronAPI.onScrcpyExit(handleScrcpyExit);
     }
-
     if (typeof electronAPI.onScrcpyStarted === "function") {
       electronAPI.onScrcpyStarted(handleScrcpyStarted);
     }
-
     if (typeof electronAPI.onCameraExit === "function") {
       electronAPI.onCameraExit(handleCameraExit);
     }
@@ -260,8 +292,15 @@ export default function DevicePage() {
     };
   }, [devices, addMirroringDevice, removeMirroringDevice, t, loadDevices]);
 
-  const usbDevices = devices.filter((d) => d.type === "usb");
-  const wifiDevices = devices.filter((d) => d.type === "wifi");
+  // Use knownDevices to show devices (includes disconnected ones)
+  // Build a map of current device status
+  const deviceStatusMap = new Map(devices.map(d => [d.id, d.status]));
+  
+  // Get devices with their current status (from knownDevices, fall back to devices)
+  const allDevices = knownDevices.length > 0 ? knownDevices : devices;
+  
+  const usbDevices = allDevices.filter((d) => d.type === "usb");
+  const wifiDevices = allDevices.filter((d) => d.type === "wifi");
 
   return (
     <div className="content-wrapper">
@@ -276,18 +315,8 @@ export default function DevicePage() {
             {refreshing ? (
               <span className="spinner" />
             ) : (
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="currentColor"
-              >
-                <path
-                  d="M14 8a6 6 0 11-1.5-4"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  fill="none"
-                />
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M14 8a6 6 0 11-1.5-4" stroke="currentColor" strokeWidth="1.5" fill="none" />
                 <path d="M14 2v3h-3" />
               </svg>
             )}
@@ -308,44 +337,40 @@ export default function DevicePage() {
           {t("devices.usbDevices")}
         </h2>
         <div className="device-list" id="usb-devices">
-          {usbDevices.map((device) => (
-            <DeviceCard
-              key={device.id}
-              device={device}
-              isConnected={device.status === "device" || device.status === "connected"}
-              isMirroring={mirroringDevices.has(device.id)}
-              onConnect={connectDevice}
-              onDisconnect={disconnectDevice}
-              onEnableWifi={enableWifiMode}
-              onStartRecord={startRecord}
-              onStopRecord={stopRecord}
-              onToggleAudio={toggleAudio}
-              onStartCamera={startCamera}
-              onStopCamera={stopCamera}
-            />
-          ))}
+          {usbDevices.map((device) => {
+            // Get current status from deviceStatusMap, fallback to stored status
+            const currentStatus = deviceStatusMap.get(device.id) || device.status;
+            return (
+              <DeviceCard
+                key={device.id}
+                device={{ ...device, status: currentStatus }}
+                isConnected={currentStatus === "device" || currentStatus === "connected"}
+                isMirroring={mirroringDevices.has(device.id)}
+                onConnect={connectDevice}
+                onDisconnect={disconnectDevice}
+                onEnableWifi={enableWifiMode}
+                onStartRecord={startRecord}
+                onStopRecord={stopRecord}
+                onToggleAudio={toggleAudio}
+                onStartCamera={startCamera}
+                onStopCamera={stopCamera}
+              />
+            );
+          })}
         </div>
       </div>
 
       <div className="device-section">
         <h2 className="section-title">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-            <path
-              d="M2 8a6 6 0 0112 0"
-              stroke="currentColor"
-              strokeWidth="2"
-              fill="none"
-            />
+            <path d="M2 8a6 6 0 0112 0" stroke="currentColor" strokeWidth="2" fill="none" />
             <circle cx="8" cy="8" r="2" stroke="currentColor" strokeWidth="2" />
           </svg>
           {t("devices.wifiDevices")}
         </h2>
 
         {showWifiInput && (
-          <div
-            className="wifi-input-container"
-            style={{ marginBottom: "1rem", display: "flex", gap: "0.5rem" }}
-          >
+          <div className="wifi-input-container" style={{ marginBottom: "1rem", display: "flex", gap: "0.5rem" }}>
             <input
               type="text"
               className="wifi-input"
@@ -353,51 +378,20 @@ export default function DevicePage() {
               value={wifiIp}
               onChange={(e) => setWifiIp(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && connectWifiDevice()}
-              style={{
-                flex: 1,
-                padding: "0.5rem",
-                borderRadius: "4px",
-                border: "1px solid #333",
-                background: "#1a1a1f",
-                color: "#fff",
-              }}
+              style={{ flex: 1, padding: "0.5rem", borderRadius: "4px", border: "1px solid #333", background: "#1a1a1f", color: "#fff" }}
             />
-            <button
-              className="btn btn-primary btn-small"
-              onClick={connectWifiDevice}
-            >
+            <button className="btn btn-primary btn-small" onClick={connectWifiDevice}>
               {t("devices.connectBtn")}
             </button>
-            <button
-              className="btn btn-outline btn-small"
-              onClick={() => {
-                setShowWifiInput(false);
-                setWifiIp("");
-              }}
-            >
+            <button className="btn btn-outline btn-small" onClick={() => { setShowWifiInput(false); setWifiIp(""); }}>
               {t("devices.cancel")}
             </button>
           </div>
         )}
 
         {!showWifiInput && (
-          <button
-            className="btn btn-outline"
-            onClick={() => setShowWifiInput(true)}
-            style={{
-              marginBottom: "1rem",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.5rem",
-            }}
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 16 16"
-              fill="none"
-              stroke="currentColor"
-            >
+          <button className="btn btn-outline" onClick={() => setShowWifiInput(true)} style={{ marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor">
               <path d="M8 2v12M2 8h12" strokeWidth="2" />
             </svg>
             {t("devices.addWifiDevice")}
@@ -405,33 +399,30 @@ export default function DevicePage() {
         )}
 
         <div className="device-list" id="wifi-devices">
-          {wifiDevices.map((device) => (
-            <DeviceCard
-              key={device.id}
-              device={device}
-              isConnected={device.status === "device" || device.status === "connected"}
-              isMirroring={mirroringDevices.has(device.id)}
-              onConnect={connectDevice}
-              onDisconnect={disconnectDevice}
-              onStartRecord={startRecord}
-              onStopRecord={stopRecord}
-              onToggleAudio={toggleAudio}
-              onStartCamera={startCamera}
-              onStopCamera={stopCamera}
-            />
-          ))}
+          {wifiDevices.map((device) => {
+            const currentStatus = deviceStatusMap.get(device.id) || device.status;
+            return (
+              <DeviceCard
+                key={device.id}
+                device={{ ...device, status: currentStatus }}
+                isConnected={currentStatus === "device" || currentStatus === "connected"}
+                isMirroring={mirroringDevices.has(device.id)}
+                onConnect={connectDevice}
+                onDisconnect={disconnectDevice}
+                onStartRecord={startRecord}
+                onStopRecord={stopRecord}
+                onToggleAudio={toggleAudio}
+                onStartCamera={startCamera}
+                onStopCamera={stopCamera}
+              />
+            );
+          })}
         </div>
       </div>
 
-      {devices.length === 0 && (
+      {allDevices.length === 0 && (
         <div className="empty-state visible">
-          <svg
-            width="64"
-            height="64"
-            viewBox="0 0 64 64"
-            fill="currentColor"
-            opacity="0.3"
-          >
+          <svg width="64" height="64" viewBox="0 0 64 64" fill="currentColor" opacity="0.3">
             <rect x="16" y="8" width="32" height="48" rx="4" />
             <rect x="20" y="48" width="24" height="4" />
             <circle cx="32" cy="28" r="6" />

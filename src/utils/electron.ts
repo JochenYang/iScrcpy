@@ -1,5 +1,7 @@
+import type { ElectronAPI } from "../types/electron";
+
 // Electron API bridge
-export const electronAPI = {
+export const electronAPI: ElectronAPI = {
   // Device management
   adbDevices: () => window.electronAPI.adbDevices(),
   connectWifi: (deviceId: string) => window.electronAPI.connectWifi(deviceId),
@@ -42,10 +44,18 @@ export const electronAPI = {
     window.electronAPI.saveSettings(type, settings),
   loadSettings: () => window.electronAPI.loadSettings(),
 
+  // Log level
+  getLogLevel: () => window.electronAPI.getLogLevel(),
+  setLogLevel: (level: string) => window.electronAPI.setLogLevel(level),
+  getLogStats: () => window.electronAPI.getLogStats(),
+  clearLogs: () => window.electronAPI.clearLogs(),
+
   // Version info
   getAppVersion: () => window.electronAPI.getAppVersion(),
   getVersion: () => window.electronAPI.getVersion(),
   getAdbVersion: () => window.electronAPI.getAdbVersion(),
+  getElectronVersion: () => window.electronAPI.getElectronVersion(),
+  getChromeVersion: () => window.electronAPI.getChromeVersion(),
 
   // Window controls
   windowMinimize: () => window.electronAPI.windowMinimize(),
@@ -54,6 +64,7 @@ export const electronAPI = {
 
   // File operations
   openFolder: (path: string) => window.electronAPI.openFolder(path),
+  openLogsFolder: () => window.electronAPI.openLogsFolder(),
   openExternal: (url: string) => window.electronAPI.openExternal(url),
   selectFolder: (defaultPath: string) =>
     window.electronAPI.selectFolder(defaultPath),

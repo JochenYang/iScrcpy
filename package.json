@@ -90,8 +90,6 @@
       "icon": "build/icon.ico",
       "cscLink": false,
       "forceCodeSigning": false,
-      "signAndEdit": false,
-      "signAndEditExecutable": false,
       "target": [
         {
           "target": "nsis",
@@ -117,6 +115,7 @@
       "deleteAppDataOnUninstall": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
+      "runAfterFinish": true,
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico"
     },

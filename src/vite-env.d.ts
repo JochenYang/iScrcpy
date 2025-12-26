@@ -24,6 +24,24 @@ interface Window {
     ) => Promise<{ success: boolean; deviceId?: string; error?: string }>;
     disconnectDevice: (deviceId: string) => Promise<{ success: boolean }>;
 
+    // Device history
+    getDeviceHistory: () => Promise<{
+      history: Array<{
+        id: string;
+        name: string;
+        ip: string;
+        port: number;
+        lastConnected: number;
+        autoConnect: boolean;
+      }>;
+    }>;
+    removeDeviceHistory: (deviceId: string) => Promise<{ success: boolean }>;
+    clearDeviceHistory: () => Promise<{ success: boolean }>;
+
+    // Log level
+    getLogLevel: () => Promise<{ level: string }>;
+    setLogLevel: (level: string) => Promise<{ success: boolean; level?: string; error?: string }>;
+
     // Quick actions for device
     startRecording: (
       deviceId: string
@@ -77,6 +95,7 @@ interface Window {
 
     // File operations
     openFolder: (path: string) => void;
+    openLogsFolder: () => void;
     openExternal: (url: string) => void;
 
     // Scrcpy exit events
