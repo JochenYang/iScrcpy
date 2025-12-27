@@ -75,7 +75,7 @@ export default function AboutPage() {
           </svg>
         </div>
         <h1 className="about-app-name">iScrcpy</h1>
-        <p className="about-app-version">v{versions.appVersion}</p>
+        <p className="about-app-version">v{versions.appVersion} by Jochen</p>
         <p className="about-tagline">{t("about.description")}</p>
       </div>
 
@@ -123,12 +123,6 @@ export default function AboutPage() {
             </button>
           </div>
         </div>
-      </div>
-
-      <div className="about-footer" style={{ marginTop: '24px', textAlign: 'center' }}>
-        <span className="about-author" style={{ fontSize: '12px', color: 'var(--on-surface-variant)', opacity: 0.6 }}>
-          Designed by JochenYang
-        </span>
       </div>
     </div>
   );

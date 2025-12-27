@@ -1155,6 +1155,25 @@ body {
   line-height: 1.5;
 }
 
+/* About Author Row */
+.about-author-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+}
+
+.about-author-label {
+  font-size: 13px;
+  color: var(--on-surface-variant);
+}
+
+.about-author-value {
+  font-size: 13px;
+  color: var(--on-surface);
+  font-weight: 500;
+}
+
 /* About Version Row */
 .about-version-row {
   display: flex;

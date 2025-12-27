@@ -403,7 +403,10 @@ ipcMain.handle(
       };
     }
 
-    logger.info("Fetching device list...");
+    // Only log device list polling when user has set log level to info or debug
+    if (logger.getLevel() === "info" || logger.getLevel() === "debug") {
+      logger.info("Fetching device list...");
+    }
     return new Promise((resolve) => {
       exec(
         `"${getAdbPath()}" devices -l`,
@@ -415,9 +418,13 @@ ipcMain.handle(
             return;
           }
 
-          logger.debug("ADB devices output", { stdout });
+          if (logger.getLevel() === "debug") {
+            logger.debug("ADB devices output", { stdout });
+          }
           const devices = parseDeviceList(stdout);
-          logger.info(`Found ${devices.length} device(s)`, { devices });
+          if (logger.getLevel() === "info" || logger.getLevel() === "debug") {
+            logger.info(`Found ${devices.length} device(s)`, { devices });
+          }
           resolve({ success: true, devices });
         }
       );

@@ -33,8 +33,10 @@ export default function DevicePage() {
     lastSeen?: number;
   }
 
-  const loadDevices = useCallback(async () => {
-    setRefreshing(true);
+  const loadDevices = useCallback(async (silent = false) => {
+    if (!silent) {
+      setRefreshing(true);
+    }
     try {
       const result = await electronAPI.adbDevices();
       if (result.success && result.devices) {
@@ -239,9 +241,11 @@ export default function DevicePage() {
   };
 
   useEffect(() => {
-    loadDevices();
+    // Initial load with UI feedback
+    loadDevices(false);
+    // Silent polling every 3 seconds
     const pollInterval = setInterval(() => {
-      loadDevices();
+      loadDevices(true);
     }, 3000);
     return () => clearInterval(pollInterval);
   }, [loadDevices]);
