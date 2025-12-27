@@ -1,0 +1,67 @@
+name: release-assets
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - v*.*.*
+
+jobs:
+  release:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            arch: [arm64, amd64]
+          - os: macos-latest
+            arch: [arm64, amd64]
+          - os: windows-latest
+            arch: [x64]
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: build
+        run: npm run build
+
+      - name: Build Windows
+        if: matrix.os == 'windows-latest'
+        run: npm run dist:win
+
+      - name: Build macOS
+        if: matrix.os == 'macos-latest'
+        run: npm run dist:mac
+
+      - name: Build Linux
+        if: matrix.os == 'ubuntu-latest'
+        run: npm run dist:linux
+
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: false
+          prerelease: false
+          fail_on_unmatched_files: false
+          files: |
+            dist/*.exe
+            dist/*.zip
+            dist/*.dmg
+            dist/*.AppImage
+            dist/*.deb
+            dist/*.rpm
+            dist/*.tar.gz
+            dist/*.blockmap
+            dist/*.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
