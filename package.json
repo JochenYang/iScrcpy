@@ -143,6 +143,7 @@
       "gatekeeperAssess": false,
       "entitlements": "entitlements.plist",
       "entitlementsInherit": "entitlements.plist",
+      "notarize": false,
       "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
     },
     "dmg": {
