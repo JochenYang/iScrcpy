@@ -91,6 +91,7 @@
       "icon": "build/icon.ico",
       "cscLink": false,
       "forceCodeSigning": false,
+      "publish": "never",
       "target": [
         {
           "target": "nsis",
@@ -144,6 +145,7 @@
       "entitlements": "entitlements.plist",
       "entitlementsInherit": "entitlements.plist",
       "notarize": false,
+      "publish": "never",
       "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
     },
     "dmg": {
@@ -193,6 +195,7 @@
       ],
       "icon": "build/icon.png",
       "category": "Utility",
+      "publish": "never",
       "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
     }
   },
