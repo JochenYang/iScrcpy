@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { electronAPI } from "../utils/electron";
-import { ScrollText, AlertTriangle, MinusCircle, Info, Bug, Folder, Trash2, FileArchive, Monitor } from "lucide-react";
+import { ScrollText, AlertTriangle, MinusCircle, Info, Bug, Folder, Trash2, FileArchive } from "lucide-react";
 
 type LogLevelType = "error" | "warn" | "info" | "debug";
 
@@ -150,31 +150,6 @@ export default function SettingsPage() {
               {clearing ? t("settings.clearing") : t("settings.clearLogs")}
             </button>
           </div>
-        </div>
-      </div>
-
-      <div className="settings-card">
-        <div className="card-header">
-          <Monitor size={20} />
-          <span>{t("settings.shortcuts")}</span>
-        </div>
-        <div className="card-body">
-          <p className="description">{t("settings.shortcutsDesc")}</p>
-          <button
-            className="btn btn-primary"
-            onClick={async () => {
-              const result = await electronAPI.createDesktopShortcut();
-              if (result.success) {
-                showToast(t("settings.shortcutCreated"));
-              } else {
-                showToast(result.error || t("settings.shortcutFailed"));
-              }
-            }}
-            style={{ display: "flex", alignItems: "center", gap: "8px" }}
-          >
-            <Monitor size={16} />
-            {t("settings.createDesktopShortcut")}
-          </button>
         </div>
       </div>
     </div>

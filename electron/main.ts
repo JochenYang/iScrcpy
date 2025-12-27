@@ -1900,50 +1900,6 @@ ipcMain.handle("window-maximize", () => {
 });
 ipcMain.handle("window-close", () => mainWindow?.close());
 
-// Create desktop shortcut
-ipcMain.handle(
-  "create-desktop-shortcut",
-  async (): Promise<{ success: boolean; error?: string }> => {
-    const exePath = process.execPath;
-    const desktopPath = app.getPath("desktop");
-    const shortcutPath = join(desktopPath, "iScrcpy.lnk");
-    const vbsPath = join(
-      app.isPackaged
-        ? join(process.resourcesPath, "app", "win", "vbs", "create-shortcut.vbs")
-        : join(process.cwd(), "electron", "resources", "win", "vbs", "create-shortcut.vbs")
-    );
-
-    // VBScript arguments
-    const args = [
-      shortcutPath,      // Output path
-      exePath,           // Target path
-      "",                // Arguments
-      "iScrcpy",         // Description
-      app.getPath("exe"), // Working directory
-      `${exePath},0`,    // Icon (exe itself, first icon)
-      "1",               // Window style (normal)
-      "",                // Hotkey
-    ];
-
-    return new Promise((resolve) => {
-      // Use cscript to run VBScript
-      exec(
-        `cscript //nologo "${vbsPath}" ${args.map(a => `"${a}"`).join(" ")}`,
-        { encoding: "utf8" },
-        (error) => {
-          if (error) {
-            logger.error("Failed to create desktop shortcut", { error });
-            resolve({ success: false, error: error.message });
-            return;
-          }
-          logger.info("Desktop shortcut created successfully");
-          resolve({ success: true });
-        }
-      );
-    });
-  }
-);
-
 // Open folder
 ipcMain.handle("open-folder", async (_, folderPath: string) => {
   if (existsSync(folderPath)) {

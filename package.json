@@ -85,13 +85,6 @@
         "filter": [
           "**/*"
         ]
-      },
-      {
-        "from": "electron/resources/win/vbs",
-        "to": "app/win/vbs",
-        "filter": [
-          "**/*"
-        ]
       }
     ],
     "win": {
@@ -121,7 +114,7 @@
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
       "deleteAppDataOnUninstall": false,
-      "createDesktopShortcut": false,
+      "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "runAfterFinish": true,
       "installerIcon": "build/icon.ico",

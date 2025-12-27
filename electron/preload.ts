@@ -90,9 +90,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   windowMaximize: () => ipcRenderer.invoke("window-maximize"),
   windowClose: () => ipcRenderer.invoke("window-close"),
 
-  // Desktop shortcut
-  createDesktopShortcut: () => ipcRenderer.invoke("create-desktop-shortcut"),
-
   // File operations
   openFolder: (path: string) => ipcRenderer.invoke("open-folder", path),
   openLogsFolder: () => ipcRenderer.invoke("open-logs-folder"),

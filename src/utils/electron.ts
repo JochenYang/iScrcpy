@@ -62,9 +62,6 @@ export const electronAPI: ElectronAPI = {
   windowMaximize: () => window.electronAPI.windowMaximize(),
   windowClose: () => window.electronAPI.windowClose(),
 
-  // Desktop shortcut
-  createDesktopShortcut: () => window.electronAPI.createDesktopShortcut(),
-
   // File operations
   openFolder: (path: string) => window.electronAPI.openFolder(path),
   openLogsFolder: () => window.electronAPI.openLogsFolder(),
