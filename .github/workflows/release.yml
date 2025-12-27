@@ -41,7 +41,10 @@ jobs:
 
       - name: Build macOS
         if: matrix.os == 'macos-latest'
-        run: npm run dist:mac
+        run: |
+          echo "CSC_LINK=" >> $GITHUB_ENV
+          echo "CSC_IDENTITY_AUTO_DISCOVERY=false" >> $GITHUB_ENV
+          npm run dist:mac
 
       - name: Build Linux
         if: matrix.os == 'ubuntu-latest'
