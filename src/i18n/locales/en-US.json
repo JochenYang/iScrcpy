@@ -161,6 +161,11 @@
     "clearLogsConfirm": "Delete all log files older than 7 days?",
     "logsCleared": "Cleared {{count}} log files",
     "clearLogsFailed": "Failed to clear logs",
+    "shortcuts": "Shortcuts",
+    "shortcutsDesc": "Create desktop shortcut to launch the app",
+    "createDesktopShortcut": "Create Desktop Shortcut",
+    "shortcutCreated": "Desktop shortcut created",
+    "shortcutFailed": "Failed to create shortcut",
     "saved": "Settings saved"
   }
 }

@@ -158,6 +158,11 @@
     "clearLogsConfirm": "确定删除 7 天前的所有日志文件吗？",
     "logsCleared": "已清理 {{count}} 个日志文件",
     "clearLogsFailed": "清理日志失败",
+    "shortcuts": "快捷方式",
+    "shortcutsDesc": "创建桌面快捷方式以快速启动应用",
+    "createDesktopShortcut": "创建桌面快捷方式",
+    "shortcutCreated": "桌面快捷方式已创建",
+    "shortcutFailed": "创建快捷方式失败",
     "saved": "设置已保存"
   },
   "statusBar": {

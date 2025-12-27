@@ -149,6 +149,9 @@ export interface ElectronAPI {
   windowMaximize: () => Promise<void>;
   windowClose: () => Promise<void>;
 
+  // Desktop shortcut
+  createDesktopShortcut: () => Promise<{ success: boolean; error?: string }>;
+
   // File operations
   openFolder: (path: string) => Promise<void>;
   openLogsFolder: () => Promise<void>;
