@@ -157,6 +157,11 @@
     "clearLogsConfirm": "7 günden eski tüm günlük dosyaları silinsin mi?",
     "logsCleared": "{{count}} günlük dosyası temizlendi",
     "clearLogsFailed": "Günlükler temizlenemedi",
+    "shortcuts": "Kısayollar",
+    "shortcutsDesc": "Uygulamayı başlatmak için masaüstü kısayolu oluştur",
+    "createDesktopShortcut": "Masaüstü Kısayolu Oluştur",
+    "shortcutCreated": "Masaüstü kısayolu oluşturuldu",
+    "shortcutFailed": "Kısayol oluşturulamadı",
     "saved": "Ayarlar kaydedildi"
   }
 }

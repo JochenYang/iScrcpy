@@ -159,6 +159,11 @@
     "clearLogsConfirm": "7 日より古いログファイルを削除しますか？",
     "logsCleared": "{{count}} 個のログファイルを削除しました",
     "clearLogsFailed": "ログの削除に失敗しました",
+    "shortcuts": "ショットカット",
+    "shortcutsDesc": "デスクトップショットカットを作成してアプリを起動",
+    "createDesktopShortcut": "デスクトップショットカットを作成",
+    "shortcutCreated": "デスクトップショットカットを作成しました",
+    "shortcutFailed": "ショットカットの作成に失敗しました",
     "saved": "設定を保存しました"
   }
 }

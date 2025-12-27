@@ -159,6 +159,11 @@
     "clearLogsConfirm": "7일보다 오래된 로그 파일을 삭제하시겠습니까?",
     "logsCleared": "{{count}}개의 로그 파일을 삭제했습니다",
     "clearLogsFailed": "로그 지우기 실패",
+    "shortcuts": "바로 가기",
+    "shortcutsDesc": "데스크톱 바로 가기를 만들어 앱 실행",
+    "createDesktopShortcut": "데스크톱 바로 가기 만들기",
+    "shortcutCreated": "데스크톱 바로 가기가 생성되었습니다",
+    "shortcutFailed": "바로 가기 생성 실패",
     "saved": "설정이 저장되었습니다"
   }
 }

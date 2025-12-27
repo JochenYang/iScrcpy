@@ -157,6 +157,11 @@
     "clearLogsConfirm": "Supprimer tous les fichiers journaux de plus de 7 jours ?",
     "logsCleared": "{{count}} fichiers journaux effacés",
     "clearLogsFailed": "Échec de l'effacement des journaux",
+    "shortcuts": "Raccourcis",
+    "shortcutsDesc": "Créer un raccourci bureau pour lancer l'application",
+    "createDesktopShortcut": "Créer un Raccourci Bureau",
+    "shortcutCreated": "Raccourci bureau créé",
+    "shortcutFailed": "Échec de la création du raccourci",
     "saved": "Paramètres enregistrés"
   }
 }

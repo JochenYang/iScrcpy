@@ -157,6 +157,11 @@
     "clearLogsConfirm": "¿Eliminar todos los archivos de registro de más de 7 días?",
     "logsCleared": "{{count}} archivos de registro eliminados",
     "clearLogsFailed": "Error al borrar registros",
+    "shortcuts": "Accesos Directos",
+    "shortcutsDesc": "Crear acceso directo en el escritorio para iniciar la aplicación",
+    "createDesktopShortcut": "Crear Acceso Directo en Escritorio",
+    "shortcutCreated": "Acceso directo en escritorio creado",
+    "shortcutFailed": "Error al crear el acceso directo",
     "saved": "Configuración guardada"
   }
 }
