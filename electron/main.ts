@@ -1901,21 +1901,21 @@ ipcMain.handle("window-maximize", () => {
 ipcMain.handle("window-close", () => mainWindow?.close());
 
 // Open folder
-ipcMain.handle("open-folder", async (_, folderPath: string) => {
+ipcMain.handle("open-folder", async (_, folderPath: string): Promise<void> => {
   if (existsSync(folderPath)) {
-    shell.openPath(folderPath);
+    await shell.openPath(folderPath);
   }
 });
 
 // Open logs folder
-ipcMain.handle("open-logs-folder", async () => {
+ipcMain.handle("open-logs-folder", async (): Promise<void> => {
   const logDir = join(app.isPackaged ? app.getPath("userData") : process.cwd(), "logs");
   if (existsSync(logDir)) {
-    shell.openPath(logDir);
+    await shell.openPath(logDir);
   } else {
     // Create the folder if it doesn't exist
     mkdirSync(logDir, { recursive: true });
-    shell.openPath(logDir);
+    await shell.openPath(logDir);
   }
 });
 
@@ -1988,8 +1988,8 @@ ipcMain.handle("clear-logs", async (): Promise<{ success: boolean; count: number
 });
 
 // Open external URL
-ipcMain.handle("open-external", async (_, url: string) => {
-  shell.openExternal(url);
+ipcMain.handle("open-external", async (_, url: string): Promise<void> => {
+  await shell.openExternal(url);
 });
 
 // Select folder dialog
