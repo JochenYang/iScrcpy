@@ -173,6 +173,7 @@ export interface ElectronAPI {
   windowMinimize: () => Promise<void>;
   windowMaximize: () => Promise<void>;
   windowClose: () => Promise<void>;
+  requestCloseConfirm: () => Promise<{ confirm: boolean; minimizeToTray: boolean }>;
 
   // File operations
   openFolder: (path: string) => Promise<void>;

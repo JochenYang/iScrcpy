@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell, dialog, net } from "electron";
+import { app, BrowserWindow, ipcMain, shell, dialog, net, Tray, Menu, globalShortcut, nativeImage } from "electron";
 import path from "path";
 import { spawn, exec, execSync, ChildProcess } from "child_process";
 import { existsSync, lstatSync, readFileSync, writeFileSync, statSync, mkdirSync, unlinkSync, renameSync, readdirSync, createWriteStream } from "fs";
@@ -8,6 +8,7 @@ import prettyBytes from "pretty-bytes";
 
 // Test mode flag
 const TEST_MODE = process.env.TEST === "1";
+
 
 // Helper function to get default recording path
 function getDefaultRecordPath(deviceId: string): string {
@@ -350,6 +351,38 @@ function createWindow(): void {
     setTimeout(() => {
       autoConnectSavedDevices();
     }, 1000);
+  });
+
+  // Intercept window close to show confirmation dialog
+  mainWindow.on("close", (e) => {
+    // Prevent default close behavior
+    e.preventDefault();
+
+    // Show confirmation dialog
+    dialog
+      .showMessageBox(mainWindow, {
+        type: "question",
+        buttons: ["Minimize to Tray", "Quit"],
+        defaultId: 0,
+        cancelId: 1,
+        title: "iScrcpy",
+        message: "How would you like to close iScrcpy?",
+        detail: "Minimize to Tray will keep iScrcpy running in the background.\nQuit will completely exit the application.",
+      })
+      .then(({ response }) => {
+        if (response === 0) {
+          // Minimize to tray - just hide the window
+          mainWindow?.hide();
+        } else {
+          // Quit - allow close
+          mainWindow?.destroy();
+          app.quit();
+        }
+      })
+      .catch(() => {
+        // If dialog fails, minimize to tray as default
+        mainWindow?.hide();
+      });
   });
 
   mainWindow.on("closed", () => {
@@ -2373,8 +2406,90 @@ function getAdbPath(): string {
 }
 
 // App lifecycle
+let tray: Tray | null = null;
+
+// Initialize system tray
+function initTray(): void {
+  // Create tray icon
+  const iconPath = app.isPackaged
+    ? path.join(process.resourcesPath, "build", "icon.png")
+    : path.join(process.cwd(), "build", "icon.png");
+
+  let trayIcon: nativeImage;
+
+  if (existsSync(iconPath)) {
+    trayIcon = nativeImage.createFromPath(iconPath);
+  } else {
+    // Fallback to empty image
+    trayIcon = nativeImage.createEmpty();
+  }
+
+  tray = new Tray(trayIcon.resize({ width: 16, height: 16 }));
+
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: "Show Window",
+      click: () => {
+        if (mainWindow) {
+          mainWindow.show();
+          mainWindow.focus();
+        }
+      },
+    },
+    { type: "separator" },
+    {
+      label: "Quit",
+      click: () => {
+        if (mainWindow) {
+          mainWindow.destroy();
+        }
+        app.quit();
+      },
+    },
+  ]);
+
+  tray.setToolTip("iScrcpy - Android Screen Mirroring");
+  tray.setContextMenu(contextMenu);
+
+  // Double click to show window
+  tray.on("double-click", () => {
+    if (mainWindow) {
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  });
+
+  logger.info("System tray initialized");
+}
+
+// Request close confirmation from renderer
+ipcMain.handle(
+  "request-close-confirm",
+  async () => {
+    if (!mainWindow) return { confirm: false };
+
+    const { response } = await dialog.showMessageBox(mainWindow, {
+      type: "question",
+      buttons: ["Minimize to Tray", "Quit"],
+      defaultId: 0,
+      cancelId: 1,
+      title: "iScrcpy",
+      message: "How would you like to close iScrcpy?",
+      detail: "Minimize to Tray will keep iScrcpy running in the background.\nQuit will completely exit the application.",
+    });
+
+    return { confirm: true, minimizeToTray: response === 0 };
+  }
+);
+
 app.whenReady().then(() => {
   logger.info("App is ready, loading settings and creating window");
+
+  // Initialize system tray
+  if (!TEST_MODE) {
+    initTray();
+  }
+
   loadSettings();
   createWindow();
 });

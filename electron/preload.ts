@@ -89,6 +89,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   windowMinimize: () => ipcRenderer.invoke("window-minimize"),
   windowMaximize: () => ipcRenderer.invoke("window-maximize"),
   windowClose: () => ipcRenderer.invoke("window-close"),
+  requestCloseConfirm: () => ipcRenderer.invoke("request-close-confirm"),
 
   // File operations
   openFolder: (path: string) => ipcRenderer.invoke("open-folder", path),
