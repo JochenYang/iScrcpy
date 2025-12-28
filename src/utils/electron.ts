@@ -11,6 +11,20 @@ export const electronAPI: ElectronAPI = {
   disconnectDevice: (deviceId: string) =>
     window.electronAPI.disconnectDevice(deviceId),
 
+  // File manager
+  listDeviceFiles: (deviceId: string, path: string) =>
+    window.electronAPI.listDeviceFiles(deviceId, path),
+  downloadDeviceFile: (deviceId: string, devicePath: string, savePath: string) =>
+    window.electronAPI.downloadDeviceFile(deviceId, devicePath, savePath),
+  uploadFileToDevice: (deviceId: string, filePath: string, devicePath: string) =>
+    window.electronAPI.uploadFileToDevice(deviceId, filePath, devicePath),
+  deleteDeviceFile: (deviceId: string, devicePath: string) =>
+    window.electronAPI.deleteDeviceFile(deviceId, devicePath),
+  createDeviceFolder: (deviceId: string, devicePath: string) =>
+    window.electronAPI.createDeviceFolder(deviceId, devicePath),
+  installApk: (deviceId: string, apkPath: string) =>
+    window.electronAPI.installApk(deviceId, apkPath),
+
   // Quick actions for device
   startRecording: (deviceId: string) =>
     window.electronAPI.startRecording(deviceId),
@@ -77,4 +91,11 @@ export const electronAPI: ElectronAPI = {
   getAdbPath: () => window.electronAPI.getAdbPath(),
   setScrcpyPath: (path: string) => window.electronAPI.setScrcpyPath(path),
   setAdbPath: (path: string) => window.electronAPI.setAdbPath(path),
+
+  // Update checking
+  checkForUpdates: () => window.electronAPI.checkForUpdates(),
+  downloadUpdate: (downloadUrl: string) =>
+    window.electronAPI.downloadUpdate(downloadUrl),
+  installUpdate: (installerPath: string) =>
+    window.electronAPI.installUpdate(installerPath),
 };

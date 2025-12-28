@@ -102,4 +102,25 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getAdbPath: () => ipcRenderer.invoke("get-adb-path"),
   setScrcpyPath: (path: string) => ipcRenderer.invoke("set-scrcpy-path", path),
   setAdbPath: (path: string) => ipcRenderer.invoke("set-adb-path", path),
+
+  // File manager
+  listDeviceFiles: (deviceId: string, path: string) =>
+    ipcRenderer.invoke("list-device-files", deviceId, path),
+  downloadDeviceFile: (deviceId: string, devicePath: string, savePath: string) =>
+    ipcRenderer.invoke("download-device-file", deviceId, devicePath, savePath),
+  uploadFileToDevice: (deviceId: string, filePath: string, devicePath: string) =>
+    ipcRenderer.invoke("upload-file-to-device", deviceId, filePath, devicePath),
+  deleteDeviceFile: (deviceId: string, devicePath: string) =>
+    ipcRenderer.invoke("delete-device-file", deviceId, devicePath),
+  createDeviceFolder: (deviceId: string, devicePath: string) =>
+    ipcRenderer.invoke("create-device-folder", deviceId, devicePath),
+  installApk: (deviceId: string, apkPath: string) =>
+    ipcRenderer.invoke("install-apk", deviceId, apkPath),
+
+  // Update checking
+  checkForUpdates: () => ipcRenderer.invoke("check-for-updates"),
+  downloadUpdate: (downloadUrl: string) =>
+    ipcRenderer.invoke("download-update", downloadUrl),
+  installUpdate: (installerPath: string) =>
+    ipcRenderer.invoke("install-update", installerPath),
 });

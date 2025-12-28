@@ -12,7 +12,7 @@ const logLevels: { value: LogLevelType; color: string; icon: typeof AlertTriangl
   { value: "debug", color: "text-gray-500", icon: Bug },
 ];
 
-export default function SettingsPage() {
+export default function LogsPage() {
   const { t } = useTranslation();
   const [logLevel, setLogLevel] = useState<LogLevelType>("info");
   const [saving, setSaving] = useState(false);

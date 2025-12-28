@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { electronAPI } from "../utils/electron";
 import DeviceCard from "../components/DeviceCard";
+import FileManager from "../components/FileManager";
 import { useDeviceStore } from "../store/deviceStore";
 
 export default function DevicePage() {
@@ -19,6 +20,7 @@ export default function DevicePage() {
   const [refreshing, setRefreshing] = useState(false);
   const [wifiIp, setWifiIp] = useState("");
   const [showWifiInput, setShowWifiInput] = useState(false);
+  const [fileManagerDevice, setFileManagerDevice] = useState<{id: string; name: string} | null>(null);
 
   // Use ref to track knownDevices to avoid infinite loop
   const knownDevicesRef = useRef(knownDevices);
@@ -166,6 +168,14 @@ export default function DevicePage() {
     }
   };
 
+  const openFileManager = (deviceId: string, deviceName: string) => {
+    setFileManagerDevice({ id: deviceId, name: deviceName });
+  };
+
+  const closeFileManager = () => {
+    setFileManagerDevice(null);
+  };
+
   const connectWifiDevice = async () => {
     if (!wifiIp.trim()) {
       showToast(t("devices.toast.enterIpAddress"));
@@ -205,7 +215,9 @@ export default function DevicePage() {
           }
         }, 2000);
       } else {
-        showToast(t("devices.toast.wifiModeEnabledManual"));
+        // 获取不到 IP 时显示错误提示并刷新设备列表
+        showToast(result.error || t("devices.toast.wifiModeEnabledManual"));
+        await loadDevices();
       }
     } else {
       showToast(
@@ -358,6 +370,7 @@ export default function DevicePage() {
                 onToggleAudio={toggleAudio}
                 onStartCamera={startCamera}
                 onStopCamera={stopCamera}
+                onOpenFileManager={openFileManager}
               />
             );
           })}
@@ -418,6 +431,7 @@ export default function DevicePage() {
                 onToggleAudio={toggleAudio}
                 onStartCamera={startCamera}
                 onStopCamera={stopCamera}
+                onOpenFileManager={openFileManager}
               />
             );
           })}
@@ -434,6 +448,14 @@ export default function DevicePage() {
           <p>{t("devices.noDevices")}</p>
           <span>{t("devices.noDevicesDesc")}</span>
         </div>
+      )}
+
+      {fileManagerDevice && (
+        <FileManager
+          deviceId={fileManagerDevice.id}
+          deviceName={fileManagerDevice.name}
+          onClose={closeFileManager}
+        />
       )}
     </div>
   );

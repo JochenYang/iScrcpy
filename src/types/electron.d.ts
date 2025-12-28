@@ -92,6 +92,23 @@ export interface ClearLogsResult {
   error?: string;
 }
 
+// File entry for file manager
+export interface FileEntry {
+  name: string;
+  path: string;
+  type: "file" | "directory";
+  size: string;
+  modified: number;
+}
+
+// File manager result
+export interface FileListResult {
+  success: boolean;
+  files?: FileEntry[];
+  currentPath?: string;
+  error?: string;
+}
+
 // Electron API interface
 export interface ElectronAPI {
   // Device management
@@ -100,6 +117,14 @@ export interface ElectronAPI {
   enableTcpip: (deviceId: string) => Promise<{ success: boolean; ip?: string; error?: string }>;
   connectDevice: (deviceId: string) => Promise<{ success: boolean; deviceId?: string; error?: string }>;
   disconnectDevice: (deviceId: string) => Promise<{ success: boolean }>;
+
+  // File manager
+  listDeviceFiles: (deviceId: string, path: string) => Promise<FileListResult>;
+  downloadDeviceFile: (deviceId: string, devicePath: string, savePath: string) => Promise<{ success: boolean; error?: string }>;
+  uploadFileToDevice: (deviceId: string, filePath: string, devicePath: string) => Promise<{ success: boolean; error?: string }>;
+  deleteDeviceFile: (deviceId: string, devicePath: string) => Promise<{ success: boolean; error?: string }>;
+  createDeviceFolder: (deviceId: string, devicePath: string) => Promise<{ success: boolean; error?: string }>;
+  installApk: (deviceId: string, apkPath: string) => Promise<{ success: boolean; packageName?: string; error?: string }>;
 
   // Quick actions for device
   startRecording: (deviceId: string) => Promise<{ success: boolean; error?: string }>;
@@ -159,6 +184,24 @@ export interface ElectronAPI {
   getAdbPath: () => Promise<string>;
   setScrcpyPath: (path: string) => Promise<{ success: boolean }>;
   setAdbPath: (path: string) => Promise<{ success: boolean }>;
+
+  // Update checking
+  checkForUpdates: () => Promise<{
+    success: boolean;
+    updateAvailable: boolean;
+    currentVersion: string;
+    latestVersion?: string;
+    releaseNotes?: string;
+    downloadUrl?: string;
+    publishedAt?: string;
+    error?: string;
+  }>;
+  downloadUpdate: (downloadUrl: string) => Promise<{
+    success: boolean;
+    downloadPath?: string;
+    error?: string;
+  }>;
+  installUpdate: (installerPath: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 // Extend Window interface

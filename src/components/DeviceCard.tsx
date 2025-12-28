@@ -7,8 +7,12 @@ import {
   VolumeX,
   Camera,
   Disc,
+  Folder,
+  Package,
 } from "lucide-react";
 import { useDeviceStore } from "../store/deviceStore";
+import FileManager from "./FileManager";
+import { electronAPI } from "../utils/electron";
 
 interface DeviceCardProps {
   device: {
@@ -27,6 +31,7 @@ interface DeviceCardProps {
   onToggleAudio?: (deviceId: string, enabled: boolean) => void;
   onStartCamera?: (deviceId: string) => void;
   onStopCamera?: (deviceId: string) => void;
+  onOpenFileManager?: (deviceId: string, deviceName: string) => void;
 }
 
 interface RecordOptions {
@@ -47,6 +52,7 @@ export default function DeviceCard({
   onToggleAudio,
   onStartCamera,
   onStopCamera,
+  onOpenFileManager,
 }: DeviceCardProps) {
   const { t } = useTranslation();
   const { recordingDevices, isAudioEnabled } = useDeviceStore();
@@ -98,6 +104,49 @@ export default function DeviceCard({
     }
   };
 
+  const handleInstallApk = async () => {
+    try {
+      const result = await electronAPI.selectFile({
+        title: t("devices.installApk.title"),
+        filters: [{ name: "APK", extensions: ["apk"] }],
+      });
+
+      if (result.success && result.path) {
+        const installResult = await electronAPI.installApk(device.id, result.path);
+
+        if (installResult.success) {
+          const toast = document.createElement("div");
+          toast.className = "toast";
+          toast.textContent = t("devices.installApk.success");
+          document.body.appendChild(toast);
+          setTimeout(() => {
+            toast.classList.add("fade-out");
+            setTimeout(() => toast.remove(), 300);
+          }, 2000);
+        } else {
+          const toast = document.createElement("div");
+          toast.className = "toast toast-error";
+          toast.textContent = installResult.error || t("devices.installApk.failed");
+          document.body.appendChild(toast);
+          setTimeout(() => {
+            toast.classList.add("fade-out");
+            setTimeout(() => toast.remove(), 300);
+          }, 3000);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to install APK:", err);
+      const toast = document.createElement("div");
+      toast.className = "toast toast-error";
+      toast.textContent = t("devices.installApk.failed");
+      document.body.appendChild(toast);
+      setTimeout(() => {
+        toast.classList.add("fade-out");
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+  };
+
   return (
     <div className={`device-card ${isMirroring ? "mirroring" : isConnected ? "connected" : "offline"}`}>
       <div className="device-icon">
@@ -144,6 +193,28 @@ export default function DeviceCard({
         >
           <Camera size={14} />
         </button>
+
+        {/* File manager button - visible when connected */}
+        {isConnected && onOpenFileManager && (
+          <button
+            className="btn btn-outline btn-small"
+            onClick={() => onOpenFileManager(device.id, device.name)}
+            title={t("devices.fileManager.title")}
+          >
+            <Folder size={14} />
+          </button>
+        )}
+
+        {/* Install APK button - visible when connected */}
+        {isConnected && (
+          <button
+            className="btn btn-outline btn-small"
+            onClick={handleInstallApk}
+            title={t("devices.installApk.title")}
+          >
+            <Package size={14} />
+          </button>
+        )}
 
         {/* Recording and audio buttons - only visible when actively mirroring */}
         {isMirroring && isConnected && (

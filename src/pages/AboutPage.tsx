@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { electronAPI } from "../utils/electron";
-import { Github, ExternalLink } from "lucide-react";
+import UpdateDialog from "../components/UpdateDialog";
+import { Github, ExternalLink, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface VersionInfo {
@@ -16,6 +17,7 @@ export default function AboutPage() {
     scrcpyVersion: "...",
     adbVersion: "...",
   });
+  const [showUpdateDialog, setShowUpdateDialog] = useState(false);
 
   useEffect(() => {
     // Get app version from package.json
@@ -122,8 +124,22 @@ export default function AboutPage() {
               <ExternalLink size={14} className="about-link-arrow" />
             </button>
           </div>
+
+          {/* Update Check Button */}
+          <div className="about-divider"></div>
+          <button
+            className="btn btn-outline"
+            onClick={() => setShowUpdateDialog(true)}
+            style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", marginTop: "16px" }}
+          >
+            <RefreshCw size={16} />
+            {t("settings.update.checkNow")}
+          </button>
         </div>
       </div>
+
+      {/* Update Dialog */}
+      {showUpdateDialog && <UpdateDialog onClose={() => setShowUpdateDialog(false)} />}
     </div>
   );
 }

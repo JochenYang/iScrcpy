@@ -5,7 +5,7 @@ import DevicePage from "./pages/DevicePage";
 import DisplayPage from "./pages/DisplayPage";
 import EncodingPage from "./pages/EncodingPage";
 import ServerPage from "./pages/ServerPage";
-import SettingsPage from "./pages/SettingsPage";
+import LogsPage from "./pages/LogsPage";
 import AboutPage from "./pages/AboutPage";
 import "./i18n"; // Initialize i18n
 
@@ -25,7 +25,7 @@ function App() {
       case "server":
         return <ServerPage />;
       case "settings":
-        return <SettingsPage />;
+        return <LogsPage />;
       case "about":
         return <AboutPage />;
       default:

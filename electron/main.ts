@@ -1,8 +1,10 @@
-import { app, BrowserWindow, ipcMain, shell, dialog } from "electron";
-import { join } from "path";
+import { app, BrowserWindow, ipcMain, shell, dialog, net } from "electron";
+import path from "path";
 import { spawn, exec, execSync, ChildProcess } from "child_process";
-import { existsSync, lstatSync, readFileSync, writeFileSync, statSync, mkdirSync, unlinkSync, renameSync, readdirSync } from "fs";
+import { existsSync, lstatSync, readFileSync, writeFileSync, statSync, mkdirSync, unlinkSync, renameSync, readdirSync, createWriteStream } from "fs";
 import { logger } from "./logger";
+import { Adb } from "@devicefarmer/adbkit";
+import prettyBytes from "pretty-bytes";
 
 // Test mode flag
 const TEST_MODE = process.env.TEST === "1";
@@ -11,7 +13,7 @@ const TEST_MODE = process.env.TEST === "1";
 function getDefaultRecordPath(deviceId: string): string {
   const downloadsPath = app.getPath("downloads");
   const fileName = `recording_${deviceId.replace(/[:.]/g, "_")}.mp4`;
-  return join(downloadsPath, fileName);
+  return path.join(downloadsPath, fileName);
 }
 
 // Helper function to resolve recording path (handle directory vs file path)
@@ -24,29 +26,29 @@ function resolveRecordPath(
   }
 
   // Check if path is a directory (ends with path separator or is a directory)
-  const path = customPath.trim();
+  const customTrimmedPath = customPath.trim();
 
   // Check if path has file extension
-  if (path.match(/\.(mp4|mkv|webm|avi)$/i)) {
-    return path;
+  if (customTrimmedPath.match(/\.(mp4|mkv|webm|avi)$/i)) {
+    return customTrimmedPath;
   }
 
   // Check if path is a directory (doesn't have extension or ends with backslash)
   try {
-    if (existsSync(path) && lstatSync(path).isDirectory()) {
+    if (existsSync(customTrimmedPath) && lstatSync(customTrimmedPath).isDirectory()) {
       const fileName = `recording_${deviceId.replace(/[:.]/g, "_")}.mp4`;
-      return join(path, fileName);
+      return path.join(customTrimmedPath, fileName);
     }
   } catch (e) {
     // Path doesn't exist, will be created by scrcpy
   }
 
   // If no extension, append .mp4
-  if (!path.match(/\.[a-zA-Z0-9]+$/)) {
-    return path + ".mp4";
+  if (!customTrimmedPath.match(/\.[a-zA-Z0-9]+$/)) {
+    return customTrimmedPath + ".mp4";
   }
 
-  return path;
+  return customTrimmedPath;
 }
 
 // Platform-specific paths
@@ -74,11 +76,11 @@ function getAdbExecutable(): string {
 // Paths
 const PLATFORM_FOLDER = getPlatformFolder();
 const SCRCPY_PATH = app.isPackaged
-  ? join(process.resourcesPath, "app", PLATFORM_FOLDER, getScrcpyExecutable())
-  : join(process.cwd(), "app", PLATFORM_FOLDER, getScrcpyExecutable());
+  ? path.join(process.resourcesPath, "app", PLATFORM_FOLDER, getScrcpyExecutable())
+  : path.join(process.cwd(), "app", PLATFORM_FOLDER, getScrcpyExecutable());
 const ADB_PATH = app.isPackaged
-  ? join(process.resourcesPath, "app", PLATFORM_FOLDER, getAdbExecutable())
-  : join(process.cwd(), "app", PLATFORM_FOLDER, getAdbExecutable());
+  ? path.join(process.resourcesPath, "app", PLATFORM_FOLDER, getAdbExecutable())
+  : path.join(process.cwd(), "app", PLATFORM_FOLDER, getAdbExecutable());
 
 logger.info("Application paths configured", {
   scrcpyPath: SCRCPY_PATH,
@@ -185,16 +187,16 @@ const settings: Settings = {
     tunnelMode: "reverse",
     cleanup: true,
     scrcpyPath: app.isPackaged
-      ? join(
+      ? path.join(
           process.resourcesPath,
           "app",
           PLATFORM_FOLDER,
           getScrcpyExecutable()
         )
-      : join(process.cwd(), "app", PLATFORM_FOLDER, getScrcpyExecutable()),
+      : path.join(process.cwd(), "app", PLATFORM_FOLDER, getScrcpyExecutable()),
     adbPath: app.isPackaged
-      ? join(process.resourcesPath, "app", PLATFORM_FOLDER, getAdbExecutable())
-      : join(process.cwd(), "app", PLATFORM_FOLDER, getAdbExecutable()),
+      ? path.join(process.resourcesPath, "app", PLATFORM_FOLDER, getAdbExecutable())
+      : path.join(process.cwd(), "app", PLATFORM_FOLDER, getAdbExecutable()),
   },
   logLevel: "info",
   deviceHistory: [],
@@ -202,7 +204,7 @@ const settings: Settings = {
 
 // Load settings from file
 function loadSettings(): void {
-  const settingsPath = join(app.getPath("userData"), "settings.json");
+  const settingsPath = path.join(app.getPath("userData"), "settings.json");
   if (existsSync(settingsPath)) {
     try {
       const saved = JSON.parse(
@@ -315,8 +317,8 @@ function getAdbVersion(): Promise<{
 function createWindow(): void {
   // Get icon path
   const iconPath = app.isPackaged
-    ? join(process.resourcesPath, "build", "icon.ico")
-    : join(process.cwd(), "build", "icon.ico");
+    ? path.join(process.resourcesPath, "build", "icon.ico")
+    : path.join(process.cwd(), "build", "icon.ico");
 
   mainWindow = new BrowserWindow({
     width: 1000,
@@ -330,7 +332,7 @@ function createWindow(): void {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: join(__dirname, "../preload/preload.cjs"),
+      preload: path.join(__dirname, "../preload/preload.cjs"),
     },
   });
 
@@ -339,7 +341,7 @@ function createWindow(): void {
     mainWindow.loadURL("http://localhost:5173");
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
+    mainWindow.loadFile(path.join(__dirname, "../renderer/index.html"));
   }
 
   mainWindow.once("ready-to-show", () => {
@@ -781,6 +783,258 @@ ipcMain.handle(
   }
 );
 
+// File manager - list device files
+ipcMain.handle(
+  "list-device-files",
+  async (_, deviceId: string, devicePath: string): Promise<{
+    success: boolean;
+    files?: Array<{ name: string; path: string; type: "file" | "directory"; size: string; modified: number }>;
+    currentPath?: string;
+    error?: string;
+  }> => {
+    if (TEST_MODE) {
+      return {
+        success: true,
+        files: [
+          { name: "Download", path: "/sdcard/Download", type: "directory", size: "-", modified: Date.now() },
+          { name: "Pictures", path: "/sdcard/Pictures", type: "directory", size: "-", modified: Date.now() },
+          { name: "DCIM", path: "/sdcard/DCIM", type: "directory", size: "-", modified: Date.now() },
+          { name: "test.txt", path: "/sdcard/test.txt", type: "file", size: "1.0 KB", modified: Date.now() },
+        ],
+        currentPath: devicePath,
+      };
+    }
+
+    try {
+      logger.info(`Listing files for device ${deviceId} at path: ${devicePath}`);
+
+      // Create ADB client
+      const adbPath = getAdbPath();
+      const client = Adb.createClient({ bin: adbPath });
+
+      // Get device
+      const device = client.getDevice(deviceId);
+
+      // Resolve symlink first (e.g., /sdcard -> /storage/self/primary)
+      let targetPath = devicePath;
+      try {
+        const resolveOutput = await device.shell(`readlink -f "${devicePath}"`);
+        const resolvedBuffer = await Adb.util.readAll(resolveOutput);
+        const resolved = resolvedBuffer.toString().trim();
+        if (resolved && resolved !== devicePath) {
+          targetPath = resolved;
+          logger.info(`Resolved path: ${devicePath} -> ${targetPath}`);
+        }
+      } catch (err) {
+        logger.warn(`Failed to resolve symlink for ${devicePath}: ${err}`);
+      }
+
+      // Use adbkit's readdir which properly handles all file types including special characters
+      const entries = await device.readdir(targetPath);
+      logger.debug(`Found ${entries.length} entries in ${targetPath}`);
+
+      const files = await Promise.all(
+        entries.map(async (entry: any) => {
+          const fullPath = path.posix.join(targetPath, entry.name);
+          let size = "-";
+
+          // Debug log for entry type
+          logger.debug(`Entry: ${entry.name}, isFile: ${entry.isFile?.()}, isDirectory: ${entry.isDirectory?.()}`);
+
+          // Get file size for files
+          if (entry.isFile()) {
+            try {
+              const statOutput = await device.shell(`stat -c %s "${fullPath}"`);
+              const statBuffer = await Adb.util.readAll(statOutput);
+              const sizeStr = statBuffer.toString().trim();
+              if (sizeStr && !isNaN(Number(sizeStr))) {
+                size = prettyBytes.default(Number(sizeStr));
+                logger.debug(`File size for ${entry.name}: ${size}`);
+              }
+            } catch (err) {
+              logger.warn(`Failed to get size for ${fullPath}: ${err}`);
+            }
+          }
+
+          return {
+            name: entry.name,
+            path: fullPath,
+            type: entry.isFile() ? "file" : "directory" as const,
+            size,
+            modified: entry.mtimeMs || Date.now(),
+          };
+        })
+      );
+
+      logger.debug(`Listed ${files.length} files`);
+      return { success: true, files, currentPath: targetPath };
+    } catch (error: any) {
+      logger.error(`Failed to list files for ${deviceId}`, { error: error.message });
+      return { success: false, error: error.message };
+    }
+  }
+);
+
+// File manager - download file from device
+ipcMain.handle(
+  "download-device-file",
+  async (_, deviceId: string, devicePath: string, savePath: string): Promise<{ success: boolean; error?: string }> => {
+    if (TEST_MODE) {
+      return { success: true };
+    }
+
+    const adbPath = getAdbPath();
+    
+    return new Promise((resolve) => {
+      exec(
+        `"${adbPath}" -s ${deviceId} pull "${devicePath}" "${savePath}"`,
+        { encoding: "utf8" },
+        (error, stdout, stderr) => {
+          if (error) {
+            logger.error(`Failed to download file from ${deviceId}`, { error, stderr });
+            resolve({ success: false, error: error.message });
+            return;
+          }
+          logger.info(`Downloaded file from ${deviceId}: ${devicePath} -> ${savePath}`);
+          resolve({ success: true });
+        }
+      );
+    });
+  }
+);
+
+// File manager - upload file to device
+ipcMain.handle(
+  "upload-file-to-device",
+  async (_, deviceId: string, filePath: string, devicePath: string): Promise<{ success: boolean; error?: string }> => {
+    if (TEST_MODE) {
+      return { success: true };
+    }
+
+    const adbPath = getAdbPath();
+    
+    return new Promise((resolve) => {
+      exec(
+        `"${adbPath}" -s ${deviceId} push "${filePath}" "${devicePath}"`,
+        { encoding: "utf8" },
+        (error, stdout, stderr) => {
+          if (error) {
+            logger.error(`Failed to upload file to ${deviceId}`, { error, stderr });
+            resolve({ success: false, error: error.message });
+            return;
+          }
+          logger.info(`Uploaded file to ${deviceId}: ${filePath} -> ${devicePath}`);
+          resolve({ success: true });
+        }
+      );
+    });
+  }
+);
+
+// File manager - delete file on device
+ipcMain.handle(
+  "delete-device-file",
+  async (_, deviceId: string, devicePath: string): Promise<{ success: boolean; error?: string }> => {
+    if (TEST_MODE) {
+      return { success: true };
+    }
+
+    const adbPath = getAdbPath();
+    
+    return new Promise((resolve) => {
+      exec(
+        `"${adbPath}" -s ${deviceId} shell rm -rf "${devicePath}"`,
+        { encoding: "utf8" },
+        (error, stdout, stderr) => {
+          if (error) {
+            logger.error(`Failed to delete file on ${deviceId}`, { error, stderr });
+            resolve({ success: false, error: error.message });
+            return;
+          }
+          logger.info(`Deleted file on ${deviceId}: ${devicePath}`);
+          resolve({ success: true });
+        }
+      );
+    });
+  }
+);
+
+// File manager - create folder on device
+ipcMain.handle(
+  "create-device-folder",
+  async (_, deviceId: string, devicePath: string): Promise<{ success: boolean; error?: string }> => {
+    if (TEST_MODE) {
+      return { success: true };
+    }
+
+    const adbPath = getAdbPath();
+    
+    return new Promise((resolve) => {
+      exec(
+        `"${adbPath}" -s ${deviceId} shell mkdir -p "${devicePath}"`,
+        { encoding: "utf8" },
+        (error, stdout, stderr) => {
+          if (error) {
+            logger.error(`Failed to create folder on ${deviceId}`, { error, stderr });
+            resolve({ success: false, error: error.message });
+            return;
+          }
+          logger.info(`Created folder on ${deviceId}: ${devicePath}`);
+          resolve({ success: true });
+        }
+      );
+    });
+  }
+);
+
+// File manager - install APK on device
+ipcMain.handle(
+  "install-apk",
+  async (_, deviceId: string, apkPath: string): Promise<{
+    success: boolean;
+    packageName?: string;
+    error?: string;
+  }> => {
+    if (TEST_MODE) {
+      return { success: true, packageName: "com.test.app" };
+    }
+
+    const adbPath = getAdbPath();
+
+    logger.info(`Installing APK on ${deviceId}: ${apkPath}`);
+
+    return new Promise((resolve) => {
+      exec(
+        `"${adbPath}" -s ${deviceId} install -r "${apkPath}"`,
+        { encoding: "utf8" },
+        (error, stdout, stderr) => {
+          if (error) {
+            logger.error(`Failed to install APK on ${deviceId}`, { error, stderr });
+            resolve({ success: false, error: stderr || error.message });
+            return;
+          }
+
+          // Check if installation was successful
+          const output = stdout || stderr;
+          if (output.includes("Success")) {
+            logger.info(`Successfully installed APK on ${deviceId}`);
+            // Try to extract package name from APK file name
+            const fileName = apkPath.split("/").pop() || "";
+            const packageName = fileName.replace(".apk", "");
+            resolve({ success: true, packageName });
+          } else if (output.includes("INSTALL_FAILED")) {
+            logger.error(`APK installation failed on ${deviceId}: ${output}`);
+            resolve({ success: false, error: output.trim() });
+          } else {
+            logger.warn(`Unknown installation result on ${deviceId}: ${output}`);
+            resolve({ success: false, error: output.trim() });
+          }
+        }
+      );
+    });
+  }
+);
+
 // Disconnect device - only stop scrcpy, don't disconnect ADB
 ipcMain.handle(
   "disconnect-device",
@@ -850,7 +1104,7 @@ ipcMain.handle(
     }
 
     // Save to userData directory (works in both dev and packaged mode)
-    const settingsPath = join(app.getPath("userData"), "settings.json");
+    const settingsPath = path.join(app.getPath("userData"), "settings.json");
     writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
 
     logger.info(`Settings saved to: ${settingsPath}`);
@@ -887,7 +1141,7 @@ function addDeviceToHistory(
   }
 
   // Save to file
-  const settingsPath = join(app.getPath("userData"), "settings.json");
+  const settingsPath = path.join(app.getPath("userData"), "settings.json");
   writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
 }
 
@@ -897,7 +1151,7 @@ function removeDeviceFromHistory(deviceId: string): void {
   );
 
   // Save to file
-  const settingsPath = join(app.getPath("userData"), "settings.json");
+  const settingsPath = path.join(app.getPath("userData"), "settings.json");
   writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
 }
 
@@ -907,7 +1161,7 @@ function updateDeviceAutoConnect(deviceId: string, autoConnect: boolean): void {
     device.autoConnect = autoConnect;
 
     // Save to file
-    const settingsPath = join(app.getPath("userData"), "settings.json");
+    const settingsPath = path.join(app.getPath("userData"), "settings.json");
     writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
   }
 }
@@ -1885,10 +2139,6 @@ ipcMain.handle(
   }
 );
 
-// Version info
-ipcMain.handle("get-app-version", async () => {
-  return { version: app.getVersion() };
-});
 ipcMain.handle("get-version", getScrcpyVersion);
 ipcMain.handle("get-adb-version", getAdbVersion);
 ipcMain.handle("get-electron-version", async () => {
@@ -1918,7 +2168,7 @@ ipcMain.handle("open-folder", async (_, folderPath: string): Promise<void> => {
 
 // Open logs folder
 ipcMain.handle("open-logs-folder", async (): Promise<void> => {
-  const logDir = join(app.isPackaged ? app.getPath("userData") : process.cwd(), "logs");
+  const logDir = path.join(app.isPackaged ? app.getPath("userData") : process.cwd(), "logs");
   if (existsSync(logDir)) {
     await shell.openPath(logDir);
   } else {
@@ -1930,7 +2180,7 @@ ipcMain.handle("open-logs-folder", async (): Promise<void> => {
 
 // Get log statistics
 ipcMain.handle("get-log-stats", async (): Promise<{ count: number; size: string }> => {
-  const logDir = join(app.isPackaged ? app.getPath("userData") : process.cwd(), "logs");
+  const logDir = path.join(app.isPackaged ? app.getPath("userData") : process.cwd(), "logs");
 
   if (!existsSync(logDir)) {
     return { count: 0, size: "0 KB" };
@@ -1941,7 +2191,7 @@ ipcMain.handle("get-log-stats", async (): Promise<{ count: number; size: string 
     let totalSize = 0;
 
     for (const file of files) {
-      const filePath = join(logDir, file);
+      const filePath = path.join(logDir, file);
       const stats = statSync(filePath);
       totalSize += stats.size;
     }
@@ -1965,7 +2215,7 @@ ipcMain.handle("get-log-stats", async (): Promise<{ count: number; size: string 
 
 // Clear old logs (older than 7 days)
 ipcMain.handle("clear-logs", async (): Promise<{ success: boolean; count: number; error?: string }> => {
-  const logDir = join(app.isPackaged ? app.getPath("userData") : process.cwd(), "logs");
+  const logDir = path.join(app.isPackaged ? app.getPath("userData") : process.cwd(), "logs");
 
   if (!existsSync(logDir)) {
     return { success: true, count: 0 };
@@ -1978,7 +2228,7 @@ ipcMain.handle("clear-logs", async (): Promise<{ success: boolean; count: number
     let deletedCount = 0;
 
     for (const file of files) {
-      const filePath = join(logDir, file);
+      const filePath = path.join(logDir, file);
       const stats = statSync(filePath);
 
       // Delete files older than 7 days
@@ -2063,7 +2313,7 @@ ipcMain.handle("get-scrcpy-path", async () => {
 
 // Helper function to save settings to file
 function saveSettingsToFile(): void {
-  const settingsPath = join(app.getPath("userData"), "settings.json");
+  const settingsPath = path.join(app.getPath("userData"), "settings.json");
   writeFileSync(settingsPath, JSON.stringify({
     ...settings,
     logLevel: logger.getLevel()
@@ -2100,13 +2350,13 @@ function getScrcpyPath(): string {
   return (
     settings.server.scrcpyPath ||
     (app.isPackaged
-      ? join(
+      ? path.join(
           process.resourcesPath,
           "app",
           PLATFORM_FOLDER,
           getScrcpyExecutable()
         )
-      : join(process.cwd(), "app", PLATFORM_FOLDER, getScrcpyExecutable()))
+      : path.join(process.cwd(), "app", PLATFORM_FOLDER, getScrcpyExecutable()))
   );
 }
 
@@ -2116,8 +2366,8 @@ function getAdbPath(): string {
   const isDev = process.env.ELECTRON_IS_DEV === "1" || process.env.NODE_ENV === "development" || !app.isPackaged;
   const adbPath = (
     isDev
-      ? join(process.cwd(), "app", PLATFORM_FOLDER, getAdbExecutable())
-      : (settings.server.adbPath || join(process.resourcesPath, "app", PLATFORM_FOLDER, getAdbExecutable()))
+      ? path.join(process.cwd(), "app", PLATFORM_FOLDER, getAdbExecutable())
+      : (settings.server.adbPath || path.join(process.resourcesPath, "app", PLATFORM_FOLDER, getAdbExecutable()))
   );
   return adbPath;
 }
@@ -2143,3 +2393,243 @@ app.on("activate", () => {
     createWindow();
   }
 });
+
+// GitHub repository for updates
+const GITHUB_REPO = "JochenYang/iScrcpy";
+const GITHUB_API_URL = `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`;
+const GITHUB_RELEASE_URL = `https://github.com/${GITHUB_REPO}/releases/latest`;
+
+// Version info type
+interface ReleaseInfo {
+  version: string;
+  downloadUrl: string;
+  releaseNotes: string;
+  publishedAt: string;
+  size: number;
+}
+
+// Check for updates
+ipcMain.handle(
+  "check-for-updates",
+  async (): Promise<{
+    success: boolean;
+    updateAvailable: boolean;
+    currentVersion: string;
+    latestVersion?: string;
+    releaseNotes?: string;
+    downloadUrl?: string;
+    publishedAt?: string;
+    error?: string;
+  }> => {
+    if (TEST_MODE) {
+      return {
+        success: true,
+        updateAvailable: true,
+        currentVersion: app.getVersion(),
+        latestVersion: "1.1.0",
+        releaseNotes: "Test release notes",
+        downloadUrl: "https://github.com/JochenYang/iScrcpy/releases/latest",
+        publishedAt: new Date().toISOString(),
+      };
+    }
+
+    try {
+      logger.info("Checking for updates...");
+
+      // Use Electron's net module for HTTP request
+      const response = await net.fetch(GITHUB_API_URL, {
+        headers: {
+          "Accept": "application/vnd.github.v3+json",
+          "User-Agent": "iScrcpy-Update-Checker",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`GitHub API returned status ${response.status}`);
+      }
+
+      const data = await response.json() as {
+        tag_name: string;
+        body: string;
+        published_at: string;
+        assets: Array<{ browser_download_url: string; size: number }>;
+      };
+
+      const currentVersion = app.getVersion();
+      const latestVersion = data.tag_name.startsWith("v") ? data.tag_name.slice(1) : data.tag_name;
+
+      // Compare versions
+      const updateAvailable = compareVersions(latestVersion, currentVersion) > 0;
+
+      logger.info(`Current version: ${currentVersion}, Latest version: ${latestVersion}, Update available: ${updateAvailable}`);
+
+      if (updateAvailable) {
+        // Find the Windows installer asset
+        const windowsAsset = data.assets.find(
+          (asset: any) => asset.browser_download_url?.includes(".exe") || asset.browser_download_url?.includes(".msi")
+        );
+
+        return {
+          success: true,
+          updateAvailable: true,
+          currentVersion,
+          latestVersion,
+          releaseNotes: data.body || "",
+          downloadUrl: windowsAsset?.browser_download_url || GITHUB_RELEASE_URL,
+          publishedAt: data.published_at,
+        };
+      }
+
+      return {
+        success: true,
+        updateAvailable: false,
+        currentVersion,
+      };
+    } catch (error: any) {
+      logger.error("Failed to check for updates", { error: error.message });
+      return {
+        success: false,
+        updateAvailable: false,
+        currentVersion: app.getVersion(),
+        error: error.message,
+      };
+    }
+  }
+);
+
+// Download update
+ipcMain.handle(
+  "download-update",
+  async (_, downloadUrl: string): Promise<{
+    success: boolean;
+    downloadPath?: string;
+    error?: string;
+  }> => {
+    if (TEST_MODE) {
+      return {
+        success: true,
+        downloadPath: path.join(app.getPath("downloads"), "iScrcpy-Setup-1.1.0.exe"),
+      };
+    }
+
+    try {
+      logger.info(`Downloading update from ${downloadUrl}`);
+
+      const downloadsPath = app.getPath("downloads");
+      const fileName = downloadUrl.split("/").pop() || "iScrcpy-Setup.exe";
+      const downloadPath = path.join(downloadsPath, fileName);
+
+      // Download the file
+      const response = await net.fetch(downloadUrl);
+
+      if (!response.ok) {
+        throw new Error(`Download failed with status ${response.status}`);
+      }
+
+      // Create write stream
+      const fileStream = createWriteStream(downloadPath);
+      const body = response.body;
+
+      if (body) {
+        // Pipe the response body to the file
+        await new Promise<void>((resolve, reject) => {
+          body.pipeTo(
+            new WritableStream({
+              write(chunk) {
+                return new Promise((resolveWrite, rejectWrite) => {
+                  fileStream.write(chunk, (err) => {
+                    if (err) rejectWrite(err);
+                    else resolveWrite();
+                  });
+                });
+              },
+              close() {
+                fileStream.end();
+                resolve();
+              },
+              abort(err) {
+                fileStream.destroy();
+                reject(err);
+              },
+            })
+          ).catch(reject);
+        });
+      }
+
+      logger.info(`Update downloaded to ${downloadPath}`);
+
+      return {
+        success: true,
+        downloadPath,
+      };
+    } catch (error: any) {
+      logger.error("Failed to download update", { error: error.message });
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+);
+
+// Install update - quits and runs the installer
+ipcMain.handle(
+  "install-update",
+  async (_, installerPath: string): Promise<{ success: boolean; error?: string }> => {
+    if (TEST_MODE) {
+      return { success: true };
+    }
+
+    try {
+      logger.info(`Installing update from ${installerPath}`);
+
+      if (!existsSync(installerPath)) {
+        throw new Error(`Installer not found at ${installerPath}`);
+      }
+
+      // Open the installer - user needs to manually install
+      await shell.openPath(installerPath);
+
+      // Quit the app so the installer can proceed
+      logger.info("Quitting app to allow installer to run");
+      app.quit();
+
+      return { success: true };
+    } catch (error: any) {
+      logger.error("Failed to install update", { error: error.message });
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+);
+
+// Get current app version
+ipcMain.handle("get-app-version", async () => {
+  return { version: app.getVersion() };
+});
+
+// Helper function to compare versions
+// Returns 1 if a > b, -1 if a < b, 0 if equal
+function compareVersions(a: string, b: string): number {
+  const parseVersion = (v: string) => {
+    return v.split(".").map((part) => {
+      const num = parseInt(part, 10);
+      return isNaN(num) ? 0 : num;
+    });
+  };
+
+  const aParts = parseVersion(a);
+  const bParts = parseVersion(b);
+  const maxLen = Math.max(aParts.length, bParts.length);
+
+  for (let i = 0; i < maxLen; i++) {
+    const aPart = aParts[i] || 0;
+    const bPart = bParts[i] || 0;
+    if (aPart > bPart) return 1;
+    if (aPart < bPart) return -1;
+  }
+
+  return 0;
+}
