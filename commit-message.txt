@@ -1,0 +1,7 @@
+fix: resolve ADB path issue in dev mode and improve error messages
+
+- Fix ADB path detection using multiple methods in dev mode
+- Add user-friendly toast messages for WiFi device connection failures
+- Return localized error messages instead of raw ADB output
+- Use single icon.png for macOS build instead of separate icon-mac.png
+- Update translations for all 7 languages

@@ -46,6 +46,8 @@
       "autoConnected": "WiFi cihazı {{ip}}:5555'e otomatik bağlandı",
       "noDevicesToConnect": "Bağlanacak cihaz yok",
       "enterIpAddress": "Lütfen cihaz IP adresini girin",
+      "enableWifiFirst": "Lütfen önce USB üzerinden bağlanın, ardından WiFi modunu etkinleştirin",
+      "wifiDisconnected": "WiFi bağlantısı kesildi, lütfen cihaz ağ bağlantısını kontrol edin",
       "unknownError": "Bilinmeyen hata",
       "recordingStarted": "Kayıt başlatıldı",
       "recordingStopped": "Kayıt durduruldu",

@@ -196,7 +196,22 @@ export default function DeviceCard({
                   setTimeout(() => toast.remove(), 300);
                 }, 2000);
               } else {
-                // WiFi device offline, can connect quickly
+                // WiFi device offline, check if previously connected via USB
+                const isPreviouslyConnected = device.status !== "offline";
+                const toast = document.createElement("div");
+                toast.className = "toast";
+                if (isPreviouslyConnected) {
+                  // Device was connected before, likely WiFi disconnected
+                  toast.textContent = t("devices.toast.wifiDisconnected");
+                } else {
+                  // New device, prompt to enable WiFi mode via USB
+                  toast.textContent = t("devices.toast.enableWifiFirst");
+                }
+                document.body.appendChild(toast);
+                setTimeout(() => {
+                  toast.classList.add("fade-out");
+                  setTimeout(() => toast.remove(), 300);
+                }, 3000);
                 onConnect(device.id);
               }
             }}

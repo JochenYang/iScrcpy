@@ -48,6 +48,8 @@
       "autoConnected": "已自动连接到 WiFi 设备 {{ip}}:5555",
       "noDevicesToConnect": "没有可连接的设备",
       "enterIpAddress": "请输入设备 IP 地址",
+      "enableWifiFirst": "请先通过 USB 连接设备，然后启用 WiFi 模式",
+      "wifiDisconnected": "WiFi 已断开，请检查设备网络连接",
       "unknownError": "未知错误",
       "recordingStarted": "开始录制",
       "recordingStopped": "停止录制",

@@ -48,6 +48,8 @@
       "autoConnected": "Auto-connected to WiFi device {{ip}}:5555",
       "noDevicesToConnect": "No devices to connect",
       "enterIpAddress": "Please enter device IP address",
+      "enableWifiFirst": "Please connect via USB first, then enable WiFi mode",
+      "wifiDisconnected": "WiFi disconnected, please check device network connection",
       "unknownError": "Unknown error",
       "recordingStarted": "Recording started",
       "recordingStopped": "Recording stopped",

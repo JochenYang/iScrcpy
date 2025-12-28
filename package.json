@@ -137,7 +137,7 @@
           ]
         }
       ],
-      "icon": "build/icon-mac.png",
+      "icon": "build/icon.png",
       "category": "public.app-category.utilities",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,

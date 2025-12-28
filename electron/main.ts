@@ -543,7 +543,16 @@ async function connectWifiDevice(
           resolve({ success: true });
         } else {
           logger.warn(`Connection failed for ${deviceId}`, { stdout });
-          resolve({ success: false, error: stdout.trim() });
+          // Return user-friendly error message
+          let error = "连接失败，请检查设备 IP 和网络连接";
+          if (stdout.includes("refused")) {
+            error = "连接被拒绝，请确保设备已启用 WiFi 模式";
+          } else if (stdout.includes("timeout")) {
+            error = "连接超时，请检查设备 IP 是否正确";
+          } else if (stdout.includes("no route to host")) {
+            error = "无法找到设备，请检查网络连接";
+          }
+          resolve({ success: false, error });
         }
       }
     );
@@ -2103,12 +2112,14 @@ function getScrcpyPath(): string {
 
 // Get current adb path (use custom path if set, otherwise default)
 function getAdbPath(): string {
-  return (
-    settings.server.adbPath ||
-    (app.isPackaged
-      ? join(process.resourcesPath, "app", PLATFORM_FOLDER, getAdbExecutable())
-      : join(process.cwd(), "app", PLATFORM_FOLDER, getAdbExecutable()))
+  // Check multiple ways to detect dev mode
+  const isDev = process.env.ELECTRON_IS_DEV === "1" || process.env.NODE_ENV === "development" || !app.isPackaged;
+  const adbPath = (
+    isDev
+      ? join(process.cwd(), "app", PLATFORM_FOLDER, getAdbExecutable())
+      : (settings.server.adbPath || join(process.resourcesPath, "app", PLATFORM_FOLDER, getAdbExecutable()))
   );
+  return adbPath;
 }
 
 // App lifecycle

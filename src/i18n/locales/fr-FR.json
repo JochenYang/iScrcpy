@@ -46,6 +46,8 @@
       "autoConnected": "Connecté automatiquement à l'appareil WiFi {{ip}}:5555",
       "noDevicesToConnect": "Aucun appareil à connecter",
       "enterIpAddress": "Veuillez entrer l'adresse IP de l'appareil",
+      "enableWifiFirst": "Veuillez d'abord connecter via USB, puis activer le mode WiFi",
+      "wifiDisconnected": "WiFi déconnecté, veuillez vérifier la connexion réseau de l'appareil",
       "unknownError": "Erreur inconnue",
       "recordingStarted": "Enregistrement démarré",
       "recordingStopped": "Enregistrement arrêté",

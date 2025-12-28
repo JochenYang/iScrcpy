@@ -48,6 +48,8 @@
       "autoConnected": "WiFiデバイス {{ip}}:5555 に自動接続しました",
       "noDevicesToConnect": "接続可能なデバイスがありません",
       "enterIpAddress": "デバイスのIPアドレスを入力してください",
+      "enableWifiFirst": "まずUSBで接続してからWiFiモードを有効にしてください",
+      "wifiDisconnected": "WiFi接続が切れました。デバイスのネットワーク接続を確認してください",
       "unknownError": "不明なエラー",
       "recordingStarted": "録画を開始しました",
       "recordingStopped": "録画を停止しました",
