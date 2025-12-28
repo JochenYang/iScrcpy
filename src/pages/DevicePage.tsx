@@ -35,7 +35,7 @@ export default function DevicePage() {
     lastSeen?: number;
   }
 
-  const loadDevices = useCallback(async (silent = false) => {
+  const loadDevices = useCallback(async (silent = false, forceRefresh = false) => {
     if (!silent) {
       setRefreshing(true);
     }
@@ -52,13 +52,18 @@ export default function DevicePage() {
           return existing ? { ...device, lastSeen: existing.lastSeen } : { ...device, lastSeen: now };
         });
         
-        // Update known devices with offline status for devices no longer present
+        // Update known devices - only mark as offline if forceRefresh is true
+        // This prevents marking devices as offline on initial load when they might not be detected yet
         const updatedKnown = known.map(knownDevice => {
           const current = currentDevices.find(d => d.id === knownDevice.id);
           if (current) {
             return { ...knownDevice, status: current.status, lastSeen: now };
           }
-          return { ...knownDevice, status: "offline", lastSeen: now };
+          // Only mark as offline if forceRefresh is true (manual refresh)
+          // Keep the previous status on initial load to avoid false offline status
+          return forceRefresh 
+            ? { ...knownDevice, status: "offline", lastSeen: now }
+            : knownDevice;
         });
         
         // Add new devices to known list
@@ -253,12 +258,12 @@ export default function DevicePage() {
   };
 
   useEffect(() => {
-    // Initial load with UI feedback
-    loadDevices(false);
-    // Silent polling every 3 seconds
+    // Initial load - don't mark devices as offline immediately
+    loadDevices(false, false);
+    // Silent polling every 5 seconds - mark devices as offline if not detected
     const pollInterval = setInterval(() => {
-      loadDevices(true);
-    }, 3000);
+      loadDevices(true, true);
+    }, 5000);
     return () => clearInterval(pollInterval);
   }, [loadDevices]);
 
@@ -325,7 +330,7 @@ export default function DevicePage() {
         <div className="header-actions">
           <button
             className="btn btn-outline"
-            onClick={loadDevices}
+            onClick={() => loadDevices(false, true)}
             disabled={refreshing}
           >
             {refreshing ? (
