@@ -7,8 +7,35 @@ on:
       - v*.*.*
 
 jobs:
+  extract-changelog:
+    runs-on: ubuntu-latest
+    outputs:
+      body: ${{ steps.extract.outputs.body }}
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+
+      - name: Extract changelog for this version
+        id: extract
+        run: |
+          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          echo "Extracting changelog for version: $TAG_VERSION"
+          
+          # Use awk to extract changelog section for this version
+          BODY=$(awk "/^## \[$TAG_VERSION\]/,/^## \[|^### Supported Languages/ { 
+            if (/^## \[/) { 
+              if (!found) { found=1; next } 
+              else { exit } 
+            } 
+            if (found) print 
+          }" CHANGELOG.md | sed 's/^/  /')
+          
+          echo "body=$BODY" >> $GITHUB_OUTPUT
+        shell: bash
+
   build-win:
     runs-on: windows-latest
+    needs: extract-changelog
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v4
@@ -35,11 +62,13 @@ jobs:
             dist/*.zip
             dist/*.blockmap
             dist/*.yml
+          body: ${{ needs.extract-changelog.outputs.body }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-mac:
     runs-on: macos-latest
+    needs: extract-changelog
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v4
@@ -67,11 +96,13 @@ jobs:
           files: |
             dist/*.dmg
             dist/*.zip
+          body: ${{ needs.extract-changelog.outputs.body }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-linux:
     runs-on: ubuntu-latest
+    needs: extract-changelog
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v4
@@ -98,5 +129,6 @@ jobs:
             dist/*.deb
             dist/*.rpm
             dist/*.tar.gz
+          body: ${{ needs.extract-changelog.outputs.body }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

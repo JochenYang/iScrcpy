@@ -28,6 +28,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Various bug fixes and stability improvements
 
+## [1.0.0] - 2025-12-23
+
+### Added
+
+- Initial release
+- Multi-language support (7 languages)
+- USB and WiFi device connection
+- Display settings (resolution, bitrate, frame rate)
+- Recording functionality with time limit
+- Camera mirroring support
+- Window options (borderless, screensaver disable)
+- Encoding settings
+- Server configuration
+- Modern dark theme UI
+- Real-time device monitoring
+- Custom window controls
+
+### Changed
+
+- Improved device detection
+- Optimized recording performance
+
+### Fixed
+
+- Various bug fixes
+
 ## Supported Languages
 
 - English (en-US)
