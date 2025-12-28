@@ -164,7 +164,8 @@
     "github": "GitHub Deposu",
     "documentation": "Dokümantasyon",
     "openLogsFolder": "Günlük Klasörünü Aç",
-    "description": "Scrcpy tabanlı Android ekran yansıtma aracı"
+    "description": "Scrcpy tabanlı Android ekran yansıtma aracı",
+    "changelog": "Değişiklik Günlüğü"
   },
   "statusBar": {
     "language": "Dil"
