@@ -134,4 +134,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("download-update", downloadUrl),
   installUpdate: (installerPath: string) =>
     ipcRenderer.invoke("install-update", installerPath),
+
+  // Download progress
+  onDownloadProgress: (callback: (event: Electron.IpcRendererEvent, progress: number) => void) => {
+    ipcRenderer.on("download-progress", callback);
+  },
+  removeDownloadProgressListener: () => {
+    ipcRenderer.removeAllListeners("download-progress");
+  },
 });

@@ -207,6 +207,8 @@ export interface ElectronAPI {
     error?: string;
   }>;
   installUpdate: (installerPath: string) => Promise<{ success: boolean; error?: string }>;
+  onDownloadProgress: (callback: (event: Electron.IpcRendererEvent, progress: number) => void) => void;
+  removeDownloadProgressListener: () => void;
 }
 
 // Extend Window interface

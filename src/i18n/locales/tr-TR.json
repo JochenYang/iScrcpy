@@ -226,5 +226,14 @@
       "quit": "Kapat",
       "cancel": "İptal"
     }
+  },
+  "common": {
+    "later": "Sonra",
+    "cancel": "İptal",
+    "ok": "Tamam",
+    "save": "Kaydet",
+    "delete": "Sil",
+    "edit": "Düzenle",
+    "close": "Kapat"
   }
 }

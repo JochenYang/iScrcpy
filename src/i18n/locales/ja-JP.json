@@ -228,5 +228,14 @@
       "quit": "終了",
       "cancel": "キャンセル"
     }
+  },
+  "common": {
+    "later": "後でする",
+    "cancel": "キャンセル",
+    "ok": "OK",
+    "save": "保存",
+    "delete": "削除",
+    "edit": "編集",
+    "close": "閉じる"
   }
 }

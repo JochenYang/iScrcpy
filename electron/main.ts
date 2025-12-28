@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell, dialog, net, Tray, Menu, globalShortcut, nativeImage } from "electron";
+import { app, BrowserWindow, ipcMain, shell, dialog, net, Tray, Menu, globalShortcut, nativeImage, type NativeImage } from "electron";
 import path from "path";
 import { spawn, exec, execSync, ChildProcess } from "child_process";
 import { existsSync, lstatSync, readFileSync, writeFileSync, statSync, mkdirSync, unlinkSync, renameSync, readdirSync, createWriteStream } from "fs";
@@ -871,7 +871,7 @@ ipcMain.handle(
               const statBuffer = await Adb.util.readAll(statOutput);
               const sizeStr = statBuffer.toString().trim();
               if (sizeStr && !isNaN(Number(sizeStr))) {
-                size = prettyBytes.default(Number(sizeStr));
+                size = prettyBytes(Number(sizeStr));
                 logger.debug(`File size for ${entry.name}: ${size}`);
               }
             } catch (err) {
@@ -2541,13 +2541,21 @@ ipcMain.handle(
     try {
       logger.info("Checking for updates...");
 
+      // Get GitHub token from environment (for higher rate limit)
+      const githubToken = process.env.GITHUB_TOKEN;
+
       // Use Electron's net module for HTTP request
-      const response = await net.fetch(GITHUB_API_URL, {
-        headers: {
-          "Accept": "application/vnd.github.v3+json",
-          "User-Agent": "iScrcpy-Update-Checker",
-        },
-      });
+      const headers: Record<string, string> = {
+        "Accept": "application/vnd.github.v3+json",
+        "User-Agent": "iScrcpy-Update-Checker",
+      };
+
+      // Add authorization header if token is available
+      if (githubToken) {
+        headers["Authorization"] = `token ${githubToken}`;
+      }
+
+      const response = await net.fetch(GITHUB_API_URL, { headers });
 
       if (!response.ok) {
         throw new Error(`GitHub API returned status ${response.status}`);
@@ -2624,10 +2632,21 @@ ipcMain.handle(
       const fileName = downloadUrl.split("/").pop() || "iScrcpy-Setup.exe";
       const downloadPath = path.join(downloadsPath, fileName);
 
-      // Use electron-dl for better download handling
-      await download(BrowserWindow.getFocusedWindow()!, downloadUrl, {
+      // Get a valid window for download
+      const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0] || mainWindow;
+      if (!win) {
+        throw new Error("No window available for download");
+      }
+
+      // Use electron-dl for better download handling with progress
+      await download(win, downloadUrl, {
         directory: downloadsPath,
         filename: fileName,
+        onProgress: (progress) => {
+          // Send progress to renderer
+          const percent = Math.round(progress.percent * 100);
+          win.webContents.send("download-progress", percent);
+        },
       });
 
       logger.info(`Update downloaded to ${downloadPath}`);

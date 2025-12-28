@@ -173,6 +173,15 @@
   "statusBar": {
     "language": "Language"
   },
+  "common": {
+    "later": "Later",
+    "cancel": "Cancel",
+    "ok": "OK",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close"
+  },
   "settings": {
     "title": "Logs",
     "logLevel": "Log Level",

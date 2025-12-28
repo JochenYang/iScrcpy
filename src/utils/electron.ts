@@ -105,4 +105,9 @@ export const electronAPI: ElectronAPI = {
     window.electronAPI.downloadUpdate(downloadUrl),
   installUpdate: (installerPath: string) =>
     window.electronAPI.installUpdate(installerPath),
+
+  // Download progress
+  onDownloadProgress: (callback: (event: Electron.IpcRendererEvent, progress: number) => void) =>
+    window.electronAPI.onDownloadProgress(callback),
+  removeDownloadProgressListener: () => window.electronAPI.removeDownloadProgressListener(),
 };

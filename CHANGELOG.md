@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.3] - 2025-12-28
+
+### Fixed
+
+- Fixed update download functionality with progress display
+- Fixed visit release page to open correct URL
+- Added common translations for all languages
+- Added GitHub token support for API rate limit
+- Improved download progress communication between main and renderer processes
+
 ## [1.0.2] - 2025-12-28
 
 ### Fixed

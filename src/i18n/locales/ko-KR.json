@@ -228,5 +228,14 @@
       "quit": "종료",
       "cancel": "취소"
     }
+  },
+  "common": {
+    "later": "나중에",
+    "cancel": "취소",
+    "ok": "확인",
+    "save": "저장",
+    "delete": "삭제",
+    "edit": "수정",
+    "close": "닫기"
   }
 }

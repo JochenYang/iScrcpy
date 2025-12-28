@@ -226,5 +226,14 @@
       "quit": "Cerrar",
       "cancel": "Cancelar"
     }
+  },
+  "common": {
+    "later": "Más tarde",
+    "cancel": "Cancelar",
+    "ok": "Aceptar",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "close": "Cerrar"
   }
 }

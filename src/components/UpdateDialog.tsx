@@ -6,6 +6,7 @@ import {
   CheckCircle,
   X,
   RefreshCw,
+  ExternalLink,
 } from "lucide-react";
 import { electronAPI } from "../utils/electron";
 
@@ -33,6 +34,16 @@ export default function UpdateDialog({ onClose }: UpdateDialogProps) {
 
   useEffect(() => {
     checkForUpdates();
+
+    // Listen for download progress
+    const handleProgress = (_event: Event, progress: number) => {
+      setDownloadProgress(progress);
+    };
+    window.electronAPI.onDownloadProgress?.(handleProgress);
+
+    return () => {
+      window.electronAPI.removeDownloadProgressListener?.();
+    };
   }, []);
 
   const checkForUpdates = async () => {
@@ -89,6 +100,11 @@ export default function UpdateDialog({ onClose }: UpdateDialogProps) {
     } catch (err) {
       setError(t("settings.update.installFailed"));
     }
+  };
+
+  const handleOpenRelease = () => {
+    const releaseUrl = "https://github.com/JochenYang/iScrcpy/releases";
+    electronAPI.openExternal(releaseUrl);
   };
 
   const formatDate = (dateStr?: string) => {
@@ -195,14 +211,13 @@ export default function UpdateDialog({ onClose }: UpdateDialogProps) {
                         {t("settings.update.download")}
                       </button>
                       {updateInfo.downloadUrl && (
-                        <a
-                          href={updateInfo.downloadUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <button
                           className="btn btn-outline"
+                          onClick={handleOpenRelease}
                         >
+                          <ExternalLink size={16} />
                           {t("settings.update.visitRelease")}
-                        </a>
+                        </button>
                       )}
                     </div>
                   )}
