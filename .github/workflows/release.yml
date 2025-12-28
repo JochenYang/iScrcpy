@@ -2,6 +2,11 @@ name: release-assets
 
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Version tag (e.g., v1.0.1)'
+        required: false
+        default: ''
   push:
     tags:
       - v*.*.*
@@ -9,7 +14,7 @@ on:
 jobs:
   extract-changelog:
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     outputs:
       body: ${{ steps.extract.outputs.body }}
     steps:
@@ -19,19 +24,34 @@ jobs:
       - name: Extract changelog for this version
         id: extract
         run: |
-          TAG_VERSION=${GITHUB_REF_NAME}
-          echo "Extracting changelog for version: $TAG_VERSION"
+          # Get tag version
+          if [[ -n "${{ github.event.inputs.tag }}" ]]; then
+            TAG_VERSION="${{ github.event.inputs.tag }}"
+          else
+            TAG_VERSION="${GITHUB_REF_NAME}"
+          fi
           
-          # Use awk to extract changelog section for this version
-          BODY=$(awk -v ver="[$TAG_VERSION]" '/^## / { 
-              if (found) exit
-              if ($0 ~ ver) { found=1; next }
-          }
-          found && /^## / { exit }
-          found && /^### Supported Languages/ { exit }
-          found { print }' CHANGELOG.md | sed 's/^/  /')
+          CHANGELOG_VER="${TAG_VERSION#v}"
+          echo "Extracting changelog for: $TAG_VERSION"
           
-          echo "body=$BODY" >> $GITHUB_OUTPUT
+          # Extract changelog section - simple grep approach
+          # Find line number of this version
+          START=$(grep -n "^## \[${CHANGELOG_VER}\]" CHANGELOG.md | cut -d: -f1)
+          
+          if [[ -z "$START" ]]; then
+            echo "body=" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Get content until next version or end
+          tail -n +$((START + 1)) CHANGELOG.md | \
+            awk '/^## \[/ {exit} /^## Supported Languages/ {exit} {print}' | \
+            sed 's/^/  /' | \
+            sed '/^$/d' > /tmp/changelog.txt
+          
+          # Read and escape for output
+          BODY=$(cat /tmp/changelog.txt | tr '\n' '|' | sed 's/|/\\n/g' | sed 's/\\\\n$//')
+          echo "body=${BODY}" >> $GITHUB_OUTPUT
         shell: bash
 
   build-win:
