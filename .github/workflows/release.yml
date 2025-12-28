@@ -31,27 +31,22 @@ jobs:
             TAG_VERSION="${GITHUB_REF_NAME}"
           fi
           
-          CHANGELOG_VER="${TAG_VERSION#v}"
+          # Remove 'v' prefix
+          VERSION="${TAG_VERSION#v}"
           echo "Extracting changelog for: $TAG_VERSION"
           
-          # Extract changelog section - simple grep approach
-          # Find line number of this version
-          START=$(grep -n "^## \[${CHANGELOG_VER}\]" CHANGELOG.md | cut -d: -f1)
+          # Extract changelog section for this version
+          CHANGELOG=$(awk "/^## \[$VERSION\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md)
           
-          if [[ -z "$START" ]]; then
-            echo "body=" >> $GITHUB_OUTPUT
-            exit 0
+          # If changelog is empty, use a default message
+          if [ -z "$CHANGELOG" ]; then
+            CHANGELOG="Release version $VERSION"
           fi
           
-          # Get content until next version or end
-          tail -n +$((START + 1)) CHANGELOG.md | \
-            awk '/^## \[/ {exit} /^## Supported Languages/ {exit} {print}' | \
-            sed 's/^/  /' | \
-            sed '/^$/d' > /tmp/changelog.txt
-          
-          # Base64 encode the content
-          BODY=$(base64 -w 0 /tmp/changelog.txt)
-          echo "body=${BODY}" >> $GITHUB_OUTPUT
+          # Save to output
+          echo "body<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
         shell: bash
 
   build-win:
@@ -83,7 +78,7 @@ jobs:
             dist/*.zip
             dist/*.blockmap
             dist/*.yml
-          body: ${{ fromJson(needs.extract-changelog.outputs.body) }}
+          body: ${{ needs.extract-changelog.outputs.body }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -117,7 +112,7 @@ jobs:
           files: |
             dist/*.dmg
             dist/*.zip
-          body: ${{ fromJson(needs.extract-changelog.outputs.body) }}
+          body: ${{ needs.extract-changelog.outputs.body }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -150,6 +145,6 @@ jobs:
             dist/*.deb
             dist/*.rpm
             dist/*.tar.gz
-          body: ${{ fromJson(needs.extract-changelog.outputs.body) }}
+          body: ${{ needs.extract-changelog.outputs.body }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
