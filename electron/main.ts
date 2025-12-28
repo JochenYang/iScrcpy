@@ -5,6 +5,7 @@ import { existsSync, lstatSync, readFileSync, writeFileSync, statSync, mkdirSync
 import { logger } from "./logger";
 import { Adb } from "@devicefarmer/adbkit";
 import prettyBytes from "pretty-bytes";
+import { download } from "electron-dl";
 
 // Test mode flag
 const TEST_MODE = process.env.TEST === "1";
@@ -2623,42 +2624,11 @@ ipcMain.handle(
       const fileName = downloadUrl.split("/").pop() || "iScrcpy-Setup.exe";
       const downloadPath = path.join(downloadsPath, fileName);
 
-      // Download the file
-      const response = await net.fetch(downloadUrl);
-
-      if (!response.ok) {
-        throw new Error(`Download failed with status ${response.status}`);
-      }
-
-      // Create write stream
-      const fileStream = createWriteStream(downloadPath);
-      const body = response.body;
-
-      if (body) {
-        // Pipe the response body to the file
-        await new Promise<void>((resolve, reject) => {
-          body.pipeTo(
-            new WritableStream({
-              write(chunk) {
-                return new Promise((resolveWrite, rejectWrite) => {
-                  fileStream.write(chunk, (err) => {
-                    if (err) rejectWrite(err);
-                    else resolveWrite();
-                  });
-                });
-              },
-              close() {
-                fileStream.end();
-                resolve();
-              },
-              abort(err) {
-                fileStream.destroy();
-                reject(err);
-              },
-            })
-          ).catch(reject);
-        });
-      }
+      // Use electron-dl for better download handling
+      await download(BrowserWindow.getFocusedWindow()!, downloadUrl, {
+        directory: downloadsPath,
+        filename: fileName,
+      });
 
       logger.info(`Update downloaded to ${downloadPath}`);
 

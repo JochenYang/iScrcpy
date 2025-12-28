@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] - 2025-12-28
+
+### Fixed
+
+- Fixed update download speed issue by using electron-dl library
+- Improved GitHub Actions release workflow changelog extraction
+
 ## [1.0.1] - 2025-12-28
 
 ### Added

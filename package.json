@@ -1,6 +1,6 @@
 {
   "name": "iscrcpy",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Android screen mirroring tool powered by scrcpy",
   "main": "out/main/main.cjs",
   "type": "module",
@@ -27,6 +27,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "create-desktop-shortcuts": "^1.11.1",
+    "electron-dl": "^4.0.0",
     "electron-squirrel-startup": "^1.0.1",
     "i18next": "^25.7.3",
     "i18next-browser-languagedetector": "^8.2.0",
