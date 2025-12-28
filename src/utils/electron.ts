@@ -76,6 +76,13 @@ export const electronAPI: ElectronAPI = {
   windowMaximize: () => window.electronAPI.windowMaximize(),
   windowClose: () => window.electronAPI.windowClose(),
 
+  // Close confirmation
+  onShowCloseConfirm: (callback: () => void) =>
+    window.electronAPI.onShowCloseConfirm(callback),
+  removeCloseConfirmListener: () => window.electronAPI.removeCloseConfirmListener(),
+  sendCloseConfirmResult: (result: { minimizeToTray: boolean }) =>
+    window.electronAPI.sendCloseConfirmResult(result),
+
   // File operations
   openFolder: (path: string) => window.electronAPI.openFolder(path),
   openLogsFolder: () => window.electronAPI.openLogsFolder(),
