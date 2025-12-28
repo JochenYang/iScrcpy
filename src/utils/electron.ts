@@ -66,7 +66,6 @@ export const electronAPI: ElectronAPI = {
 
   // Version info
   getAppVersion: () => window.electronAPI.getAppVersion(),
-  getChangelog: () => window.electronAPI.getChangelog(),
   getVersion: () => window.electronAPI.getVersion(),
   getAdbVersion: () => window.electronAPI.getAdbVersion(),
   getElectronVersion: () => window.electronAPI.getElectronVersion(),

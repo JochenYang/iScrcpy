@@ -168,8 +168,7 @@
     "github": "GitHub 仓库",
     "documentation": "使用文档",
     "openLogsFolder": "打开日志文件夹",
-    "description": "基于 Scrcpy 的 Android 投屏工具",
-    "changelog": "更新日志"
+    "description": "基于 Scrcpy 的 Android 投屏工具"
   },
   "settings": {
     "title": "日志",

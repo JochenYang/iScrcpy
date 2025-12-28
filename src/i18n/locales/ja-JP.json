@@ -166,8 +166,7 @@
     "github": "GitHubリポジトリ",
     "documentation": "ドキュメント",
     "openLogsFolder": "ログフォルダを開く",
-    "description": "Scrcpyベースのandroid画面ミラーリングツール",
-    "changelog": "更新履歴"
+    "description": "Scrcpyベースのandroid画面ミラーリングツール"
   },
   "statusBar": {
     "language": "言語"

@@ -2714,27 +2714,6 @@ ipcMain.handle("get-app-version", async () => {
   return { version: app.getVersion() };
 });
 
-// Get changelog
-ipcMain.handle(
-  "get-changelog",
-  async (): Promise<{ success: boolean; content?: string; error?: string }> => {
-    try {
-      const changelogPath = app.isPackaged
-        ? path.join(process.resourcesPath, "CHANGELOG.md")
-        : path.join(process.cwd(), "CHANGELOG.md");
-
-      if (!existsSync(changelogPath)) {
-        return { success: false, error: "Changelog not found" };
-      }
-
-      const content = readFileSync(changelogPath, "utf8");
-      return { success: true, content };
-    } catch (error) {
-      return { success: false, error: String(error) };
-    }
-  }
-);
-
 // Helper function to compare versions
 // Returns 1 if a > b, -1 if a < b, 0 if equal
 function compareVersions(a: string, b: string): number {

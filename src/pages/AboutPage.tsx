@@ -1,8 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { electronAPI } from "../utils/electron";
 import UpdateDialog from "../components/UpdateDialog";
-import ChangelogDialog from "../components/ChangelogDialog";
-import { Github, ExternalLink, RefreshCw, History } from "lucide-react";
+import { Github, ExternalLink, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface VersionInfo {
@@ -19,7 +18,6 @@ export default function AboutPage() {
     adbVersion: "...",
   });
   const [showUpdateDialog, setShowUpdateDialog] = useState(false);
-  const [showChangelogDialog, setShowChangelogDialog] = useState(false);
 
   useEffect(() => {
     // Get app version from package.json
@@ -129,32 +127,19 @@ export default function AboutPage() {
 
           {/* Update Check Button */}
           <div className="about-divider"></div>
-          <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
-            <button
-              className="btn btn-outline"
-              onClick={() => setShowChangelogDialog(true)}
-              style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
-            >
-              <History size={16} />
-              {t("about.changelog")}
-            </button>
-            <button
-              className="btn btn-outline"
-              onClick={() => setShowUpdateDialog(true)}
-              style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
-            >
-              <RefreshCw size={16} />
-              {t("settings.update.checkNow")}
-            </button>
-          </div>
+          <button
+            className="btn btn-outline"
+            onClick={() => setShowUpdateDialog(true)}
+            style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", marginTop: "16px" }}
+          >
+            <RefreshCw size={16} />
+            {t("settings.update.checkNow")}
+          </button>
         </div>
       </div>
 
       {/* Update Dialog */}
       {showUpdateDialog && <UpdateDialog onClose={() => setShowUpdateDialog(false)} />}
-
-      {/* Changelog Dialog */}
-      {showChangelogDialog && <ChangelogDialog onClose={() => setShowChangelogDialog(false)} />}
     </div>
   );
 }

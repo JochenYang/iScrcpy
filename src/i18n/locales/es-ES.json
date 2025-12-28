@@ -164,8 +164,7 @@
     "github": "Repositorio de GitHub",
     "documentation": "Documentación",
     "openLogsFolder": "Abrir Carpeta de Registros",
-    "description": "Herramienta de duplicación de pantalla Android basada en Scrcpy",
-    "changelog": "Historial de Cambios"
+    "description": "Herramienta de duplicación de pantalla Android basada en Scrcpy"
   },
   "statusBar": {
     "language": "Idioma"

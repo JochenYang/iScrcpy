@@ -164,7 +164,6 @@ export interface ElectronAPI {
 
   // Version info
   getAppVersion: () => Promise<VersionInfo>;
-  getChangelog: () => Promise<{ success: boolean; content?: string; error?: string }>;
   getVersion: () => Promise<{ success: boolean; version?: string; error?: string }>;
   getAdbVersion: () => Promise<{ success: boolean; version?: string; error?: string }>;
   getElectronVersion: () => Promise<VersionInfo>;

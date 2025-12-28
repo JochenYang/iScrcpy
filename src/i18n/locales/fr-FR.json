@@ -164,8 +164,7 @@
     "github": "Dépôt GitHub",
     "documentation": "Documentation",
     "openLogsFolder": "Ouvrir le Dossier des Journaux",
-    "description": "Outil de duplication d'écran Android basé sur Scrcpy",
-    "changelog": "Journal des Modifications"
+    "description": "Outil de duplication d'écran Android basé sur Scrcpy"
   },
   "statusBar": {
     "language": "Langue"

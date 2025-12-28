@@ -80,7 +80,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // Version info
   getAppVersion: () => ipcRenderer.invoke("get-app-version"),
-  getChangelog: () => ipcRenderer.invoke("get-changelog"),
   getVersion: () => ipcRenderer.invoke("get-version"),
   getAdbVersion: () => ipcRenderer.invoke("get-adb-version"),
   getElectronVersion: () => ipcRenderer.invoke("get-electron-version"),

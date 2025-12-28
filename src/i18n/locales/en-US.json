@@ -168,8 +168,7 @@
     "github": "GitHub Repository",
     "documentation": "Documentation",
     "openLogsFolder": "Open Logs Folder",
-    "description": "Android screen mirroring tool powered by Scrcpy",
-    "changelog": "Changelog"
+    "description": "Android screen mirroring tool powered by Scrcpy"
   },
   "statusBar": {
     "language": "Language"
