@@ -26,16 +26,14 @@ export default function DevicePage() {
   const knownDevicesRef = useRef(knownDevices);
   knownDevicesRef.current = knownDevices;
 
-  // Device type definition for local use
-  interface LocalDevice {
-    id: string;
-    name: string;
-    type: "usb" | "wifi";
-    status: string;
-    lastSeen?: number;
-  }
+  type LoadDevicesOptions = {
+    silent?: boolean;
+    forceRefresh?: boolean;
+  };
 
-  const loadDevices = useCallback(async (silent = false, forceRefresh = false) => {
+  const loadDevices = useCallback(async (options: LoadDevicesOptions = {}) => {
+    const silent = options.silent ?? false;
+    const forceRefresh = options.forceRefresh ?? false;
     if (!silent) {
       setRefreshing(true);
     }
@@ -101,7 +99,7 @@ export default function DevicePage() {
           deviceName: device?.name || deviceId,
         })
       );
-      await loadDevices();
+      await loadDevices({ silent: true });
     } else {
       showToast(
         t("devices.toast.screenMirroringFailed") +
@@ -120,7 +118,7 @@ export default function DevicePage() {
           deviceName: device?.name || deviceId,
         })
       );
-      await loadDevices();
+      await loadDevices({ silent: true });
     }
   };
 
@@ -194,7 +192,7 @@ export default function DevicePage() {
       showToast(t("devices.toast.wifiConnected", { address: deviceAddress }));
       setWifiIp("");
       setShowWifiInput(false);
-      await loadDevices();
+      await loadDevices({ silent: true });
     } else {
       showToast(
         t("devices.toast.wifiConnectFailed") +
@@ -216,13 +214,13 @@ export default function DevicePage() {
           );
           if (connectResult.success) {
             showToast(t("devices.toast.autoConnected", { ip: result.ip }));
-            await loadDevices();
+            await loadDevices({ silent: true });
           }
         }, 2000);
       } else {
         // 获取不到 IP 时显示错误提示并刷新设备列表
         showToast(result.error || t("devices.toast.wifiModeEnabledManual"));
-        await loadDevices();
+        await loadDevices({ silent: true });
       }
     } else {
       showToast(
@@ -259,10 +257,10 @@ export default function DevicePage() {
 
   useEffect(() => {
     // Initial load - don't mark devices as offline immediately
-    loadDevices(false, false);
+    loadDevices({ silent: false, forceRefresh: false });
     // Silent polling every 5 seconds - mark devices as offline if not detected
     const pollInterval = setInterval(() => {
-      loadDevices(true, true);
+      loadDevices({ silent: true, forceRefresh: true });
     }, 5000);
     return () => clearInterval(pollInterval);
   }, [loadDevices]);
@@ -277,7 +275,7 @@ export default function DevicePage() {
           defaultValue: `${device?.name || deviceId} 投屏已断开`,
         })
       );
-      await loadDevices();
+      await loadDevices({ silent: true });
     };
 
     const handleCameraExit = (deviceId: string) => {
@@ -330,7 +328,7 @@ export default function DevicePage() {
         <div className="header-actions">
           <button
             className="btn btn-outline"
-            onClick={() => loadDevices(false, true)}
+            onClick={() => loadDevices({ silent: false, forceRefresh: true })}
             disabled={refreshing}
           >
             {refreshing ? (
