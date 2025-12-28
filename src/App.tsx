@@ -30,7 +30,10 @@ function App() {
 
   const handleCloseConfirm = (minimizeToTray: boolean) => {
     setShowCloseConfirm(false);
-    electronAPI.sendCloseConfirmResult({ minimizeToTray });
+    if (minimizeToTray) {
+      electronAPI.sendCloseConfirmResult({ minimizeToTray: true });
+    }
+    // If minimizeToTray is false (cancel), just close the dialog without sending result
   };
 
   const renderContent = () => {
@@ -61,7 +64,7 @@ function App() {
       </div>
       <CloseConfirmDialog
         open={showCloseConfirm}
-        onClose={() => handleCloseConfirm(true)}
+        onClose={() => handleCloseConfirm(false)}
         onMinimizeToTray={() => handleCloseConfirm(true)}
         onQuit={() => handleCloseConfirm(false)}
       />
