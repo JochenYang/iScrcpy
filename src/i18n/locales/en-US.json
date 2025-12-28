@@ -221,6 +221,14 @@
       "latest": "You are using the latest version",
       "autoCheck": "Auto-check for updates",
       "autoCheckDesc": "Automatically check for updates when the app starts"
+    },
+    "closeConfirm": {
+      "title": "Close iScrcpy",
+      "message": "How would you like to close iScrcpy?",
+      "detail": "Minimize to Tray will keep iScrcpy running in the background.\nQuit will completely exit the application.",
+      "minimizeToTray": "Minimize to Tray",
+      "quit": "Quit",
+      "cancel": "Cancel"
     }
   }
 }

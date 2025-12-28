@@ -218,6 +218,14 @@
       "latest": "您当前使用的是最新版本",
       "autoCheck": "自动检查更新",
       "autoCheckDesc": "启动应用时自动检查更新"
+    },
+    "closeConfirm": {
+      "title": "关闭 iScrcpy",
+      "message": "您想要如何关闭 iScrcpy？",
+      "detail": "最小化到托盘将保持 iScrcpy 在后台运行。\n退出将完全关闭应用程序。",
+      "minimizeToTray": "最小化到托盘",
+      "quit": "退出",
+      "cancel": "取消"
     }
   },
   "statusBar": {

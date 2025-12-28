@@ -89,7 +89,17 @@ contextBridge.exposeInMainWorld("electronAPI", {
   windowMinimize: () => ipcRenderer.invoke("window-minimize"),
   windowMaximize: () => ipcRenderer.invoke("window-maximize"),
   windowClose: () => ipcRenderer.invoke("window-close"),
-  requestCloseConfirm: () => ipcRenderer.invoke("request-close-confirm"),
+
+  // Close confirmation
+  onShowCloseConfirm: (callback: () => void) => {
+    ipcRenderer.on("show-close-confirm", () => callback());
+  },
+  removeCloseConfirmListener: () => {
+    ipcRenderer.removeAllListeners("show-close-confirm");
+  },
+  sendCloseConfirmResult: (result: { minimizeToTray: boolean }) => {
+    ipcRenderer.send("close-confirm-result", result);
+  },
 
   // File operations
   openFolder: (path: string) => ipcRenderer.invoke("open-folder", path),

@@ -217,6 +217,14 @@
       "latest": "Vous utilisez la dernière version",
       "autoCheck": "Vérifier automatiquement les mises à jour",
       "autoCheckDesc": "Vérifier les mises à jour au démarrage de l'application"
+    },
+    "closeConfirm": {
+      "title": "Fermer iScrcpy",
+      "message": "Comment souhaitez-vous fermer iScrcpy ?",
+      "detail": "Réduire dans la barre des tâches gardera iScrcpy en arrière-plan.\nQuitter fermera complètement l'application.",
+      "minimizeToTray": "Réduire dans la barre",
+      "quit": "Quitter",
+      "cancel": "Annuler"
     }
   }
 }

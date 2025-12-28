@@ -217,6 +217,14 @@
       "latest": "Estás usando la última versión",
       "autoCheck": "Buscar actualizaciones automáticamente",
       "autoCheckDesc": "Buscar actualizaciones al iniciar la aplicación"
+    },
+    "closeConfirm": {
+      "title": "Cerrar iScrcpy",
+      "message": "¿Cómo desea cerrar iScrcpy?",
+      "detail": "Minimizar a la bandeja mantendrá iScrcpy ejecutándose en segundo plano.\nCerrar terminará completamente la aplicación.",
+      "minimizeToTray": "Minimizar a la bandeja",
+      "quit": "Cerrar",
+      "cancel": "Cancelar"
     }
   }
 }

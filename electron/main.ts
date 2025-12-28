@@ -358,31 +358,20 @@ function createWindow(): void {
     // Prevent default close behavior
     e.preventDefault();
 
-    // Show confirmation dialog
-    dialog
-      .showMessageBox(mainWindow, {
-        type: "question",
-        buttons: ["Minimize to Tray", "Quit"],
-        defaultId: 0,
-        cancelId: 1,
-        title: "iScrcpy",
-        message: "How would you like to close iScrcpy?",
-        detail: "Minimize to Tray will keep iScrcpy running in the background.\nQuit will completely exit the application.",
-      })
-      .then(({ response }) => {
-        if (response === 0) {
-          // Minimize to tray - just hide the window
-          mainWindow?.hide();
-        } else {
-          // Quit - allow close
-          mainWindow?.destroy();
-          app.quit();
-        }
-      })
-      .catch(() => {
-        // If dialog fails, minimize to tray as default
-        mainWindow?.hide();
-      });
+    // Ask renderer to show close confirmation dialog
+    mainWindow?.webContents.send("show-close-confirm");
+  });
+
+  // Listen for close confirmation result from renderer
+  ipcMain.on("close-confirm-result", (_, result: { minimizeToTray: boolean }) => {
+    if (result.minimizeToTray) {
+      // Minimize to tray - just hide the window
+      mainWindow?.hide();
+    } else {
+      // Quit - allow close
+      mainWindow?.destroy();
+      app.quit();
+    }
   });
 
   mainWindow.on("closed", () => {

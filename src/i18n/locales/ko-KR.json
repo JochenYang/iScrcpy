@@ -219,6 +219,14 @@
       "latest": "최신 버전을 사용 중입니다",
       "autoCheck": "자동 업데이트 확인",
       "autoCheckDesc": "앱 시작 시 자동으로 업데이트 확인"
+    },
+    "closeConfirm": {
+      "title": "iScrcpy 닫기",
+      "message": "iScrcpy를 어떻게 닫으시겠습니까?",
+      "detail": "트레이로 최소화하면 iScrcpy가 백그라운드에서 계속 실행됩니다.\n종료하면 애플리케이션이 완전히 종료됩니다.",
+      "minimizeToTray": "트레이로 최소화",
+      "quit": "종료",
+      "cancel": "취소"
     }
   }
 }

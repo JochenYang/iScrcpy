@@ -217,6 +217,14 @@
       "latest": "En son sürümü kullanıyorsunuz",
       "autoCheck": "Otomatik güncelleme kontrolü",
       "autoCheckDesc": "Uygulama başlatıldığında otomatik olarak güncellemeleri kontrol et"
+    },
+    "closeConfirm": {
+      "title": "iScrcpy Kapat",
+      "message": "iScrcpy'yi nasıl kapatmak istersiniz?",
+      "detail": "Tepsiye küçült, iScrcpy'nin arka planda çalışmaya devam etmesini sağlar.\nKapat tamamen uygulamayı sonlandırır.",
+      "minimizeToTray": "Tepsiye Küçült",
+      "quit": "Kapat",
+      "cancel": "İptal"
     }
   }
 }
