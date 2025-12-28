@@ -49,8 +49,8 @@ jobs:
             sed 's/^/  /' | \
             sed '/^$/d' > /tmp/changelog.txt
           
-          # Read and escape for output
-          BODY=$(cat /tmp/changelog.txt | tr '\n' '|' | sed 's/|/\\n/g' | sed 's/\\\\n$//')
+          # Base64 encode the content
+          BODY=$(base64 -w 0 /tmp/changelog.txt)
           echo "body=${BODY}" >> $GITHUB_OUTPUT
         shell: bash
 
@@ -83,7 +83,7 @@ jobs:
             dist/*.zip
             dist/*.blockmap
             dist/*.yml
-          body: ${{ needs.extract-changelog.outputs.body }}
+          body: ${{ base64Decode(needs.extract-changelog.outputs.body) }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -117,7 +117,7 @@ jobs:
           files: |
             dist/*.dmg
             dist/*.zip
-          body: ${{ needs.extract-changelog.outputs.body }}
+          body: ${{ base64Decode(needs.extract-changelog.outputs.body) }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -150,6 +150,6 @@ jobs:
             dist/*.deb
             dist/*.rpm
             dist/*.tar.gz
-          body: ${{ needs.extract-changelog.outputs.body }}
+          body: ${{ base64Decode(needs.extract-changelog.outputs.body) }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
