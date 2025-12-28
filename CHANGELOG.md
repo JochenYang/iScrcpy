@@ -7,31 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.0.0] - 2025-12-23
+## [1.0.1] - 2025-12-28
 
 ### Added
 
-- Initial release
-- Multi-language support (7 languages)
-- USB and WiFi device connection
-- Display settings (resolution, bitrate, frame rate)
-- Recording functionality with time limit
-- Camera mirroring support
-- Window options (borderless, screensaver disable)
-- Encoding settings
-- Server configuration
-- Modern dark theme UI
-- Real-time device monitoring
-- Custom window controls
+- File manager for Android devices (list, download, upload, delete, create folder)
+- APK installation support for connected devices
+- Auto-update checking from GitHub releases
+- Custom update dialog with download and install functionality
+- System tray icon with context menu
+- Close confirmation dialog with minimize-to-tray option
 
 ### Changed
 
-- Improved device detection
-- Optimized recording performance
+- Rename SettingsPage to LogsPage for accuracy
+- Improved file size display in file manager
+- Multiple UI improvements and bug fixes
 
 ### Fixed
 
-- Various bug fixes
+- Various bug fixes and stability improvements
 
 ## Supported Languages
 
