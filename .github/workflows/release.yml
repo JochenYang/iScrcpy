@@ -83,7 +83,7 @@ jobs:
             dist/*.zip
             dist/*.blockmap
             dist/*.yml
-          body: ${{ base64Decode(needs.extract-changelog.outputs.body) }}
+          body: ${{ fromJson(needs.extract-changelog.outputs.body) }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -117,7 +117,7 @@ jobs:
           files: |
             dist/*.dmg
             dist/*.zip
-          body: ${{ base64Decode(needs.extract-changelog.outputs.body) }}
+          body: ${{ fromJson(needs.extract-changelog.outputs.body) }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -150,6 +150,6 @@ jobs:
             dist/*.deb
             dist/*.rpm
             dist/*.tar.gz
-          body: ${{ base64Decode(needs.extract-changelog.outputs.body) }}
+          body: ${{ fromJson(needs.extract-changelog.outputs.body) }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
