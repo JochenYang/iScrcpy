@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.5] - 2025-12-29
+
+### Fixed
+
+- Fixed update dialog crash when displaying multilingual release notes
+- Update dialog now properly handles releaseNotes as object with multiple languages
+- Added automatic language detection based on user's current locale
+
 ## [1.0.4] - 2025-12-29
 
 ### Changed
