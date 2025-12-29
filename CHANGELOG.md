@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.4] - 2025-12-29
+
+### Changed
+
+- Switched update checking from GitHub API to GitHub Pages to avoid rate limit errors
+- Update check now uses static version.json file for better reliability
+- Added automatic version.json deployment to gh-pages during release
+
+### Fixed
+
+- Fixed update check 403 error caused by GitHub API rate limiting
+
 ## [1.0.3] - 2025-12-28
 
 ### Fixed

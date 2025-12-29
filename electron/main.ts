@@ -2501,16 +2501,20 @@ app.on("activate", () => {
 
 // GitHub repository for updates
 const GITHUB_REPO = "JochenYang/iScrcpy";
-const GITHUB_API_URL = `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`;
+const GITHUB_OWNER = "JochenYang";
+const GITHUB_PAGES_URL = `https://${GITHUB_OWNER}.github.io/iScrcpy/version.json`;
 const GITHUB_RELEASE_URL = `https://github.com/${GITHUB_REPO}/releases/latest`;
 
 // Version info type
 interface ReleaseInfo {
   version: string;
-  downloadUrl: string;
+  downloadUrl: {
+    windows: string;
+    mac: string;
+    linux: string;
+  };
   releaseNotes: string;
   publishedAt: string;
-  size: number;
 }
 
 // Check for updates
@@ -2541,55 +2545,52 @@ ipcMain.handle(
     try {
       logger.info("Checking for updates...");
 
-      // Get GitHub token from environment (for higher rate limit)
-      const githubToken = process.env.GITHUB_TOKEN;
-
-      // Use Electron's net module for HTTP request
-      const headers: Record<string, string> = {
-        "Accept": "application/vnd.github.v3+json",
-        "User-Agent": "iScrcpy-Update-Checker",
-      };
-
-      // Add authorization header if token is available
-      if (githubToken) {
-        headers["Authorization"] = `token ${githubToken}`;
-      }
-
-      const response = await net.fetch(GITHUB_API_URL, { headers });
+      const response = await net.fetch(GITHUB_PAGES_URL, {
+        headers: {
+          "Accept": "application/json",
+          "Cache-Control": "no-cache",
+        },
+      });
 
       if (!response.ok) {
-        throw new Error(`GitHub API returned status ${response.status}`);
+        throw new Error(`GitHub Pages returned status ${response.status}`);
       }
 
-      const data = await response.json() as {
-        tag_name: string;
-        body: string;
-        published_at: string;
-        assets: Array<{ browser_download_url: string; size: number }>;
-      };
+      const data = await response.json() as ReleaseInfo;
 
       const currentVersion = app.getVersion();
-      const latestVersion = data.tag_name.startsWith("v") ? data.tag_name.slice(1) : data.tag_name;
+      const latestVersion = data.version;
 
-      // Compare versions
       const updateAvailable = compareVersions(latestVersion, currentVersion) > 0;
 
       logger.info(`Current version: ${currentVersion}, Latest version: ${latestVersion}, Update available: ${updateAvailable}`);
 
       if (updateAvailable) {
-        // Find the Windows installer asset
-        const windowsAsset = data.assets.find(
-          (asset: any) => asset.browser_download_url?.includes(".exe") || asset.browser_download_url?.includes(".msi")
-        );
+        const platform = process.platform;
+        let downloadUrl: string;
+
+        switch (platform) {
+          case "win32":
+            downloadUrl = data.downloadUrl.windows;
+            break;
+          case "darwin":
+            downloadUrl = data.downloadUrl.mac;
+            break;
+          case "linux":
+            downloadUrl = data.downloadUrl.linux;
+            break;
+          default:
+            downloadUrl = GITHUB_RELEASE_URL;
+        }
 
         return {
           success: true,
           updateAvailable: true,
           currentVersion,
           latestVersion,
-          releaseNotes: data.body || "",
-          downloadUrl: windowsAsset?.browser_download_url || GITHUB_RELEASE_URL,
-          publishedAt: data.published_at,
+          releaseNotes: data.releaseNotes,
+          downloadUrl,
+          publishedAt: data.publishedAt,
         };
       }
 
