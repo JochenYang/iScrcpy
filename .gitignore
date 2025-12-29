@@ -25,7 +25,6 @@ settings.json
 
 # Build
 *.exe
-*.dll
 *.exe.manifest
 
 # Temp
