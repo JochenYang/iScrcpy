@@ -168,18 +168,21 @@ jobs:
 
       - name: Create version.json
         run: |
-          # Save changelog to temp file to avoid quote issues with heredoc
-          printf '%s' '${{ needs.extract-changelog.outputs.body }}' > changelog.txt
+          # Write changelog to temp file using GitHub Actions output (no shell quote issues)
+          echo "${{ needs.extract-changelog.outputs.body }}" > changelog.txt
 
-          # Create version.json using jq to properly escape JSON
+          # Create version.json using jq - properly handles all special characters
           jq -n \
             --arg version "${{ steps.version.outputs.version }}" \
-            --argjson releaseNotes "$(jq -Rs . < changelog.txt)" \
+            --argjson releaseNotes "$(cat changelog.txt | jq -Rs .)" \
             --arg windows "https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.tag }}/iScrcpy-${{ steps.version.outputs.version }}-win-x64.exe" \
             --arg mac "https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.tag }}/iScrcpy-${{ steps.version.outputs.version }}-mac-x64.dmg" \
             --arg linux "https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.tag }}/iScrcpy-${{ steps.version.outputs.version }}-linux-x86_64.AppImage" \
             --arg publishedAt "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
             '{version: $version, releaseNotes: $releaseNotes, downloadUrl: {windows: $windows, mac: $mac, linux: $linux}, publishedAt: $publishedAt}' > version.json
+
+          # Debug: show the generated version.json
+          cat version.json
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
