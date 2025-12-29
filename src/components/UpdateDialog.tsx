@@ -18,19 +18,26 @@ interface UpdateInfo {
   updateAvailable: boolean;
   currentVersion: string;
   latestVersion?: string;
-  releaseNotes?: string;
+  releaseNotes?: string | Record<string, string>;
   downloadUrl?: string;
   publishedAt?: string;
 }
 
 export default function UpdateDialog({ onClose }: UpdateDialogProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [checking, setChecking] = useState(true);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [downloadPath, setDownloadPath] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const getLocalizedReleaseNotes = (releaseNotes?: string | Record<string, string>): string => {
+    if (!releaseNotes) return "";
+    if (typeof releaseNotes === "string") return releaseNotes;
+    const currentLang = i18n.language;
+    return releaseNotes[currentLang] || releaseNotes["en-US"] || Object.values(releaseNotes)[0] || "";
+  };
 
   useEffect(() => {
     checkForUpdates();
@@ -178,7 +185,7 @@ export default function UpdateDialog({ onClose }: UpdateDialogProps) {
                     <div className="release-notes">
                       <h4>{t("settings.update.releaseNotes")}</h4>
                       <div className="release-notes-content">
-                        {updateInfo.releaseNotes}
+                        {getLocalizedReleaseNotes(updateInfo.releaseNotes)}
                       </div>
                     </div>
                   )}
