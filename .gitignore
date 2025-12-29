@@ -24,8 +24,10 @@ npm-debug.log*
 settings.json
 
 # Build
-*.exe
 *.exe.manifest
+
+# Keep app binaries (required for packaging)
+!app/win/*.exe
 
 # Temp
 temp/
