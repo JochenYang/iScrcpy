@@ -168,18 +168,18 @@ jobs:
 
       - name: Create version.json
         run: |
-          cat > version.json << EOF
-          {
-            "version": "${{ steps.version.outputs.version }}",
-            "releaseNotes": $(echo '${{ needs.extract-changelog.outputs.body }}' | jq -Rs .),
-            "downloadUrl": {
-              "windows": "https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.tag }}/iScrcpy-${{ steps.version.outputs.version }}-win-x64.exe",
-              "mac": "https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.tag }}/iScrcpy-${{ steps.version.outputs.version }}-mac-x64.dmg",
-              "linux": "https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.tag }}/iScrcpy-${{ steps.version.outputs.version }}-linux-x86_64.AppImage"
-            },
-            "publishedAt": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-          }
-          EOF
+          # Save changelog to temp file to avoid quote issues with heredoc
+          printf '%s' '${{ needs.extract-changelog.outputs.body }}' > changelog.txt
+
+          # Create version.json using jq to properly escape JSON
+          jq -n \
+            --arg version "${{ steps.version.outputs.version }}" \
+            --argjson releaseNotes "$(jq -Rs . < changelog.txt)" \
+            --arg windows "https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.tag }}/iScrcpy-${{ steps.version.outputs.version }}-win-x64.exe" \
+            --arg mac "https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.tag }}/iScrcpy-${{ steps.version.outputs.version }}-mac-x64.dmg" \
+            --arg linux "https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.tag }}/iScrcpy-${{ steps.version.outputs.version }}-linux-x86_64.AppImage" \
+            --arg publishedAt "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+            '{version: $version, releaseNotes: $releaseNotes, downloadUrl: {windows: $windows, mac: $mac, linux: $linux}, publishedAt: $publishedAt}' > version.json
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
