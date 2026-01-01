@@ -1,10 +1,20 @@
-# iScrcpy
+<div align="center">
+  <img src="images/iScrcpy.png" alt="iScrcpy Logo" width="120" height="120">
 
-[English](README.md) | [简体中文](README_CN.md)
+  # iScrcpy
 
-Android screen mirroring tool powered by scrcpy. A modern Electron desktop application built with React + Vite.
+  **Android screen mirroring tool powered by scrcpy**
 
-![iScrcpy Interface](images/iScrcpy.png)
+  [![Windows](https://img.shields.io/badge/Windows-0078D4?style=flat-square&logo=windows&logoColor=white)](#)
+  [![macOS](https://img.shields.io/badge/macOS-000000?style=flat-square&logo=apple)](#)
+  [![Linux](https://img.shields.io/badge/Linux-FCC624?style=flat-square&logo=linux&logoColor=black)](#)
+  [![License](https://img.shields.io/badge/License-Apache%202.0-blue?style=flat-square)](#)
+  [![Version](https://img.shields.io/badge/Version-1.0.6-blue?style=flat-square)](#)
+
+  [English](README.md) | [简体中文](README_CN.md)
+</div>
+
+---
 
 ## Features
 
@@ -71,22 +81,37 @@ Comprehensive user guides are available in 7 languages:
 ## Project Structure
 
 ```text
-iscrcpy/
+iScrcpy/
 ├── app/                    # scrcpy binaries and dependencies
-│   ├── scrcpy.exe
-│   ├── scrcpy-server
-│   ├── adb.exe
-│   └── *.dll
+│   ├── win/                # Windows binaries
+│   │   ├── scrcpy.exe      # scrcpy executable
+│   │   ├── scrcpy-server   # scrcpy server jar
+│   │   ├── adb.exe         # ADB executable
+│   │   ├── SDL2.dll        # SDL2 library
+│   │   └── *.dll           # Required DLLs (avcodec, avformat, etc.)
+│   ├── mac/                # macOS binaries
+│   │   ├── scrcpy
+│   │   ├── scrcpy-server
+│   │   ├── adb
+│   │   └── scrcpy.1        # Man page
+│   └── linux/              # Linux binaries
+│       ├── scrcpy
+│       ├── scrcpy-server
+│       ├── adb
+│       └── scrcpy.1        # Man page
 ├── electron/               # Electron main process
-│   ├── main.ts            # Main process with IPC handlers
-│   ├── preload.ts         # Preload script for IPC bridge
-│   └── logger.ts          # Logging utility
+│   ├── main.ts             # Main process with IPC handlers
+│   ├── main.cjs            # Compiled main process
+│   ├── preload.ts          # Preload script for IPC bridge
+│   ├── preload.cjs         # Compiled preload script
+│   ├── logger.ts           # Logging utility
+│   └── resources/          # Build resources
 ├── src/                    # React application
-│   ├── main.tsx           # Entry point
-│   ├── App.tsx            # Root component
-│   ├── i18n/              # Internationalization
-│   │   ├── index.ts       # i18n configuration
-│   │   └── locales/       # Translation files
+│   ├── main.tsx            # Entry point
+│   ├── App.tsx             # Root component
+│   ├── i18n/               # Internationalization
+│   │   ├── index.ts        # i18n configuration
+│   │   └── locales/        # Translation files
 │   │       ├── zh-CN.json
 │   │       ├── en-US.json
 │   │       ├── ja-JP.json
@@ -94,40 +119,59 @@ iscrcpy/
 │   │       ├── es-ES.json
 │   │       ├── fr-FR.json
 │   │       └── tr-TR.json
-│   ├── components/        # Reusable components
-│   │   ├── TitleBar.tsx   # Title bar with language selector
-│   │   ├── Sidebar.tsx
-│   │   └── DeviceCard.tsx
-│   ├── pages/             # Page components
-│   │   ├── DevicePage.tsx
-│   │   ├── DisplayPage.tsx
-│   │   ├── EncodingPage.tsx
-│   │   ├── ServerPage.tsx
-│   │   └── AboutPage.tsx
-│   ├── store/             # State management
-│   │   └── deviceStore.ts
-│   ├── styles/            # CSS styles
-│   │   └── index.css
-│   ├── utils/             # Utilities
-│   │   └── electron.ts    # Electron API bridge
-│   └── vite-env.d.ts      # TypeScript declarations
+│   ├── components/         # Reusable components
+│   │   ├── TitleBar.tsx    # Title bar with language selector
+│   │   ├── Sidebar.tsx     # Navigation sidebar
+│   │   ├── DeviceCard.tsx  # Device card component
+│   │   ├── FileManager.tsx # File management dialog
+│   │   ├── CloseConfirmDialog.tsx  # Close confirmation
+│   │   ├── UpdateDialog.tsx        # Update notification
+│   │   └── ui/             # shadcn/ui style components
+│   │       ├── button.tsx
+│   │       ├── card.tsx
+│   │       ├── checkbox.tsx
+│   │       ├── label.tsx
+│   │       ├── select.tsx
+│   │       ├── separator.tsx
+│   │       ├── sheet.tsx
+│   │       └── sonner.tsx
+│   ├── pages/              # Page components
+│   │   ├── DevicePage.tsx  # Device management page
+│   │   ├── DisplayPage.tsx # Display settings page
+│   │   ├── EncodingPage.tsx    # Encoding settings page
+│   │   ├── ServerPage.tsx      # Server configuration page
+│   │   ├── LogsPage.tsx        # Application logs page
+│   │   └── AboutPage.tsx       # About page
+│   ├── store/              # State management (Zustand)
+│   │   └── deviceStore.ts  # Device state store
+│   ├── lib/                # Utility libraries
+│   │   └── utils.ts        # Utility functions
+│   ├── styles/             # CSS styles
+│   │   └── index.css       # Global styles
+│   ├── utils/              # Utilities
+│   │   └── electron.ts     # Electron API bridge
+│   ├── types/              # TypeScript type definitions
+│   │   └── electron.d.ts   # Electron type declarations
+│   ├── assets/             # Static assets
+│   │   └── icon.png        # Application icon
+│   └── vite-env.d.ts       # Vite type declarations
 ├── documents/              # User documentation (7 languages)
-│   ├── en-US.md           # English user guide
-│   ├── zh-CN.md           # Chinese user guide
-│   ├── ja-JP.md           # Japanese user guide
-│   ├── ko-KR.md           # Korean user guide
-│   ├── es-ES.md           # Spanish user guide
-│   ├── fr-FR.md           # French user guide
-│   └── tr-TR.md           # Turkish user guide
-├── README_CN.md           # Chinese version of README
+│   ├── en-US.md            # English user guide
+│   ├── zh-CN.md            # Chinese user guide
+│   ├── ja-JP.md            # Japanese user guide
+│   ├── ko-KR.md            # Korean user guide
+│   ├── es-ES.md            # Spanish user guide
+│   ├── fr-FR.md            # French user guide
+│   └── tr-TR.md            # Turkish user guide
 ├── images/                 # Screenshots and assets
-│   └── iScrcpy.png        # Main interface screenshot
+│   └── iScrcpy.png         # Main interface screenshot
 ├── logs/                   # Application logs
 ├── index.html              # HTML entry
+├── package.json            # Dependencies
 ├── vite.config.ts          # Vite configuration
 ├── electron.vite.config.ts # Electron Vite configuration
-├── package.json            # Dependencies
-└── tsconfig.json           # TypeScript configuration
+├── tsconfig.json           # TypeScript configuration
+└── forge.config.cjs        # Electron Forge configuration
 ```
 
 ## Quick Start

@@ -1,10 +1,20 @@
-# iScrcpy
+<div align="center">
+  <img src="images/iScrcpy.png" alt="iScrcpy Logo" width="120" height="120">
 
-[English](README.md) | [简体中文](README_CN.md)
+  # iScrcpy
 
-基于 scrcpy 的 Android 设备投屏工具。使用 React + Vite 构建的现代化 Electron 桌面应用程序。
+  **基于 scrcpy 的 Android 设备投屏工具**
 
-![iScrcpy 界面](images/iScrcpy.png)
+  [![Windows](https://img.shields.io/badge/Windows-0078D4?style=flat-square&logo=windows&logoColor=white)](#)
+  [![macOS](https://img.shields.io/badge/macOS-000000?style=flat-square&logo=apple)](#)
+  [![Linux](https://img.shields.io/badge/Linux-FCC624?style=flat-square&logo=linux&logoColor=black)](#)
+  [![License](https://img.shields.io/badge/License-Apache%202.0-blue?style=flat-square)](#)
+  [![Version](https://img.shields.io/badge/Version-1.0.6-blue?style=flat-square)](#)
+
+  [English](README.md) | [简体中文](README_CN.md)
+</div>
+
+---
 
 ## 功能特性
 
@@ -71,22 +81,37 @@ iScrcpy 支持 7 种语言：
 ## 项目结构
 
 ```text
-iscrcpy/
+iScrcpy/
 ├── app/                    # scrcpy 二进制文件和依赖
-│   ├── scrcpy.exe
-│   ├── scrcpy-server
-│   ├── adb.exe
-│   └── *.dll
+│   ├── win/                # Windows 二进制
+│   │   ├── scrcpy.exe      # scrcpy 可执行文件
+│   │   ├── scrcpy-server   # scrcpy server jar
+│   │   ├── adb.exe         # ADB 可执行文件
+│   │   ├── SDL2.dll        # SDL2 库
+│   │   └── *.dll           # 所需 DLL（avcodec, avformat 等）
+│   ├── mac/                # macOS 二进制
+│   │   ├── scrcpy
+│   │   ├── scrcpy-server
+│   │   ├── adb
+│   │   └── scrcpy.1        # 手册页
+│   └── linux/              # Linux 二进制
+│       ├── scrcpy
+│       ├── scrcpy-server
+│       ├── adb
+│       └── scrcpy.1        # 手册页
 ├── electron/               # Electron 主进程
-│   ├── main.ts            # 主进程 IPC 处理器
-│   ├── preload.ts         # IPC 桥接预加载脚本
-│   └── logger.ts          # 日志工具
+│   ├── main.ts             # 主进程 IPC 处理器
+│   ├── main.cjs            # 编译后的主进程
+│   ├── preload.ts          # IPC 桥接预加载脚本
+│   ├── preload.cjs         # 编译后的预加载脚本
+│   ├── logger.ts           # 日志工具
+│   └── resources/          # 构建资源
 ├── src/                    # React 应用
-│   ├── main.tsx           # 入口文件
-│   ├── App.tsx            # 根组件
-│   ├── i18n/              # 国际化
-│   │   ├── index.ts       # i18n 配置
-│   │   └── locales/       # 翻译文件
+│   ├── main.tsx            # 入口文件
+│   ├── App.tsx             # 根组件
+│   ├── i18n/               # 国际化
+│   │   ├── index.ts        # i18n 配置
+│   │   └── locales/        # 翻译文件
 │   │       ├── zh-CN.json
 │   │       ├── en-US.json
 │   │       ├── ja-JP.json
@@ -94,39 +119,59 @@ iscrcpy/
 │   │       ├── es-ES.json
 │   │       ├── fr-FR.json
 │   │       └── tr-TR.json
-│   ├── components/        # 可复用组件
-│   │   ├── TitleBar.tsx   # 标题栏（带语言选择器）
-│   │   ├── Sidebar.tsx
-│   │   └── DeviceCard.tsx
-│   ├── pages/             # 页面组件
-│   │   ├── DevicePage.tsx
-│   │   ├── DisplayPage.tsx
-│   │   ├── EncodingPage.tsx
-│   │   ├── ServerPage.tsx
-│   │   └── AboutPage.tsx
-│   ├── store/             # 状态管理
-│   │   └── deviceStore.ts
-│   ├── styles/            # CSS 样式
-│   │   └── index.css
-│   ├── utils/             # 工具函数
-│   │   └── electron.ts    # Electron API 桥接
-│   └── vite-env.d.ts      # TypeScript 声明
+│   ├── components/         # 可复用组件
+│   │   ├── TitleBar.tsx    # 标题栏（带语言选择器）
+│   │   ├── Sidebar.tsx     # 导航侧边栏
+│   │   ├── DeviceCard.tsx  # 设备卡片组件
+│   │   ├── FileManager.tsx # 文件管理对话框
+│   │   ├── CloseConfirmDialog.tsx  # 关闭确认对话框
+│   │   ├── UpdateDialog.tsx        # 更新通知对话框
+│   │   └── ui/             # shadcn/ui 风格组件
+│   │       ├── button.tsx
+│   │       ├── card.tsx
+│   │       ├── checkbox.tsx
+│   │       ├── label.tsx
+│   │       ├── select.tsx
+│   │       ├── separator.tsx
+│   │       ├── sheet.tsx
+│   │       └── sonner.tsx
+│   ├── pages/              # 页面组件
+│   │   ├── DevicePage.tsx  # 设备管理页面
+│   │   ├── DisplayPage.tsx # 投屏设置页面
+│   │   ├── EncodingPage.tsx    # 编码设置页面
+│   │   ├── ServerPage.tsx      # 服务器配置页面
+│   │   ├── LogsPage.tsx        # 应用日志页面
+│   │   └── AboutPage.tsx       # 关于页面
+│   ├── store/              # 状态管理 (Zustand)
+│   │   └── deviceStore.ts  # 设备状态存储
+│   ├── lib/                # 工具库
+│   │   └── utils.ts        # 工具函数
+│   ├── styles/             # CSS 样式
+│   │   └── index.css       # 全局样式
+│   ├── utils/              # 工具函数
+│   │   └── electron.ts     # Electron API 桥接
+│   ├── types/              # TypeScript 类型定义
+│   │   └── electron.d.ts   # Electron 类型声明
+│   ├── assets/             # 静态资源
+│   │   └── icon.png        # 应用图标
+│   └── vite-env.d.ts       # Vite 类型声明
 ├── documents/              # 用户文档（7种语言）
-│   ├── en-US.md           # 英文用户指南
-│   ├── zh-CN.md           # 中文用户指南
-│   ├── ja-JP.md           # 日语用户指南
-│   ├── ko-KR.md           # 韩语用户指南
-│   ├── es-ES.md           # 西班牙语用户指南
-│   ├── fr-FR.md           # 法语用户指南
-│   └── tr-TR.md           # 土耳其语用户指南
+│   ├── en-US.md            # 英文用户指南
+│   ├── zh-CN.md            # 中文用户指南
+│   ├── ja-JP.md            # 日语用户指南
+│   ├── ko-KR.md            # 韩语用户指南
+│   ├── es-ES.md            # 西班牙语用户指南
+│   ├── fr-FR.md            # 法语用户指南
+│   └── tr-TR.md            # 土耳其语用户指南
 ├── images/                 # 截图资源
-│   └── iScrcpy.png        # 主界面截图
+│   └── iScrcpy.png         # 主界面截图
 ├── logs/                   # 应用日志
 ├── index.html              # HTML 入口
+├── package.json            # 依赖配置
 ├── vite.config.ts          # Vite 配置
 ├── electron.vite.config.ts # Electron Vite 配置
-├── package.json            # 依赖配置
-└── tsconfig.json           # TypeScript 配置
+├── tsconfig.json           # TypeScript 配置
+└── forge.config.cjs        # Electron Forge 配置
 ```
 
 ## 快速开始
