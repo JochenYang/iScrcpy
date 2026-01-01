@@ -61,7 +61,7 @@ var deviceProcesses = /* @__PURE__ */ new Map();
 var connectedDevices = /* @__PURE__ */ new Set();
 var settings = {
   display: {
-    maxSize: 1080,
+    maxSize: 1920, // 1080p (1920 longest edge for 1080x1920 mobile resolution)
     videoBitrate: 8,
     frameRate: 60,
     alwaysOnTop: false,

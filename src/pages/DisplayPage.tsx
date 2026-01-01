@@ -58,7 +58,7 @@ export default function DisplayPage() {
     bitrateMode: "vbr",
   });
   const [settings, setSettings] = useState<DisplaySettings>({
-    maxSize: 1080,
+    maxSize: 1920, // 1080p (1920 longest edge for 1080x1920 mobile resolution)
     videoBitrate: 8,
     frameRate: 60,
     customMaxSize: 1920,
@@ -151,8 +151,11 @@ export default function DisplayPage() {
     return parts.join(" ");
   };
 
-  // Check if a value is a preset option (1024, original = 0)
-  const isPresetMaxSize = (value: number) => [0, 480, 720, 1024, 1080, 1440, 2160].includes(value);
+  // Check if a value is a preset option (0 = original)
+  // scrcpy --max-size limits the longest edge, so for mobile竖屏 resolutions:
+  // 480p = 480x854, 720p = 720x1280, 1080p = 1080x1920, etc.
+  const isPresetMaxSize = (value: number) =>
+    [0, 854, 1280, 1920, 2560, 3840].includes(value);
   const isPresetBitrate = (value: number) => [1, 2, 4, 8, 16, 32].includes(value);
   const isPresetFps = (value: number) => [30, 60, 90, 120, 144].includes(value);
 
@@ -292,12 +295,11 @@ export default function DisplayPage() {
             </label>
             <select value={getMaxSizeValue()} onChange={handleMaxSizeChange}>
               <option value="0">{t("display.originalResolution")}</option>
-              <option value="480">480p</option>
-              <option value="720">720p</option>
-              <option value="1024">1024p</option>
-              <option value="1080">1080p</option>
-              <option value="1440">1440p (2K)</option>
-              <option value="2160">2160p (4K)</option>
+              <option value="854">480p (480×854)</option>
+              <option value="1280">720p (720×1280)</option>
+              <option value="1920">1080p (1080×1920)</option>
+              <option value="2560">2K (1440×2560)</option>
+              <option value="3840">4K (2160×3840)</option>
               <option value="custom">{t("display.maxSize")}...</option>
             </select>
             {!isPresetMaxSize(settings.maxSize) && (

@@ -161,7 +161,7 @@ const connectedDevices = new Set<string>();
 // Default settings
 const settings: Settings = {
   display: {
-    maxSize: 1080,
+    maxSize: 1920, // 1080p (1920 longest edge for 1080x1920 mobile resolution)
     videoBitrate: 8,
     frameRate: 60,
     alwaysOnTop: false,
@@ -2405,7 +2405,7 @@ function initTray(): void {
     ? path.join(process.resourcesPath, "build", "icon.png")
     : path.join(process.cwd(), "build", "icon.png");
 
-  let trayIcon: nativeImage;
+  let trayIcon: NativeImage;
 
   if (existsSync(iconPath)) {
     trayIcon = nativeImage.createFromPath(iconPath);
