@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="images/iScrcpy.png" alt="iScrcpy Logo" width="120" height="120">
+  <img src="images/logo.png" alt="iScrcpy Logo" width="120" height="120">
 
   # iScrcpy
 
@@ -15,6 +15,8 @@
 </div>
 
 ---
+
+![iScrcpy 界面](images/iScrcpy.png)
 
 ## 功能特性
 
