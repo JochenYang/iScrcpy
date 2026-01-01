@@ -61,6 +61,7 @@
     "noDevicesDesc": "Lütfen bir Android cihaz bağlayın ve USB hata ayıklamayı etkinleştirin",
     "inputIpPlaceholder": "Cihaz IP adresini girin (örn: 192.168.1.100 veya 192.168.1.100:5555)",
     "connectBtn": "Bağlan",
+    "remove": "Cihazı kaldır",
     "cancel": "İptal",
     "toast": {
       "screenMirroringStarted": "{{deviceName}} ekran yansıtma başlatıldı",
@@ -83,7 +84,8 @@
       "recordingStarted": "Kayıt başlatıldı",
       "recordingStopped": "Kayıt durduruldu",
       "audioToggled": "Ses {{status}}",
-      "cameraToggled": "Kamera {{status}}"
+      "cameraToggled": "Kamera {{status}}",
+      "deviceRemoved": "Cihaz kaldırıldı"
     }
   },
   "display": {
@@ -235,5 +237,9 @@
     "delete": "Sil",
     "edit": "Düzenle",
     "close": "Kapat"
+  },
+  "tray": {
+    "showWindow": "Pencereyi göster",
+    "quit": "Kapat"
   }
 }

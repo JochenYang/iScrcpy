@@ -4,6 +4,8 @@ import { electronAPI } from "../utils/electron";
 import DeviceCard from "../components/DeviceCard";
 import FileManager from "../components/FileManager";
 import { useDeviceStore } from "../store/deviceStore";
+import { DeviceInfo } from "../types/electron";
+import i18n from "../i18n";
 
 export default function DevicePage() {
   const { t } = useTranslation();
@@ -40,7 +42,7 @@ export default function DevicePage() {
     try {
       const result = await electronAPI.adbDevices();
       if (result.success && result.devices) {
-        const currentDevices = result.devices as LocalDevice[];
+        const currentDevices = result.devices as DeviceInfo[];
         const now = Date.now();
         const known = knownDevicesRef.current;
         
@@ -51,22 +53,32 @@ export default function DevicePage() {
         });
         
         // Update known devices - only mark as offline if forceRefresh is true
-        // This prevents marking devices as offline on initial load when they might not be detected yet
+        const currentRemoved = useDeviceStore.getState().removedDevices;
+        
+        // Update known devices - keep all known devices, update their status
         const updatedKnown = known.map(knownDevice => {
           const current = currentDevices.find(d => d.id === knownDevice.id);
           if (current) {
             return { ...knownDevice, status: current.status, lastSeen: now };
           }
           // Only mark as offline if forceRefresh is true (manual refresh)
-          // Keep the previous status on initial load to avoid false offline status
           return forceRefresh 
             ? { ...knownDevice, status: "offline", lastSeen: now }
             : knownDevice;
         });
         
-        // Add new devices to known list
+        // Add new devices from currentDevices
+        // Skip devices that are in removedDevices (user manually removed them)
+        // EXCEPT: USB devices (status=device AND no colon in ID) will be restored when USB is connected
         for (const device of currentDevices) {
-          if (!updatedKnown.find(d => d.id === device.id)) {
+          const isInUpdatedKnown = updatedKnown.find(d => d.id === device.id);
+          const wasRemoved = currentRemoved.find(d => d.id === device.id);
+          // USB devices have status "device" and no colon in ID (e.g., "abc123")
+          // WiFi devices have status "device" but contain colon in ID (e.g., "192.168.5.5:5555")
+          const isUsbDevice = device.status === "device" && !device.id.includes(":");
+          
+          // Add if: not in knownDevices AND (not removed OR is USB device)
+          if (!isInUpdatedKnown && (!wasRemoved || isUsbDevice)) {
             updatedKnown.push({ ...device, lastSeen: now });
           }
         }
@@ -80,11 +92,20 @@ export default function DevicePage() {
     setRefreshing(false);
   }, []);
 
-  const connectDevice = async (deviceId: string, options?: { record?: boolean; recordAudio?: boolean; camera?: boolean }) => {
+  const connectDevice = async (deviceId: string, _options?: { record?: boolean; recordAudio?: boolean; camera?: boolean }) => {
     const device = devices.find((d) => d.id === deviceId);
-    const result = await electronAPI.connectDevice(deviceId, options);
+    const result = await electronAPI.connectDevice(deviceId);
     if (result.success) {
       addMirroringDevice(deviceId);
+      
+      // Remove from removedDevices and add to knownDevices when connecting
+      const { removedDevices, knownDevices } = useDeviceStore.getState();
+      if (removedDevices.some(d => d.id === deviceId) && device) {
+        useDeviceStore.setState({
+          removedDevices: removedDevices.filter(d => d.id !== deviceId),
+          knownDevices: [...knownDevices, { ...device, lastSeen: Date.now() }]
+        });
+      }
       
       // Initialize audio state from settings
       const settings = await electronAPI.loadSettings();
@@ -119,6 +140,20 @@ export default function DevicePage() {
         })
       );
       await loadDevices({ silent: true });
+    }
+  };
+
+  const handleRemoveDevice = (deviceId: string) => {
+    // Remove from knownDevices and add to removedDevices
+    const { knownDevices } = useDeviceStore.getState();
+    const device = knownDevices.find(d => d.id === deviceId);
+    
+    if (device) {
+      useDeviceStore.setState({
+        knownDevices: knownDevices.filter(d => d.id !== deviceId),
+        removedDevices: [...useDeviceStore.getState().removedDevices, device]
+      });
+      showToast(t("devices.toast.deviceRemoved", { defaultValue: "设备已移除" }));
     }
   };
 
@@ -192,6 +227,16 @@ export default function DevicePage() {
       showToast(t("devices.toast.wifiConnected", { address: deviceAddress }));
       setWifiIp("");
       setShowWifiInput(false);
+      
+      // Remove from removedDevices and add to knownDevices when manually connecting
+      const { removedDevices, knownDevices } = useDeviceStore.getState();
+      if (removedDevices.some(d => d.id === deviceAddress)) {
+        useDeviceStore.setState({
+          removedDevices: removedDevices.filter(d => d.id !== deviceAddress),
+          knownDevices: [...knownDevices, { id: deviceAddress, name: deviceAddress, type: "wifi", status: "connecting", lastSeen: Date.now() }]
+        });
+      }
+      
       await loadDevices({ silent: true });
     } else {
       showToast(
@@ -208,12 +253,21 @@ export default function DevicePage() {
     if (result.success) {
       if (result.ip) {
         showToast(t("devices.toast.wifiModeEnabled", { ip: result.ip }));
+        const wifiAddress = `${result.ip}:5555`;
         setTimeout(async () => {
-          const connectResult = await electronAPI.connectWifi(
-            `${result.ip}:5555`
-          );
+          const connectResult = await electronAPI.connectWifi(wifiAddress);
           if (connectResult.success) {
             showToast(t("devices.toast.autoConnected", { ip: result.ip }));
+            
+            // Remove from removedDevices and add to knownDevices when enabling WiFi mode
+            const { removedDevices, knownDevices } = useDeviceStore.getState();
+            if (removedDevices.some(d => d.id === wifiAddress)) {
+              useDeviceStore.setState({
+                removedDevices: removedDevices.filter(d => d.id !== wifiAddress),
+                knownDevices: [...knownDevices, { id: wifiAddress, name: result.ip || wifiAddress, type: "wifi" as const, status: "connecting", lastSeen: Date.now() }]
+              });
+            }
+            
             await loadDevices({ silent: true });
           }
         }, 2000);
@@ -374,6 +428,7 @@ export default function DevicePage() {
                 onStartCamera={startCamera}
                 onStopCamera={stopCamera}
                 onOpenFileManager={openFileManager}
+                onRemove={handleRemoveDevice}
               />
             );
           })}
@@ -435,6 +490,7 @@ export default function DevicePage() {
                 onStartCamera={startCamera}
                 onStopCamera={stopCamera}
                 onOpenFileManager={openFileManager}
+                onRemove={handleRemoveDevice}
               />
             );
           })}

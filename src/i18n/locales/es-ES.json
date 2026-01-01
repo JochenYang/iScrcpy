@@ -61,6 +61,7 @@
     "noDevicesDesc": "Conecte un dispositivo Android y habilite la depuración USB",
     "inputIpPlaceholder": "Ingrese la dirección IP del dispositivo (ej: 192.168.1.100 o 192.168.1.100:5555)",
     "connectBtn": "Conectar",
+    "remove": "Eliminar dispositivo",
     "cancel": "Cancelar",
     "toast": {
       "screenMirroringStarted": "{{deviceName}} duplicación de pantalla iniciada",
@@ -83,7 +84,8 @@
       "recordingStarted": "Grabación iniciada",
       "recordingStopped": "Grabación detenida",
       "audioToggled": "Audio {{status}}",
-      "cameraToggled": "Cámara {{status}}"
+      "cameraToggled": "Cámara {{status}}",
+      "deviceRemoved": "Dispositivo eliminado"
     }
   },
   "display": {
@@ -235,5 +237,9 @@
     "delete": "Eliminar",
     "edit": "Editar",
     "close": "Cerrar"
+  },
+  "tray": {
+    "showWindow": "Mostrar ventana",
+    "quit": "Cerrar"
   }
 }

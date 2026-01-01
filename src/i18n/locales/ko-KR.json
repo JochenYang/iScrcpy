@@ -63,6 +63,7 @@
     "noDevicesDesc": "Android 기기를 연결하고 USB 디버깅을 활성화하세요",
     "inputIpPlaceholder": "기기 IP 주소 입력 (예: 192.168.1.100 또는 192.168.1.100:5555)",
     "connectBtn": "연결",
+    "remove": "기기 제거",
     "cancel": "취소",
     "toast": {
       "screenMirroringStarted": "{{deviceName}} 미러링이 시작되었습니다",
@@ -85,7 +86,8 @@
       "recordingStarted": "녹화가 시작되었습니다",
       "recordingStopped": "녹화가 중지되었습니다",
       "audioToggled": "음성이 {{status}}되었습니다",
-      "cameraToggled": "카메라가 {{status}}되었습니다"
+      "cameraToggled": "카메라가 {{status}}되었습니다",
+      "deviceRemoved": "기기가 제거되었습니다"
     }
   },
   "display": {
@@ -237,5 +239,9 @@
     "delete": "삭제",
     "edit": "수정",
     "close": "닫기"
+  },
+  "tray": {
+    "showWindow": "창 표시",
+    "quit": "종료"
   }
 }

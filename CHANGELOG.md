@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.6] - 2026-01-01
+
+### Added
+
+- Added device removal feature - users can now remove devices from the list
+- USB devices will automatically reappear when USB is connected after removal
+- WiFi devices remain removed until manually reconnected via IP input or "Enable Wifi" button
+
+### Fixed
+
+- Fixed display resolution max-size values for scrcpy to use correct dimensions
+- Fixed device removal logic to properly handle both USB and WiFi devices
+
 ## [1.0.5] - 2025-12-29
 
 ### Fixed

@@ -12,6 +12,7 @@ interface Device {
 interface DeviceStore {
   devices: Device[];
   knownDevices: Device[];
+  removedDevices: Device[];
   mirroringDevices: Set<string>;
   recordingDevices: Set<string>;
   audioEnabledDevices: Set<string>;
@@ -32,6 +33,7 @@ export const useDeviceStore = create<DeviceStore>()(
     (set, get) => ({
       devices: [],
       knownDevices: [],
+      removedDevices: [],
       mirroringDevices: new Set<string>(),
       recordingDevices: new Set<string>(),
       audioEnabledDevices: new Set<string>(),
@@ -51,9 +53,17 @@ export const useDeviceStore = create<DeviceStore>()(
       },
 
       removeKnownDevice: (deviceId) => {
-        set((state) => ({
-          knownDevices: state.knownDevices.filter(d => d.id !== deviceId),
-        }));
+        set((state) => {
+          const deviceToRemove = state.knownDevices.find(d => d.id === deviceId);
+          // Only add to removedDevices if not already there (avoid duplicates)
+          const alreadyRemoved = state.removedDevices.some(d => d.id === deviceId);
+          return {
+            knownDevices: state.knownDevices.filter(d => d.id !== deviceId),
+            removedDevices: deviceToRemove && !alreadyRemoved
+              ? [...state.removedDevices, deviceToRemove]
+              : state.removedDevices,
+          };
+        });
       },
 
       addMirroringDevice: (deviceId) =>
@@ -100,6 +110,7 @@ export const useDeviceStore = create<DeviceStore>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         knownDevices: state.knownDevices,
+        removedDevices: state.removedDevices,
       }),
     }
   )

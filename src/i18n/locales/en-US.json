@@ -63,6 +63,7 @@
     "noDevicesDesc": "Please connect an Android device and enable USB debugging",
     "inputIpPlaceholder": "Enter device IP address (e.g., 192.168.1.100 or 192.168.1.100:5555)",
     "connectBtn": "Connect",
+    "remove": "Remove device",
     "cancel": "Cancel",
     "toast": {
       "screenMirroringStarted": "{{deviceName}} mirroring started",
@@ -87,7 +88,8 @@
       "audioToggled": "Audio {{status}}",
       "cameraToggled": "Camera {{status}}",
       "cameraStarted": "Camera started",
-      "cameraStopped": "Camera stopped"
+      "cameraStopped": "Camera stopped",
+      "deviceRemoved": "Device removed"
     }
   },
   "display": {
@@ -239,5 +241,9 @@
       "quit": "Quit",
       "cancel": "Cancel"
     }
+  },
+  "tray": {
+    "showWindow": "Show Window",
+    "quit": "Quit"
   }
 }

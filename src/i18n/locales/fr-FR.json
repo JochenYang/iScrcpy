@@ -61,6 +61,7 @@
     "noDevicesDesc": "Veuillez connecter un appareil Android et activer le débogage USB",
     "inputIpPlaceholder": "Entrez l'adresse IP de l'appareil (ex: 192.168.1.100 ou 192.168.1.100:5555)",
     "connectBtn": "Connecter",
+    "remove": "Supprimer l'appareil",
     "cancel": "Annuler",
     "toast": {
       "screenMirroringStarted": "{{deviceName}} duplication d'écran démarrée",
@@ -83,7 +84,8 @@
       "recordingStarted": "Enregistrement démarré",
       "recordingStopped": "Enregistrement arrêté",
       "audioToggled": "Audio {{status}}",
-      "cameraToggled": "Caméra {{status}}"
+      "cameraToggled": "Caméra {{status}}",
+      "deviceRemoved": "Appareil supprimé"
     }
   },
   "display": {
@@ -235,5 +237,9 @@
     "delete": "Supprimer",
     "edit": "Modifier",
     "close": "Fermer"
+  },
+  "tray": {
+    "showWindow": "Afficher la fenêtre",
+    "quit": "Quitter"
   }
 }

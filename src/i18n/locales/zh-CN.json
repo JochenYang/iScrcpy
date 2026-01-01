@@ -63,6 +63,7 @@
     "noDevicesDesc": "请连接 Android 设备并开启 USB 调试",
     "inputIpPlaceholder": "输入设备 IP 地址 (例如: 192.168.1.100 或 192.168.1.100:5555)",
     "connectBtn": "连接",
+    "remove": "移除设备",
     "cancel": "取消",
     "toast": {
       "screenMirroringStarted": "{{deviceName}} 投屏已启动",
@@ -87,7 +88,8 @@
       "audioToggled": "音频已{{status}}",
       "cameraToggled": "相机已{{status}}",
       "cameraStarted": "相机已启动",
-      "cameraStopped": "相机已关闭"
+      "cameraStopped": "相机已关闭",
+      "deviceRemoved": "设备已移除"
     }
   },
   "display": {
@@ -236,6 +238,10 @@
     "delete": "删除",
     "edit": "编辑",
     "close": "关闭"
+  },
+  "tray": {
+    "showWindow": "显示窗口",
+    "quit": "退出"
   },
   "statusBar": {
     "language": "语言"

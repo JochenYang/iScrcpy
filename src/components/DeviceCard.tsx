@@ -9,9 +9,9 @@ import {
   Disc,
   Folder,
   Package,
+  Trash2,
 } from "lucide-react";
 import { useDeviceStore } from "../store/deviceStore";
-import FileManager from "./FileManager";
 import { electronAPI } from "../utils/electron";
 
 interface DeviceCardProps {
@@ -32,6 +32,7 @@ interface DeviceCardProps {
   onStartCamera?: (deviceId: string) => void;
   onStopCamera?: (deviceId: string) => void;
   onOpenFileManager?: (deviceId: string, deviceName: string) => void;
+  onRemove?: (deviceId: string) => void;
 }
 
 interface RecordOptions {
@@ -53,6 +54,7 @@ export default function DeviceCard({
   onStartCamera,
   onStopCamera,
   onOpenFileManager,
+  onRemove,
 }: DeviceCardProps) {
   const { t } = useTranslation();
   const { recordingDevices, isAudioEnabled } = useDeviceStore();
@@ -62,8 +64,8 @@ export default function DeviceCard({
   const [isCameraActive, setIsCameraActive] = useState(false);
 
   // Status logic:
-  // - Mirroring: "投屏中" (regardless of ADB connection)
-  // - ADB connected + not mirroring: "已连接" (green)
+  // - Mirroring: "投屏�? (regardless of ADB connection)
+  // - ADB connected + not mirroring: "已连�? (green)
   // - ADB disconnected: "离线" (gray)
   const statusText = isMirroring
     ? t("devices.connecting")
@@ -244,53 +246,61 @@ export default function DeviceCard({
           >
             {t("devices.disconnect")}
           </button>
-        ) : isConnected ? (
-          <button
-            className="btn btn-primary btn-small"
-            onClick={() => onConnect(device.id)}
-          >
-            {t("devices.connect")}
-          </button>
         ) : (
-          // Offline device shows connect button
-          <button
-            className="btn btn-primary btn-small"
-            onClick={() => {
-              if (device.type === "usb") {
-                // USB device offline, need physical connection
-                const toast = document.createElement("div");
-                toast.className = "toast";
-                toast.textContent = t("devices.toast.connectUsbDevice");
-                document.body.appendChild(toast);
-                setTimeout(() => {
-                  toast.classList.add("fade-out");
-                  setTimeout(() => toast.remove(), 300);
-                }, 2000);
-              } else {
-                // WiFi device offline, check if previously connected via USB
-                const isPreviouslyConnected = device.status !== "offline";
-                const toast = document.createElement("div");
-                toast.className = "toast";
-                if (isPreviouslyConnected) {
-                  // Device was connected before, likely WiFi disconnected
-                  toast.textContent = t("devices.toast.wifiDisconnected");
+          <>
+            {onRemove && (
+              <button
+                className="btn btn-outline btn-small"
+                onClick={() => onRemove(device.id)}
+                title={t("devices.remove")}
+              >
+                <Trash2 size={14} />
+              </button>
+            )}
+            <button
+              className="btn btn-primary btn-small"
+              onClick={() => {
+                if (isConnected) {
+                  onConnect(device.id);
                 } else {
-                  // New device, prompt to enable WiFi mode via USB
-                  toast.textContent = t("devices.toast.enableWifiFirst");
+                  if (device.type === "usb") {
+                    // USB device offline, need physical connection
+                    const toast = document.createElement("div");
+                    toast.className = "toast";
+                    toast.textContent = t("devices.toast.connectUsbDevice");
+                    document.body.appendChild(toast);
+                    setTimeout(() => {
+                      toast.classList.add("fade-out");
+                      setTimeout(() => toast.remove(), 300);
+                    }, 2000);
+                  } else {
+                    // WiFi device offline, check if previously connected via USB
+                    const isPreviouslyConnected = device.status !== "offline";
+                    const toast = document.createElement("div");
+                    toast.className = "toast";
+                    if (isPreviouslyConnected) {
+                      // Device was connected before, likely WiFi disconnected
+                      toast.textContent = t("devices.toast.wifiDisconnected");
+                    } else {
+                      // New device, prompt to enable WiFi mode via USB
+                      toast.textContent = t("devices.toast.enableWifiFirst");
+                    }
+                    document.body.appendChild(toast);
+                    setTimeout(() => {
+                      toast.classList.add("fade-out");
+                      setTimeout(() => toast.remove(), 300);
+                    }, 3000);
+                    onConnect(device.id);
+                  }
                 }
-                document.body.appendChild(toast);
-                setTimeout(() => {
-                  toast.classList.add("fade-out");
-                  setTimeout(() => toast.remove(), 300);
-                }, 3000);
-                onConnect(device.id);
-              }
-            }}
-          >
-            {t("devices.connect")}
-          </button>
+              }}
+            >
+              {t("devices.connect")}
+            </button>
+          </>
         )}
       </div>
     </div>
   );
 }
+

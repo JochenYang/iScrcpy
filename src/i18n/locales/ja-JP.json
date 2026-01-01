@@ -63,6 +63,7 @@
     "noDevicesDesc": "Androidデバイスを接続し、USBデバッグを有効にしてください",
     "inputIpPlaceholder": "デバイスのIPアドレスを入力 (例: 192.168.1.100 または 192.168.1.100:5555)",
     "connectBtn": "接続",
+    "remove": "デバイスを削除",
     "cancel": "キャンセル",
     "toast": {
       "screenMirroringStarted": "{{deviceName}} ミラーリングを開始しました",
@@ -85,7 +86,8 @@
       "recordingStarted": "録画を開始しました",
       "recordingStopped": "録画を停止しました",
       "audioToggled": "音声が{{status}}されました",
-      "cameraToggled": "カメラが{{status}}されました"
+      "cameraToggled": "カメラが{{status}}されました",
+      "deviceRemoved": "デバイスが削除されました"
     }
   },
   "display": {
@@ -237,5 +239,9 @@
     "delete": "削除",
     "edit": "編集",
     "close": "閉じる"
+  },
+  "tray": {
+    "showWindow": "ウィンドウを表示",
+    "quit": "終了"
   }
 }
