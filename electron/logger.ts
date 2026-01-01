@@ -30,6 +30,12 @@ class Logger {
     const levels = ["error", "warn", "info", "debug"];
     const currentIndex = levels.indexOf(this.level);
     const messageIndex = levels.indexOf(level);
+    
+    // Development mode: always log info and above
+    if (process.env.NODE_ENV === "development" || !app.isPackaged) {
+      return messageIndex <= levels.indexOf("info");
+    }
+    
     return messageIndex <= currentIndex;
   }
 

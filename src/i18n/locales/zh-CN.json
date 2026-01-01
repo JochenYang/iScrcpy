@@ -241,7 +241,8 @@
   },
   "tray": {
     "showWindow": "显示窗口",
-    "quit": "退出"
+    "quit": "退出",
+    "mirroring": "Android 投屏工具"
   },
   "statusBar": {
     "language": "语言"

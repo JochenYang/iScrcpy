@@ -244,6 +244,7 @@
   },
   "tray": {
     "showWindow": "Show Window",
-    "quit": "Quit"
+    "quit": "Quit",
+    "mirroring": "Android Screen Mirroring"
   }
 }

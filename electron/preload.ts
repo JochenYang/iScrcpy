@@ -8,6 +8,25 @@ type FileDialogOptions = {
   filters?: { name: string; extensions: string[] }[];
 };
 
+// Tray translations - this will be updated by renderer
+const trayTranslations: Record<string, { showWindow: string; quit: string; tooltip: string }> = {
+  "en-US": {
+    showWindow: "Show Window",
+    quit: "Quit",
+    tooltip: "iScrcpy - Android Screen Mirroring",
+  }
+};
+
+// Expose tray translations as a global that renderer can update
+contextBridge.exposeInMainWorld("trayUtils", {
+  setTranslations: (translations: typeof trayTranslations) => {
+    Object.assign(trayTranslations, translations);
+    ipcRenderer.send("set-tray-translations", trayTranslations);
+  },
+  getTranslations: () => trayTranslations,
+  getCurrent: (lang: string) => trayTranslations[lang] || trayTranslations["en-US"],
+});
+
 contextBridge.exposeInMainWorld("electronAPI", {
   // Device management
   adbDevices: () => ipcRenderer.invoke("adb-devices"),
@@ -141,5 +160,19 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
   removeDownloadProgressListener: () => {
     ipcRenderer.removeAllListeners("download-progress");
+  },
+
+  // Language change notification for tray
+  notifyLanguageChange: (lang: string) => {
+    ipcRenderer.send("language-changed", lang);
+  },
+  setTrayTranslations: (translations: Record<string, { showWindow: string; quit: string; tooltip: string }>) => {
+    ipcRenderer.send("set-tray-translations", translations);
+  },
+  // Provide translations when main process requests
+  getTrayTranslations: () => {
+    // This will be called from main process via invoke
+    // We need to use ipcRenderer.invoke to handle the request
+    return ipcRenderer.invoke("get-tray-translations-from-renderer");
   },
 });

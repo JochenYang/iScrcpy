@@ -240,6 +240,7 @@
   },
   "tray": {
     "showWindow": "Pencereyi göster",
-    "quit": "Kapat"
+    "quit": "Kapat",
+    "mirroring": "Android Ekran Yansıtma"
   }
 }

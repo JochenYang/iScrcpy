@@ -2398,6 +2398,89 @@ function getAdbPath(): string {
 // App lifecycle
 let tray: Tray | null = null;
 
+// Tray translations - loaded from renderer via IPC
+let trayTranslations: Record<string, { showWindow: string; quit: string; tooltip: string }> = {};
+
+// Set tray translations from renderer
+ipcMain.on("set-tray-translations", (_event, translations) => {
+  trayTranslations = translations;
+  logger.info("Tray translations received from renderer, keys:", Object.keys(translations));
+  
+  // After receiving translations, trigger tray update
+  // Try to get current language from settings
+  const settingsPath = app.isPackaged
+    ? path.join(process.resourcesPath, "settings.json")
+    : path.join(process.cwd(), "settings.json");
+  
+  let lang = "en-US";
+  if (existsSync(settingsPath)) {
+    try {
+      const data = JSON.parse(readFileSync(settingsPath, "utf-8"));
+      if (data.language && translations[data.language]) {
+        lang = data.language;
+      }
+    } catch (e) {
+      // Use default
+    }
+  }
+  
+  // Also try to get from localStorage via renderer (delayed)
+  if (mainWindow) {
+    mainWindow.webContents.executeJavaScript('localStorage.getItem("language") || "en-US"')
+      .then((resultLang: string) => {
+        if (resultLang && translations[resultLang]) {
+          lang = resultLang;
+        }
+        updateTray(lang);
+      })
+      .catch(() => updateTray(lang));
+  } else {
+    updateTray(lang);
+  }
+});
+
+// Update tray menu with current language
+function updateTray(lang: string): void {
+  if (!tray) return;
+  
+  logger.info("updateTray called", { lang, availableKeys: Object.keys(trayTranslations) });
+  
+  const translations = trayTranslations[lang] || trayTranslations["en-US"];
+  
+  if (!translations) {
+    logger.warn("No translations found for lang:", lang);
+    return;
+  }
+  
+  logger.info("Using translations:", translations);
+  
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: translations.showWindow,
+      click: () => {
+        if (mainWindow) {
+          mainWindow.show();
+          mainWindow.focus();
+        }
+      },
+    },
+    { type: "separator" },
+    {
+      label: translations.quit,
+      click: () => {
+        if (mainWindow) {
+          mainWindow.destroy();
+        }
+        app.quit();
+      },
+    },
+  ]);
+
+  tray.setContextMenu(contextMenu);
+  tray.setToolTip(translations.tooltip);
+  logger.info("Tray updated for language:", lang);
+}
+
 // Initialize system tray
 function initTray(): void {
   // Create tray icon
@@ -2416,9 +2499,16 @@ function initTray(): void {
 
   tray = new Tray(trayIcon.resize({ width: 16, height: 16 }));
 
+  // Initialize with default English values
+  const defaultTranslations = {
+    showWindow: "Show Window",
+    quit: "Quit",
+    tooltip: "iScrcpy - Android Screen Mirroring",
+  };
+
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: "Show Window",
+      label: defaultTranslations.showWindow,
       click: () => {
         if (mainWindow) {
           mainWindow.show();
@@ -2428,7 +2518,7 @@ function initTray(): void {
     },
     { type: "separator" },
     {
-      label: "Quit",
+      label: defaultTranslations.quit,
       click: () => {
         if (mainWindow) {
           mainWindow.destroy();
@@ -2438,7 +2528,7 @@ function initTray(): void {
     },
   ]);
 
-  tray.setToolTip("iScrcpy - Android Screen Mirroring");
+  tray.setToolTip(defaultTranslations.tooltip);
   tray.setContextMenu(contextMenu);
 
   // Double click to show window
@@ -2451,6 +2541,23 @@ function initTray(): void {
 
   logger.info("System tray initialized");
 }
+
+// Update tray when language changes - use the translations we already received
+ipcMain.on("language-changed", (_event, lang: string) => {
+  // Just trigger update, the translations should already be in trayTranslations
+  logger.info("language-changed received", { lang, hasTranslations: !!trayTranslations[lang] });
+  if (trayTranslations[lang]) {
+    updateTray(lang);
+  } else if (trayTranslations["en-US"]) {
+    updateTray("en-US");
+  }
+});
+
+// Request translations from renderer and update tray - deprecated, no longer needed
+ipcMain.handle("get-current-lang-and-update-tray", async () => {
+  // This handler is deprecated, use set-tray-translations instead
+  return "en-US";
+});
 
 // Request close confirmation from renderer
 ipcMain.handle(

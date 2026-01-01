@@ -16,8 +16,46 @@ export default function TitleBar() {
   const changeLanguage = (langCode: string) => {
     i18n.changeLanguage(langCode);
     localStorage.setItem("language", langCode);
+    
+    // Notify main process to update tray
+    if (typeof electronAPI.notifyLanguageChange === "function") {
+      electronAPI.notifyLanguageChange(langCode);
+    }
+    // Use window.trayUtils
+    if (typeof (window as any).trayUtils !== "undefined") {
+      (window as any).trayUtils.setTranslations((window as any).trayUtils.getTranslations());
+    }
+    
+    // Also send translations to main process for tray
+    sendTrayTranslations();
+    
     setShowLanguageMenu(false);
   };
+
+  // Send tray translations to main process
+  const sendTrayTranslations = () => {
+    const translations: Record<string, { showWindow: string; quit: string; tooltip: string }> = {};
+    for (const lang of languages) {
+      translations[lang.code] = {
+        showWindow: i18n.t("tray.showWindow", { lng: lang.code }),
+        quit: i18n.t("tray.quit", { lng: lang.code }),
+        tooltip: i18n.t("app.name", { lng: lang.code }) + " - " + i18n.t("tray.mirroring", { lng: lang.code }),
+      };
+    }
+    // Fallback for tooltip
+    translations["zh-CN"].tooltip = "iScrcpy - Android 投屏工具";
+    translations["en-US"].tooltip = "iScrcpy - Android Screen Mirroring";
+    
+    // Use window.trayUtils which is exposed by preload
+    if (typeof (window as any).trayUtils !== "undefined") {
+      (window as any).trayUtils.setTranslations(translations);
+    }
+  };
+
+  // Send tray translations to main process on mount and language change
+  useEffect(() => {
+    sendTrayTranslations();
+  }, [i18n.language]);
 
   // Close menu when clicking outside
   useEffect(() => {

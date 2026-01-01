@@ -240,6 +240,7 @@
   },
   "tray": {
     "showWindow": "Mostrar ventana",
-    "quit": "Cerrar"
+    "quit": "Cerrar",
+    "mirroring": "Duplicación de pantalla Android"
   }
 }

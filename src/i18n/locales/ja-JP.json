@@ -242,6 +242,7 @@
   },
   "tray": {
     "showWindow": "ウィンドウを表示",
-    "quit": "終了"
+    "quit": "終了",
+    "mirroring": "Android ミラーリング"
   }
 }

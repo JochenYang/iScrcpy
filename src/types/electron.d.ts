@@ -209,6 +209,10 @@ export interface ElectronAPI {
   installUpdate: (installerPath: string) => Promise<{ success: boolean; error?: string }>;
   onDownloadProgress: (callback: (event: Electron.IpcRendererEvent, progress: number) => void) => void;
   removeDownloadProgressListener: () => void;
+
+  // Language change notification for tray
+  notifyLanguageChange: (lang: string) => void;
+  setTrayTranslations: (translations: Record<string, { showWindow: string; quit: string; tooltip: string }>) => void;
 }
 
 // Extend Window interface

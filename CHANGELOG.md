@@ -14,11 +14,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added device removal feature - users can now remove devices from the list
 - USB devices will automatically reappear when USB is connected after removal
 - WiFi devices remain removed until manually reconnected via IP input or "Enable Wifi" button
+- Tray menu and tooltip now support multi-language translations (7 languages)
+- Development mode logging always shows info level and above
 
 ### Fixed
 
 - Fixed display resolution max-size values for scrcpy to use correct dimensions
 - Fixed device removal logic to properly handle both USB and WiFi devices
+- Fixed tray menu translations not updating in development mode
+
+### Changed
+
+- Development mode: tray translations always log info level and above regardless of user settings
 
 ## [1.0.5] - 2025-12-29
 
