@@ -61,10 +61,8 @@ export default function DevicePage() {
           if (current) {
             return { ...knownDevice, status: current.status, lastSeen: now };
           }
-          // Only mark as offline if forceRefresh is true (manual refresh)
-          return forceRefresh 
-            ? { ...knownDevice, status: "offline", lastSeen: now }
-            : knownDevice;
+          // Device not in ADB list, mark as offline
+          return { ...knownDevice, status: "offline", lastSeen: now };
         });
         
         // Add new devices from currentDevices
