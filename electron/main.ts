@@ -2443,16 +2443,12 @@ ipcMain.on("set-tray-translations", (_event, translations) => {
 function updateTray(lang: string): void {
   if (!tray) return;
   
-  logger.debug("updateTray called", { lang, availableKeys: Object.keys(trayTranslations) });
-  
   const translations = trayTranslations[lang] || trayTranslations["en-US"];
   
   if (!translations) {
     logger.warn("No translations found for lang:", lang);
     return;
   }
-  
-  logger.debug("Using translations:", translations);
   
   const contextMenu = Menu.buildFromTemplate([
     {
@@ -2478,7 +2474,6 @@ function updateTray(lang: string): void {
 
   tray.setContextMenu(contextMenu);
   tray.setToolTip(translations.tooltip);
-  logger.debug("Tray updated for language:", lang);
 }
 
 // Initialize system tray
