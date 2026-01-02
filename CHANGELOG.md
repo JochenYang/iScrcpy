@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.7] - 2026-01-02
+
+### Fixed
+
+- Fixed WiFi device status not updating after app restart
+- WiFi devices now auto-reconnect when app restarts and ADB server resets
+- USB devices are now immediately marked as offline when disconnected
+- WiFi devices maintain their status when temporarily undetected by ADB
+
+### Changed
+
+- Device status logic: always update from ADB response
+- Device list rendering: merge knownDevices with current devices for accurate status
+- Tray menu logging now uses debug level to match software log level settings
+
+### Docs
+
+- Redesigned README header with logo and platform badges
+- Updated project structure documentation to match actual codebase
+- Added interface screenshot above features section
+
 ## [1.0.6] - 2026-01-01
 
 ### Added

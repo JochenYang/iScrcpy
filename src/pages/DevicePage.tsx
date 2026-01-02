@@ -52,24 +52,26 @@ export default function DevicePage() {
           return existing ? { ...device, lastSeen: existing.lastSeen } : { ...device, lastSeen: now };
         });
         
-        // Update known devices - only mark as offline if forceRefresh is true
-        const currentRemoved = useDeviceStore.getState().removedDevices;
-        
         // Update known devices - keep all known devices, update their status
         const updatedKnown = known.map(knownDevice => {
           const current = currentDevices.find(d => d.id === knownDevice.id);
           if (current) {
             return { ...knownDevice, status: current.status, lastSeen: now };
           }
-          // Only mark as offline if forceRefresh is true (manual refresh)
-          return forceRefresh 
-            ? { ...knownDevice, status: "offline", lastSeen: now }
-            : knownDevice;
+          // Device not in ADB list
+          // USB devices: mark as offline (disconnection is immediate)
+          // WiFi devices: keep original status (may be temporarily undetected)
+          if (knownDevice.type === "wifi") {
+            return knownDevice;
+          }
+          return { ...knownDevice, status: "offline", lastSeen: now };
         });
         
         // Add new devices from currentDevices
         // Skip devices that are in removedDevices (user manually removed them)
         // EXCEPT: USB devices (status=device AND no colon in ID) will be restored when USB is connected
+        const currentRemoved = useDeviceStore.getState().removedDevices;
+        
         for (const device of currentDevices) {
           const isInUpdatedKnown = updatedKnown.find(d => d.id === device.id);
           const wasRemoved = currentRemoved.find(d => d.id === device.id);
@@ -85,6 +87,17 @@ export default function DevicePage() {
         
         // Use zustand's set to update both
         useDeviceStore.setState({ devices: mergedDevices, knownDevices: updatedKnown });
+        
+        // Auto-connect WiFi devices that are in knownDevices but not detected by ADB
+        // This handles the case where app restart resets ADB server
+        const wifiDevicesNeedingReconnect = updatedKnown.filter(d => 
+          d.type === "wifi" && 
+          !currentDevices.some(curr => curr.id === d.id)
+        );
+        
+        for (const device of wifiDevicesNeedingReconnect) {
+          electronAPI.connectWifi(device.id);
+        }
       }
     } catch (error) {
       console.error("Failed to load devices:", error);
@@ -365,12 +378,29 @@ export default function DevicePage() {
     };
   }, [devices, addMirroringDevice, removeMirroringDevice, t, loadDevices]);
 
-  // Use knownDevices to show devices (includes disconnected ones)
-  // Build a map of current device status
+  // Merge knownDevices and devices to get complete device list with latest status
   const deviceStatusMap = new Map(devices.map(d => [d.id, d.status]));
   
-  // Get devices with their current status (from knownDevices, fall back to devices)
-  const allDevices = knownDevices.length > 0 ? knownDevices : devices;
+  // Build all devices list: use knownDevices (includes offline devices) but update status from devices
+  const allDevicesMap = new Map();
+  
+  // First add all known devices
+  for (const device of knownDevices) {
+    const currentStatus = deviceStatusMap.get(device.id);
+    allDevicesMap.set(device.id, {
+      ...device,
+      status: currentStatus || device.status
+    });
+  }
+  
+  // Then add devices that are not in knownDevices yet
+  for (const device of devices) {
+    if (!allDevicesMap.has(device.id)) {
+      allDevicesMap.set(device.id, device);
+    }
+  }
+  
+  const allDevices = Array.from(allDevicesMap.values());
   
   const usbDevices = allDevices.filter((d) => d.type === "usb");
   const wifiDevices = allDevices.filter((d) => d.type === "wifi");
@@ -411,13 +441,12 @@ export default function DevicePage() {
         </h2>
         <div className="device-list" id="usb-devices">
           {usbDevices.map((device) => {
-            // Get current status from deviceStatusMap, fallback to stored status
-            const currentStatus = deviceStatusMap.get(device.id) || device.status;
+            // device.status is already updated with latest ADB status
             return (
               <DeviceCard
                 key={device.id}
-                device={{ ...device, status: currentStatus }}
-                isConnected={currentStatus === "device" || currentStatus === "connected"}
+                device={device}
+                isConnected={device.status === "device" || device.status === "connected"}
                 isMirroring={mirroringDevices.has(device.id)}
                 onConnect={connectDevice}
                 onDisconnect={disconnectDevice}
@@ -475,12 +504,12 @@ export default function DevicePage() {
 
         <div className="device-list" id="wifi-devices">
           {wifiDevices.map((device) => {
-            const currentStatus = deviceStatusMap.get(device.id) || device.status;
+            // device.status is already updated with latest ADB status
             return (
               <DeviceCard
                 key={device.id}
-                device={{ ...device, status: currentStatus }}
-                isConnected={currentStatus === "device" || currentStatus === "connected"}
+                device={device}
+                isConnected={device.status === "device" || device.status === "connected"}
                 isMirroring={mirroringDevices.has(device.id)}
                 onConnect={connectDevice}
                 onDisconnect={disconnectDevice}
