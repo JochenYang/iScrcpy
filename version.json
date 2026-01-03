@@ -1,0 +1,10 @@
+{
+  "version": "1.0.8",
+  "releaseNotes": "\n### Fixed\n\n- Fixed app not closing during update installation in development mode\n- Application now properly quits before installer starts\n\n### Added\n\n- Added automatic cleanup of all subprocesses before update installation (scrcpy, ADB, camera)\n- Added automatic deletion of installer files after successful installation\n- Installer files are automatically removed on next app launch (after 1 hour)\n",
+  "downloadUrl": {
+    "windows": "https://github.com/JochenYang/iScrcpy/releases/download/v1.0.8/iScrcpy-1.0.8-win-x64.exe",
+    "mac": "https://github.com/JochenYang/iScrcpy/releases/download/v1.0.8/iScrcpy-1.0.8-mac-x64.dmg",
+    "linux": "https://github.com/JochenYang/iScrcpy/releases/download/v1.0.8/iScrcpy-1.0.8-linux-x86_64.AppImage"
+  },
+  "publishedAt": "2026-01-03T18:18:25Z"
+}
