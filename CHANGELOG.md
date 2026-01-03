@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.8] - 2026-01-04
+
+### Fixed
+
+- Fixed app not closing during update installation in development mode
+- Application now properly quits before installer starts
+
+### Added
+
+- Added automatic cleanup of all subprocesses before update installation (scrcpy, ADB, camera)
+- Added automatic deletion of installer files after successful installation
+- Installer files are automatically removed on next app launch (after 1 hour)
+
 ## [1.0.7] - 2026-01-02
 
 ### Fixed

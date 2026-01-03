@@ -157,6 +157,125 @@ let mainWindow: BrowserWindow | null = null;
 const deviceProcesses = new Map<string, { pid: number; proc: any }>();
 const cameraProcesses = new Map<string, { pid: number; proc: any }>();
 const connectedDevices = new Set<string>();
+let isQuittingForUpdate = false;
+const INSTALLER_INFO_FILE = "installer-info.json";
+
+// Clean up all device-related subprocesses
+function cleanupAllProcesses(): Promise<void> {
+  return new Promise((resolve) => {
+    if (TEST_MODE) {
+      logger.info("Test mode: skipping process cleanup");
+      return resolve();
+    }
+
+    logger.info("Cleaning up all processes before update...");
+
+    // 1. Clean up all scrcpy processes
+    deviceProcesses.forEach((procData, deviceId) => {
+      try {
+        if (procData.pid) {
+          if (process.platform === "win32") {
+            exec(`taskkill /PID ${procData.pid} /F /T`);
+          } else {
+            exec(`pkill -9 -P ${procData.pid}`, () => {});
+            procData.proc?.kill("SIGKILL");
+          }
+          logger.info(`Killed scrcpy process for ${deviceId} (PID: ${procData.pid})`);
+        }
+      } catch (e) {
+        logger.warn(`Failed to kill scrcpy for ${deviceId}`, e);
+      }
+    });
+
+    // 2. Clean up all camera processes
+    cameraProcesses.forEach((procData, deviceId) => {
+      try {
+        if (procData.pid) {
+          if (process.platform === "win32") {
+            exec(`taskkill /PID ${procData.pid} /F /T`);
+          } else {
+            exec(`pkill -9 -P ${procData.pid}`, () => {});
+            procData.proc?.kill("SIGKILL");
+          }
+          logger.info(`Killed camera process for ${deviceId} (PID: ${procData.pid})`);
+        }
+      } catch (e) {
+        logger.warn(`Failed to kill camera for ${deviceId}`, e);
+      }
+    });
+
+    // 3. Clean up ADB server processes
+    try {
+      if (process.platform === "win32") {
+        exec(`taskkill /F /IM adb.exe`, () => {});
+      } else {
+        exec(`pkill -9 adb`, () => {});
+      }
+      logger.info("Attempted to kill ADB server processes");
+    } catch (e) {
+      logger.warn("Failed to kill ADB processes", e);
+    }
+
+    // 4. Clear all storage
+    deviceProcesses.clear();
+    cameraProcesses.clear();
+    connectedDevices.clear();
+
+    logger.info("All processes cleaned up");
+
+    // Wait 500ms to ensure processes are fully terminated
+    setTimeout(() => resolve(), 500);
+  });
+}
+
+// Save installer path for cleanup after installation
+function saveInstallerPath(installerPath: string): void {
+  try {
+    const userDataPath = app.getPath("userData");
+    const installerInfoPath = path.join(userDataPath, INSTALLER_INFO_FILE);
+    const info = { path: installerPath, timestamp: Date.now() };
+    writeFileSync(installerInfoPath, JSON.stringify(info, null, 2));
+    logger.info(`Installer path saved: ${installerPath}`);
+  } catch (e) {
+    logger.warn("Failed to save installer path", e);
+  }
+}
+
+// Cleanup old installer file from previous update
+function cleanupOldInstaller(): void {
+  try {
+    const userDataPath = app.getPath("userData");
+    const installerInfoPath = path.join(userDataPath, INSTALLER_INFO_FILE);
+
+    if (!existsSync(installerInfoPath)) {
+      return;
+    }
+
+    const infoStr = readFileSync(installerInfoPath, "utf-8");
+    const info = JSON.parse(infoStr);
+
+    // Only clean up installers older than 1 hour
+    const oneHourAgo = Date.now() - 60 * 60 * 1000;
+    if (info.timestamp < oneHourAgo) {
+      logger.info(`Found old installer: ${info.path}`);
+
+      if (existsSync(info.path)) {
+        try {
+          unlinkSync(info.path);
+          logger.info(`Deleted old installer: ${info.path}`);
+        } catch (e) {
+          logger.warn(`Failed to delete old installer: ${info.path}`, e);
+        }
+      }
+
+      // Remove the info file
+      unlinkSync(installerInfoPath);
+      logger.info("Removed installer info file");
+    }
+  } catch (e) {
+    logger.warn("Failed to cleanup old installer", e);
+  }
+}
 
 // Default settings
 const settings: Settings = {
@@ -2582,8 +2701,29 @@ app.whenReady().then(() => {
     initTray();
   }
 
+  // Cleanup old installer from previous update
+  cleanupOldInstaller();
+
   loadSettings();
   createWindow();
+});
+
+// Clean up all processes before app quits
+app.on("will-quit", async (e) => {
+  if (isQuittingForUpdate) {
+    // Already cleaned in installUpdate, skip cleanup
+    return;
+  }
+
+  logger.info("App is quitting, cleaning up all processes...");
+  e.preventDefault();
+  try {
+    await cleanupAllProcesses();
+    app.quit();
+  } catch (err) {
+    logger.error("Error during cleanup before quit", err);
+    app.quit();
+  }
 });
 
 app.on("window-all-closed", () => {
@@ -2783,6 +2923,16 @@ ipcMain.handle(
         throw new Error(`Installer not found at ${installerPath}`);
       }
 
+      // Set flag to indicate this is an update quit
+      isQuittingForUpdate = true;
+
+      // Clean up all processes before installing
+      logger.info("Cleaning up processes before installing update...");
+      await cleanupAllProcesses();
+
+      // Save installer path for cleanup after installation
+      saveInstallerPath(installerPath);
+
       // Open the installer - user needs to manually install
       await shell.openPath(installerPath);
 
@@ -2790,9 +2940,17 @@ ipcMain.handle(
       logger.info("Quitting app to allow installer to run");
       app.quit();
 
+      // In dev mode, force exit after opening installer
+      // In production mode, app.quit() will handle the exit
+      if (!app.isPackaged) {
+        logger.info("Dev mode: forcing exit after opening installer");
+        setTimeout(() => process.exit(0), 500);
+      }
+
       return { success: true };
     } catch (error: any) {
       logger.error("Failed to install update", { error: error.message });
+      isQuittingForUpdate = false;
       return {
         success: false,
         error: error.message,
