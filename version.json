@@ -1,10 +1,18 @@
 {
   "version": "1.0.8",
-  "releaseNotes": "\n### Fixed\n\n- Fixed app not closing during update installation in development mode\n- Application now properly quits before installer starts\n\n### Added\n\n- Added automatic cleanup of all subprocesses before update installation (scrcpy, ADB, camera)\n- Added automatic deletion of installer files after successful installation\n- Installer files are automatically removed on next app launch (after 1 hour)\n",
+  "releaseNotes": {
+    "en-US": "### Fixed\n\n- Fixed app not closing during update installation in development mode\n- Application now properly quits before installer starts\n\n### Added\n\n- Added automatic cleanup of all subprocesses before update installation (scrcpy, ADB, camera)\n- Added automatic deletion of installer files after successful installation\n- Installer files are automatically removed on next app launch (after 1 hour)",
+    "zh-CN": "### 修复\n\n- 修复开发模式下更新安装时应用无法关闭的问题\n- 现在应用会在安装器启动前正确退出\n\n### 新增\n\n- 更新安装前自动清理所有子进程（scrcpy、ADB、相机）\n- 安装成功后自动删除安装器文件\n- 安装器文件会在下次应用启动时自动删除（1 小时后）",
+    "ja-JP": "### 修正\n\n- 開発モードでの更新インストール時にアプリが閉じない問題を修正\n- インストーラーが起動する前にアプリが正しく終了するようになりました\n\n### 追加\n\n- 更新インストールの前にすべてのサブプロセス（scrcpy、ADB、カメラ）を自動クリア\n- インストール成功後にインストーラーファイルを自動削除\n- 次回アプリ起動時にインストーラーファイルが自動削除される（1時間後）",
+    "ko-KR": "### 수정\n\n- 개발 모드에서 업데이트 설치 시 앱이 닫히지 않는 문제 수정\n- 이제 설치 프로그램 시작 전에 앱이 올바르게 종료됩니다.\n\n### 추가\n\n- 업데이트 설치 전 모든 하위 프로세스（scrcpy、ADB、카메라）자동 정리\n- 설치 성공 후 설치 프로그램 파일 자동 삭제\n- 다음 앱 시작 시 설치 프로그램 파일 자동 삭제（1시간 후）",
+    "es-ES": "### Corregido\n\n- Corregido problema donde la aplicacion no se cerraba durante la instalacion de actualizacion en modo desarrollo\n- Ahora la aplicacion se cierra correctamente antes de que se inicie el instalador\n\n### Agregado\n\n- Limpieza automatica de todos los subprocesos antes de la instalacion de actualizacion (scrcpy, ADB, camara)\n- Eliminacion automatica de archivos del instalador despues de una instalacion exitosa\n- Los archivos del instalador se eliminan automaticamente en el proximo inicio de la aplicacion (despues de 1 hora)",
+    "fr-FR": "### Correction\n\n- Correction du probleme ou l-application ne se fermait pas pendant l-installation de la mise a jour en mode developpement\n- L-application se ferme maintenant correctement avant le demarrage de l-installateur\n\n### Ajout\n\n- Nettoyage automatique de tous les sous-processus avant l-installation de la mise a jour (scrcpy, ADB, camera)\n- Suppression automatique des fichiers de l-installateur apres une installation reussie\n- Les fichiers de l-installateur sont automatiquement supprimes au prochain demarrage de l-application (apres 1 heure)",
+    "tr-TR": "### Duzeltildi\n\n- Gelistirme modunda guncelleme yuklenirken uygulamanin kapanmama sorunu cozuldu\n- Simdi uygulama yukleyici baslamadan once dogru bir sekilde kapaniyor\n\n### Eklendi\n\n- Guncelleme yuklemesinden once tum alt sureclerin otomatik temizlenmesi (scrcpy, ADB, kamera)\n- Basarili yuklemeden sonra yukleyici dosyalarinin otomatik silinmesi\n- Yukleyici dosyalari bir sonraki uygulama baslangicinda otomatik olarak silinir (1 saat sonra)"
+  },
   "downloadUrl": {
     "windows": "https://github.com/JochenYang/iScrcpy/releases/download/v1.0.8/iScrcpy-1.0.8-win-x64.exe",
     "mac": "https://github.com/JochenYang/iScrcpy/releases/download/v1.0.8/iScrcpy-1.0.8-mac-x64.dmg",
     "linux": "https://github.com/JochenYang/iScrcpy/releases/download/v1.0.8/iScrcpy-1.0.8-linux-x86_64.AppImage"
   },
-  "publishedAt": "2026-01-03T18:18:25Z"
+  "publishedAt": "2026-01-04T12:00:00Z"
 }
