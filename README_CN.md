@@ -9,7 +9,7 @@
   [![macOS](https://img.shields.io/badge/macOS-000000?style=flat-square&logo=apple)](#)
   [![Linux](https://img.shields.io/badge/Linux-FCC624?style=flat-square&logo=linux&logoColor=black)](#)
   [![License](https://img.shields.io/badge/License-Apache%202.0-blue?style=flat-square)](#)
-  [![Version](https://img.shields.io/badge/Version-1.0.7-blue?style=flat-square)](#)
+  [![Version](https://img.shields.io/badge/Version-1.0.9-blue?style=flat-square)](#)
 
   [English](README.md) | [简体中文](README_CN.md) | [日本語](README_JA.md) | [한국어](README_KO.md) | [Español](README_ES.md) | [Français](README_FR.md) | [Türkçe](README_TR.md)
 </div>
