@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-01-05
+
+### Fixed
+
+- Fixed app not exiting properly after clicking "Install Update" in packaged mode
+- Fixed infinite loop when quitting app (will-quit event triggered multiple times)
+- Removed 1-hour time limit for installer cleanup (now deletes unconditionally)
+
+### Changed
+
+- Optimized update installation flow: destroy window → delay → exit
+- Improved process cleanup to prevent duplicate cleanup calls
+- Simplified installer deletion logic for more reliable cleanup
+
 ## [1.0.9] - 2026-01-05
 
 ### Fixed

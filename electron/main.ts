@@ -159,6 +159,7 @@ const cameraProcesses = new Map<string, { pid: number; proc: any }>();
 const connectedDevices = new Set<string>();
 const connectedDevicesInfo = new Map<string, { name: string }>();
 let isQuittingForUpdate = false;
+let isCleaningUp = false;  // Prevent double cleanup
 const INSTALLER_INFO_FILE = "installer-info.json";
 let adbClient: any = null;
 let deviceTracker: any = null;
@@ -171,6 +172,12 @@ function cleanupAllProcesses(): Promise<void> {
       return resolve();
     }
 
+    if (isCleaningUp) {
+      logger.info("Cleanup already in progress, skipping");
+      return resolve();
+    }
+
+    isCleaningUp = true;
     logger.info("Cleaning up all processes before update...");
 
     // 1. Clean up all scrcpy processes
@@ -239,7 +246,10 @@ function cleanupAllProcesses(): Promise<void> {
     logger.info("All processes cleaned up");
 
     // Wait 500ms to ensure processes are fully terminated
-    setTimeout(() => resolve(), 500);
+    setTimeout(() => {
+      isCleaningUp = false;
+      resolve();
+    }, 500);
   });
 }
 
@@ -269,24 +279,20 @@ function cleanupOldInstaller(): void {
     const infoStr = readFileSync(installerInfoPath, "utf-8");
     const info = JSON.parse(infoStr);
 
-    // Only clean up installers older than 1 hour
-    const oneHourAgo = Date.now() - 60 * 60 * 1000;
-    if (info.timestamp < oneHourAgo) {
-      logger.info(`Found old installer: ${info.path}`);
+    logger.info(`Found old installer: ${info.path}`);
 
-      if (existsSync(info.path)) {
-        try {
-          unlinkSync(info.path);
-          logger.info(`Deleted old installer: ${info.path}`);
-        } catch (e) {
-          logger.warn(`Failed to delete old installer: ${info.path}`, e);
-        }
+    if (existsSync(info.path)) {
+      try {
+        unlinkSync(info.path);
+        logger.info(`Deleted old installer: ${info.path}`);
+      } catch (e) {
+        logger.warn(`Failed to delete old installer: ${info.path}`, e);
       }
-
-      // Remove the info file
-      unlinkSync(installerInfoPath);
-      logger.info("Removed installer info file");
     }
+
+    // Remove the info file
+    unlinkSync(installerInfoPath);
+    logger.info("Removed installer info file");
   } catch (e) {
     logger.warn("Failed to cleanup old installer", e);
   }
@@ -3073,16 +3079,16 @@ ipcMain.handle(
       // Open the installer - user needs to manually install
       await shell.openPath(installerPath);
 
+      // Destroy the main window
+      mainWindow?.destroy();
+      mainWindow = null;
+
+      // Give IPC messages time to process
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       // Quit the app so the installer can proceed
       logger.info("Quitting app to allow installer to run");
-      app.quit();
-
-      // In dev mode, force exit after opening installer
-      // In production mode, app.quit() will handle the exit
-      if (!app.isPackaged) {
-        logger.info("Dev mode: forcing exit after opening installer");
-        setTimeout(() => process.exit(0), 500);
-      }
+      app.exit(0);
 
       return { success: true };
     } catch (error: any) {
