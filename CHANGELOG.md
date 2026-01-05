@@ -7,7 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.0.9] - 2026-01-04
+## [1.0.9] - 2026-01-05
+
+### Fixed
+
+- Fixed file download encoding issues on Windows (Chinese system)
+- Fixed false offline status when device tracker reports "offline" before ADB confirms
+- File download and upload now use spawn instead of exec to avoid shell encoding problems
+- Device status is now verified with adb devices before marking as offline
 
 ### Added
 
@@ -15,11 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Device status now updates immediately when devices connect or disconnect
 - WiFi devices now show actual device name (e.g., "PJD110") instead of IP address after connection
 
-### Fixed
+### Changed
 
-- Fixed app not exiting properly in development mode when closing
-- Fixed device tracker initialization error in development mode
-- Fixed device name not updating after successful WiFi connection
+- Device offline detection now requires ADB confirmation to prevent false status updates
 
 ## [1.0.8] - 2026-01-04
 

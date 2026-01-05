@@ -364,16 +364,12 @@ export default function DevicePage() {
     const handleDeviceChange = (_event: any, data: { type: string; device: any }) => {
       console.log(`Device change: ${data.type}`, data.device);
       if (data.type === "remove") {
-        // Device disconnected - mark as offline
-        const { knownDevices } = useDeviceStore.getState();
-        const device = knownDevices.find(d => d.id === data.device.id);
-        if (device) {
-          useDeviceStore.setState({
-            knownDevices: knownDevices.map(d =>
-              d.id === data.device.id ? { ...d, status: "offline", lastSeen: Date.now() } : d
-            )
-          });
-        }
+        // Device disconnected - don't mark as offline immediately
+        // Only mark as offline when adb devices confirms it's truly disconnected
+        // This prevents false offline status when device tracker reports "offline" first
+        console.log(`Device ${data.device.id} disconnected, will verify with adb devices...`);
+        // Trigger a refresh to verify actual status
+        loadDevices({ silent: true, forceRefresh: true });
       } else if (data.type === "add") {
         // Device connected - refresh device list
         loadDevices({ silent: true });

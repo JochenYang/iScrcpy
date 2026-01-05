@@ -1108,21 +1108,49 @@ ipcMain.handle(
     }
 
     const adbPath = getAdbPath();
-    
+
     return new Promise((resolve) => {
-      exec(
-        `"${adbPath}" -s ${deviceId} pull "${devicePath}" "${savePath}"`,
-        { encoding: "utf8" },
-        (error, stdout, stderr) => {
-          if (error) {
-            logger.error(`Failed to download file from ${deviceId}`, { error, stderr });
-            resolve({ success: false, error: error.message });
-            return;
-          }
-          logger.info(`Downloaded file from ${deviceId}: ${devicePath} -> ${savePath}`);
-          resolve({ success: true });
+      // Ensure savePath is a directory path - if it ends with a filename, extract directory
+      let targetDir = savePath;
+      try {
+        if (existsSync(savePath) && lstatSync(savePath).isFile()) {
+          targetDir = path.dirname(savePath);
         }
-      );
+      } catch (e) {
+        // Path doesn't exist, might be a new file path
+      }
+
+      // Use spawn with explicit args to avoid shell encoding issues
+      const { spawn } = require("child_process");
+      const args = ["-s", deviceId, "pull", devicePath, targetDir];
+      const child = spawn(adbPath, args);
+
+      let stdout = "";
+      let stderr = "";
+
+      child.stdout.on("data", (data: Buffer) => {
+        stdout += data.toString();
+      });
+
+      child.stderr.on("data", (data: Buffer) => {
+        stderr += data.toString();
+      });
+
+      child.on("close", (code: number) => {
+        if (code !== 0) {
+          logger.error(`Failed to download file from ${deviceId}`, { stderr, code });
+          resolve({ success: false, error: stderr || "Download failed" });
+          return;
+        }
+
+        logger.info(`Downloaded file from ${deviceId}: ${devicePath} -> ${targetDir}`);
+        resolve({ success: true });
+      });
+
+      child.on("error", (error: Error) => {
+        logger.error(`Failed to download file from ${deviceId}`, { error: error.message });
+        resolve({ success: false, error: error.message });
+      });
     });
   }
 );
@@ -1136,21 +1164,34 @@ ipcMain.handle(
     }
 
     const adbPath = getAdbPath();
-    
+
     return new Promise((resolve) => {
-      exec(
-        `"${adbPath}" -s ${deviceId} push "${filePath}" "${devicePath}"`,
-        { encoding: "utf8" },
-        (error, stdout, stderr) => {
-          if (error) {
-            logger.error(`Failed to upload file to ${deviceId}`, { error, stderr });
-            resolve({ success: false, error: error.message });
-            return;
-          }
-          logger.info(`Uploaded file to ${deviceId}: ${filePath} -> ${devicePath}`);
-          resolve({ success: true });
+      // Use spawn with explicit args to avoid shell encoding issues
+      const { spawn } = require("child_process");
+      const args = ["-s", deviceId, "push", filePath, devicePath];
+      const child = spawn(adbPath, args);
+
+      let stderr = "";
+
+      child.stderr.on("data", (data: Buffer) => {
+        stderr += data.toString();
+      });
+
+      child.on("close", (code: number) => {
+        if (code !== 0) {
+          logger.error(`Failed to upload file to ${deviceId}`, { stderr, code });
+          resolve({ success: false, error: stderr || "Upload failed" });
+          return;
         }
-      );
+
+        logger.info(`Uploaded file to ${deviceId}: ${filePath} -> ${devicePath}`);
+        resolve({ success: true });
+      });
+
+      child.on("error", (error: Error) => {
+        logger.error(`Failed to upload file to ${deviceId}`, { error: error.message });
+        resolve({ success: false, error: error.message });
+      });
     });
   }
 );
