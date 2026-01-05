@@ -157,8 +157,11 @@ let mainWindow: BrowserWindow | null = null;
 const deviceProcesses = new Map<string, { pid: number; proc: any }>();
 const cameraProcesses = new Map<string, { pid: number; proc: any }>();
 const connectedDevices = new Set<string>();
+const connectedDevicesInfo = new Map<string, { name: string }>();
 let isQuittingForUpdate = false;
 const INSTALLER_INFO_FILE = "installer-info.json";
+let adbClient: any = null;
+let deviceTracker: any = null;
 
 // Clean up all device-related subprocesses
 function cleanupAllProcesses(): Promise<void> {
@@ -216,10 +219,22 @@ function cleanupAllProcesses(): Promise<void> {
       logger.warn("Failed to kill ADB processes", e);
     }
 
+    // Stop device tracker
+    if (deviceTracker) {
+      try {
+        deviceTracker.end();
+        deviceTracker = null;
+        logger.info("Device tracker stopped");
+      } catch (e) {
+        logger.warn("Failed to stop device tracker:", e);
+      }
+    }
+
     // 4. Clear all storage
     deviceProcesses.clear();
     cameraProcesses.clear();
     connectedDevices.clear();
+    connectedDevicesInfo.clear();
 
     logger.info("All processes cleaned up");
 
@@ -274,6 +289,59 @@ function cleanupOldInstaller(): void {
     }
   } catch (e) {
     logger.warn("Failed to cleanup old installer", e);
+  }
+}
+
+// Initialize device tracker for real-time device monitoring
+async function initDeviceTracker(): Promise<void> {
+  try {
+    if (TEST_MODE) {
+      logger.info("Test mode: skipping device tracker initialization");
+      return;
+    }
+
+    const adbPath = getAdbPath();
+    adbClient = Adb.createClient({ bin: adbPath });
+    const tracker = await adbClient.trackDevices();
+    deviceTracker = tracker;
+
+    deviceTracker.on("add", (device: any) => {
+      logger.info(`Device connected: ${device.id} (${device.type})`);
+      if (mainWindow) {
+        mainWindow.webContents.send("device-change", { type: "add", device });
+      }
+    });
+
+    deviceTracker.on("remove", (device: any) => {
+      logger.info(`Device disconnected: ${device.id} (${device.type})`);
+      // Remove from connectedDevices so status will be updated correctly
+      connectedDevices.delete(device.id);
+      connectedDevicesInfo.delete(device.id);
+      if (mainWindow) {
+        mainWindow.webContents.send("device-change", { type: "remove", device });
+      }
+    });
+
+    deviceTracker.on("error", (err: any) => {
+      logger.error("Device tracker error:", err);
+    });
+
+    logger.info("Device tracker initialized");
+  } catch (e) {
+    logger.warn("Failed to init device tracker:", e);
+  }
+}
+
+// Stop device tracker
+function stopDeviceTracker(): void {
+  try {
+    if (deviceTracker) {
+      deviceTracker.end();
+      deviceTracker = null;
+      logger.info("Device tracker stopped");
+    }
+  } catch (e) {
+    logger.warn("Failed to stop device tracker:", e);
   }
 }
 
@@ -366,9 +434,10 @@ function parseDeviceList(output: string): DeviceInfo[] {
 
       if (status === "device" || status === "unauthorized") {
         const type = id.includes(":") ? "wifi" : "usb";
-        // Try to get device name from model field
+        // Try to get device name from connectedDevicesInfo first, then from model field
+        const deviceInfo = connectedDevicesInfo.get(id);
         const modelMatch = line.match(/model:(\S+)/);
-        const name = modelMatch ? modelMatch[1] : parts[2] || "Unknown Device";
+        const name = deviceInfo?.name || modelMatch?.[1] || parts[2] || "Unknown Device";
 
         devices.push({
           id,
@@ -509,6 +578,7 @@ function createWindow(): void {
     });
     deviceProcesses.clear();
     connectedDevices.clear();
+    connectedDevicesInfo.clear();
     mainWindow = null;
   });
 }
@@ -661,6 +731,7 @@ async function connectWifiDevice(
   return new Promise((resolve) => {
     if (TEST_MODE) {
       connectedDevices.add(deviceId);
+      connectedDevicesInfo.set(deviceId, { name: "Test Device" });
       resolve({ success: true });
       return;
     }
@@ -683,7 +754,18 @@ async function connectWifiDevice(
           stdout.includes("already connected")
         ) {
           connectedDevices.add(deviceId);
-          logger.info(`Successfully connected to ${deviceId}`);
+
+          // Get device name after successful connection
+          exec(
+            `"${getAdbPath()}" -s ${deviceId} shell getprop ro.product.model`,
+            { encoding: "utf8" },
+            (err, modelOutput) => {
+              const deviceName = err ? deviceId : modelOutput.trim() || deviceId;
+              connectedDevicesInfo.set(deviceId, { name: deviceName });
+              logger.info(`Successfully connected to ${deviceId}, name: ${deviceName}`);
+            }
+          );
+
           resolve({ success: true });
         } else {
           logger.warn(`Connection failed for ${deviceId}`, { stdout });
@@ -2693,7 +2775,7 @@ ipcMain.handle(
   }
 );
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   logger.info("App is ready, loading settings and creating window");
 
   // Initialize system tray
@@ -2704,6 +2786,9 @@ app.whenReady().then(() => {
   // Cleanup old installer from previous update
   cleanupOldInstaller();
 
+  // Initialize device tracker for real-time device monitoring
+  await initDeviceTracker();
+
   loadSettings();
   createWindow();
 });
@@ -2711,18 +2796,29 @@ app.whenReady().then(() => {
 // Clean up all processes before app quits
 app.on("will-quit", async (e) => {
   if (isQuittingForUpdate) {
-    // Already cleaned in installUpdate, skip cleanup
     return;
   }
 
   logger.info("App is quitting, cleaning up all processes...");
   e.preventDefault();
+
   try {
     await cleanupAllProcesses();
-    app.quit();
+    logger.info("Cleanup completed, quitting app...");
+
+    // In dev mode, force exit to avoid loop
+    if (!app.isPackaged) {
+      process.exit(0);
+    } else {
+      app.quit();
+    }
   } catch (err) {
     logger.error("Error during cleanup before quit", err);
-    app.quit();
+    if (!app.isPackaged) {
+      process.exit(1);
+    } else {
+      app.quit();
+    }
   }
 });
 

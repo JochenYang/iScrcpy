@@ -53,16 +53,29 @@ export const electronAPI: ElectronAPI = {
     window.electronAPI.onCameraExit(callback),
   removeCameraExitListener: () => window.electronAPI.removeCameraExitListener(),
 
-  // Settings
-  saveSettings: (type: string, settings: object) =>
-    window.electronAPI.saveSettings(type, settings),
-  loadSettings: () => window.electronAPI.loadSettings(),
+  // Device change listeners
+  onDeviceChange: (callback: (event: any, data: { type: string; device: any }) => void) =>
+    window.electronAPI.onDeviceChange(callback),
+  removeDeviceChangeListener: () =>
+    window.electronAPI.removeDeviceChangeListener(),
+
+  // Device history
+  getDeviceHistory: () => window.electronAPI.getDeviceHistory(),
+  removeDeviceHistory: (deviceId: string) => window.electronAPI.removeDeviceHistory(deviceId),
+  clearDeviceHistory: () => window.electronAPI.clearDeviceHistory(),
+  updateDeviceAutoConnect: (deviceId: string, autoConnect: boolean) =>
+    window.electronAPI.updateDeviceAutoConnect(deviceId, autoConnect),
 
   // Log level
   getLogLevel: () => window.electronAPI.getLogLevel(),
   setLogLevel: (level: string) => window.electronAPI.setLogLevel(level),
   getLogStats: () => window.electronAPI.getLogStats(),
   clearLogs: () => window.electronAPI.clearLogs(),
+
+  // Settings
+  saveSettings: (type: string, settings: object) =>
+    window.electronAPI.saveSettings(type, settings),
+  loadSettings: () => window.electronAPI.loadSettings(),
 
   // Version info
   getAppVersion: () => window.electronAPI.getAppVersion(),
@@ -107,7 +120,12 @@ export const electronAPI: ElectronAPI = {
     window.electronAPI.installUpdate(installerPath),
 
   // Download progress
-  onDownloadProgress: (callback: (event: Electron.IpcRendererEvent, progress: number) => void) =>
+  onDownloadProgress: (callback: (event: any, progress: number) => void) =>
     window.electronAPI.onDownloadProgress(callback),
   removeDownloadProgressListener: () => window.electronAPI.removeDownloadProgressListener(),
+
+  // Language change notification for tray
+  notifyLanguageChange: (lang: string) => window.electronAPI.notifyLanguageChange(lang),
+  setTrayTranslations: (translations: Record<string, { showWindow: string; quit: string; tooltip: string }>) =>
+    window.electronAPI.setTrayTranslations(translations),
 };

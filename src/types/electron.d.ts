@@ -146,8 +146,21 @@ export interface ElectronAPI {
   onCameraExit: (callback: (deviceId: string) => void) => void;
   removeCameraExitListener: () => void;
 
+  // Device change listeners
+  onDeviceChange: (callback: (event: any, data: { type: string; device: any }) => void) => void;
+  removeDeviceChangeListener: () => void;
+
   // Device history
-  getDeviceHistory: () => Promise<DeviceHistory[]>;
+  getDeviceHistory: () => Promise<{
+    history: Array<{
+      id: string;
+      name: string;
+      ip: string;
+      port: number;
+      lastConnected: number;
+      autoConnect: boolean;
+    }>;
+  }>;
   removeDeviceHistory: (deviceId: string) => Promise<{ success: boolean }>;
   clearDeviceHistory: () => Promise<{ success: boolean }>;
   updateDeviceAutoConnect: (deviceId: string, autoConnect: boolean) => Promise<{ success: boolean }>;
@@ -160,7 +173,13 @@ export interface ElectronAPI {
 
   // Settings
   saveSettings: (type: string, settings: object) => Promise<{ success: boolean }>;
-  loadSettings: () => Promise<Settings>;
+  loadSettings: () => Promise<{
+    display?: DisplaySettings;
+    encoding?: EncodingSettings;
+    server?: ServerSettings;
+    logLevel?: string;
+    deviceHistory?: DeviceHistory[];
+  }>;
 
   // Version info
   getAppVersion: () => Promise<VersionInfo>;
@@ -170,9 +189,9 @@ export interface ElectronAPI {
   getChromeVersion: () => Promise<VersionInfo>;
 
   // Window controls
-  windowMinimize: () => Promise<void>;
-  windowMaximize: () => Promise<void>;
-  windowClose: () => Promise<void>;
+  windowMinimize: () => void;
+  windowMaximize: () => void;
+  windowClose: () => void;
 
   // Close confirmation
   onShowCloseConfirm: (callback: () => void) => void;
@@ -180,9 +199,9 @@ export interface ElectronAPI {
   sendCloseConfirmResult: (result: { minimizeToTray: boolean }) => void;
 
   // File operations
-  openFolder: (path: string) => Promise<void>;
-  openLogsFolder: () => Promise<void>;
-  openExternal: (url: string) => Promise<void>;
+  openFolder: (path: string) => void;
+  openLogsFolder: () => void;
+  openExternal: (url: string) => void;
   selectFolder: (defaultPath: string) => Promise<{ success: boolean; path?: string }>;
   selectFile: (options: FileDialogOptions) => Promise<{ success: boolean; path?: string }>;
   getScrcpyPath: () => Promise<string>;
@@ -207,7 +226,7 @@ export interface ElectronAPI {
     error?: string;
   }>;
   installUpdate: (installerPath: string) => Promise<{ success: boolean; error?: string }>;
-  onDownloadProgress: (callback: (event: Electron.IpcRendererEvent, progress: number) => void) => void;
+  onDownloadProgress: (callback: (event: any, progress: number) => void) => void;
   removeDownloadProgressListener: () => void;
 
   // Language change notification for tray

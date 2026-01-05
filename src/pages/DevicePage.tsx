@@ -56,7 +56,13 @@ export default function DevicePage() {
         const updatedKnown = known.map(knownDevice => {
           const current = currentDevices.find(d => d.id === knownDevice.id);
           if (current) {
-            return { ...knownDevice, status: current.status, lastSeen: now };
+            // Update status and name if available from current device
+            return {
+              ...knownDevice,
+              name: current.name !== "Unknown Device" ? current.name : knownDevice.name,
+              status: current.status,
+              lastSeen: now,
+            };
           }
           // Device not in ADB list
           // USB devices: mark as offline (disconnection is immediate)
@@ -355,6 +361,25 @@ export default function DevicePage() {
       addMirroringDevice(deviceId);
     };
 
+    const handleDeviceChange = (_event: any, data: { type: string; device: any }) => {
+      console.log(`Device change: ${data.type}`, data.device);
+      if (data.type === "remove") {
+        // Device disconnected - mark as offline
+        const { knownDevices } = useDeviceStore.getState();
+        const device = knownDevices.find(d => d.id === data.device.id);
+        if (device) {
+          useDeviceStore.setState({
+            knownDevices: knownDevices.map(d =>
+              d.id === data.device.id ? { ...d, status: "offline", lastSeen: Date.now() } : d
+            )
+          });
+        }
+      } else if (data.type === "add") {
+        // Device connected - refresh device list
+        loadDevices({ silent: true });
+      }
+    };
+
     if (typeof electronAPI.onScrcpyExit === "function") {
       electronAPI.onScrcpyExit(handleScrcpyExit);
     }
@@ -363,6 +388,9 @@ export default function DevicePage() {
     }
     if (typeof electronAPI.onCameraExit === "function") {
       electronAPI.onCameraExit(handleCameraExit);
+    }
+    if (typeof electronAPI.onDeviceChange === "function") {
+      electronAPI.onDeviceChange(handleDeviceChange);
     }
 
     return () => {
@@ -375,21 +403,27 @@ export default function DevicePage() {
       if (typeof electronAPI.removeCameraExitListener === "function") {
         electronAPI.removeCameraExitListener();
       }
+      if (typeof electronAPI.removeDeviceChangeListener === "function") {
+        electronAPI.removeDeviceChangeListener();
+      }
     };
   }, [devices, addMirroringDevice, removeMirroringDevice, t, loadDevices]);
 
   // Merge knownDevices and devices to get complete device list with latest status
   const deviceStatusMap = new Map(devices.map(d => [d.id, d.status]));
-  
+
   // Build all devices list: use knownDevices (includes offline devices) but update status from devices
   const allDevicesMap = new Map();
-  
+
   // First add all known devices
   for (const device of knownDevices) {
     const currentStatus = deviceStatusMap.get(device.id);
+    // If device is in knownDevices but not in current devices list, mark as offline
+    const finalStatus = currentStatus !== undefined ? currentStatus : "offline";
     allDevicesMap.set(device.id, {
       ...device,
-      status: currentStatus || device.status
+      status: finalStatus,
+      lastSeen: Date.now(),
     });
   }
   

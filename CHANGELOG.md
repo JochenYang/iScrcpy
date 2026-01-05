@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.9] - 2026-01-04
+
+### Added
+
+- Added real-time device tracking using adbkit's trackDevices() for instant status updates
+- Device status now updates immediately when devices connect or disconnect
+- WiFi devices now show actual device name (e.g., "PJD110") instead of IP address after connection
+
+### Fixed
+
+- Fixed app not exiting properly in development mode when closing
+- Fixed device tracker initialization error in development mode
+- Fixed device name not updating after successful WiFi connection
+
 ## [1.0.8] - 2026-01-04
 
 ### Fixed

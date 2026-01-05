@@ -78,6 +78,14 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.removeAllListeners("camera-exit");
   },
 
+  // Listen for device change events
+  onDeviceChange: (callback: (event: any, data: { type: string; device: any }) => void) => {
+    ipcRenderer.on("device-change", (_, data) => callback(null, data));
+  },
+  removeDeviceChangeListener: () => {
+    ipcRenderer.removeAllListeners("device-change");
+  },
+
   // Device history
   getDeviceHistory: () => ipcRenderer.invoke("get-device-history"),
   removeDeviceHistory: (deviceId: string) =>
