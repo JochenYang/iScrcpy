@@ -1,6 +1,6 @@
 {
   "name": "iscrcpy",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Android screen mirroring tool powered by scrcpy",
   "main": "out/main/main.cjs",
   "type": "module",

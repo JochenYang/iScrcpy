@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-01-06
+
+### Security
+
+- Added command injection protection for file operations (delete, create folder)
+- Added path traversal protection for file downloads
+- Restricted test mode to non-production environments only
+- Added input validation for device IDs and file paths
+
+### Fixed
+
+- Fixed potential command injection vulnerabilities in file manager operations
+- Fixed path traversal vulnerability in download functionality
+- Fixed resource leak issue with unchecked intervals
+
+### Changed
+
+- Update downloads now save to desktop for easy manual cleanup
+- Improved process termination logic with graceful fallback
+- All timeout values are now configurable constants
+
+### Refactored
+
+- Unified process termination function to reduce code duplication
+- Added interval tracking system to prevent resource leaks
+- Added security utility functions (sanitizeDevicePath, validateSavePath, isValidDeviceId)
+
 ## [1.1.1] - 2026-01-06
 
 ### Fixed

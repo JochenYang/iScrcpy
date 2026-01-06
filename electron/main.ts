@@ -7,9 +7,62 @@ import { Adb } from "@devicefarmer/adbkit";
 import prettyBytes from "pretty-bytes";
 import { download } from "electron-dl";
 
-// Test mode flag
-const TEST_MODE = process.env.TEST === "1";
+// Constants for timeout values
+const PROCESS_CHECK_INTERVAL = 2000;
+const REPAIR_STRATEGY_TIMEOUT = 10000;
+const GRACEFUL_SHUTDOWN_WAIT = 800;
+const FORCE_KILL_WAIT = 500;
+const CLEANUP_TIMEOUT = 500;
+const FORCE_KILL_DELAY = 300;
 
+// Test mode flag - only enable in non-production environments
+const TEST_MODE = process.env.NODE_ENV === "test" && !app.isPackaged;
+
+// Result type for consistent error handling
+type Result<T> = { success: true; data: T } | { success: false; error: string };
+
+// Active intervals for cleanup
+const activeIntervals = new Set<NodeJS.Timeout>();
+
+// Helper function to clear all active intervals
+function clearAllIntervals(): void {
+  activeIntervals.forEach(clearInterval);
+  activeIntervals.clear();
+}
+
+// Helper function to register interval for tracking
+function registerInterval(fn: () => void, timeout: number): NodeJS.Timeout {
+  const interval = setInterval(fn, timeout);
+  activeIntervals.add(interval);
+  return interval;
+}
+
+// Security: Sanitize device path to prevent command injection
+function sanitizeDevicePath(devicePath: string): string {
+  // Remove dangerous characters that could be used for command injection
+  const dangerousChars = /[;&| `$<>{}()\[\]\\]/g;
+  return devicePath.replace(dangerousChars, "").trim();
+}
+
+// Security: Validate save path to prevent path traversal
+function validateSavePath(savePath: string, allowedBasePath: string): string | null {
+  const normalizedPath = path.normalize(savePath);
+  const resolvedPath = path.resolve(allowedBasePath, normalizedPath);
+
+  // Ensure the resolved path is within the allowed directory
+  if (!resolvedPath.startsWith(path.resolve(allowedBasePath))) {
+    logger.warn(`Path traversal attempt blocked: ${savePath}`);
+    return null;
+  }
+
+  return resolvedPath;
+}
+
+// Security: Validate device ID format
+function isValidDeviceId(deviceId: string): boolean {
+  const deviceIdPattern = /^([a-zA-Z0-9._-]+):?(\d+)?$/;
+  return deviceIdPattern.test(deviceId);
+}
 
 // Helper function to get default recording path
 function getDefaultRecordPath(deviceId: string): string {
@@ -165,6 +218,51 @@ const INSTALLER_INFO_FILE = "installer-info.json";
 let adbClient: any = null;
 let deviceTracker: any = null;
 
+// Unified process termination function to reduce code duplication
+async function terminateProcess(pid: number, proc?: ChildProcess): Promise<boolean> {
+  if (!pid) return false;
+
+  try {
+    if (process.platform === "win32") {
+      // Try graceful termination first without /F (force)
+      try {
+        await new Promise<void>((resolve, reject) => {
+          exec(`taskkill /PID ${pid} /T`, { encoding: "utf8" }, (err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+        logger.debug(`Graceful termination sent to PID ${pid}`);
+        return true;
+      } catch {
+        // Fall back to force kill
+        exec(`taskkill /PID ${pid} /F /T`);
+        logger.debug(`Force killed PID ${pid}`);
+      }
+    } else {
+      exec(`pkill -9 -P ${pid}`, () => {});
+      proc?.kill("SIGKILL");
+    }
+    return true;
+  } catch (e) {
+    logger.warn(`Failed to terminate process ${pid}`, e);
+    return false;
+  }
+}
+
+// Check if a process is still running
+function isProcessRunning(pid: number): boolean {
+  try {
+    if (process.platform === "win32") {
+      const result = execSync(`tasklist /FI "PID eq ${pid}" /FO CSV`, { encoding: "utf8" });
+      return result.includes(String(pid));
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // Clean up all device-related subprocesses
 function cleanupAllProcesses(): Promise<void> {
   return new Promise((resolve) => {
@@ -181,38 +279,21 @@ function cleanupAllProcesses(): Promise<void> {
     isCleaningUp = true;
     logger.info("Cleaning up all processes before update...");
 
-    // 1. Clean up all scrcpy processes
+    // Clear all tracked intervals first
+    clearAllIntervals();
+
+    // 1. Clean up all scrcpy processes using unified function
     deviceProcesses.forEach((procData, deviceId) => {
-      try {
-        if (procData.pid) {
-          if (process.platform === "win32") {
-            exec(`taskkill /PID ${procData.pid} /F /T`);
-          } else {
-            exec(`pkill -9 -P ${procData.pid}`, () => {});
-            procData.proc?.kill("SIGKILL");
-          }
-          logger.info(`Killed scrcpy process for ${deviceId} (PID: ${procData.pid})`);
-        }
-      } catch (e) {
-        logger.warn(`Failed to kill scrcpy for ${deviceId}`, e);
-      }
+      terminateProcess(procData.pid, procData.proc)
+        .then(() => logger.info(`Killed scrcpy process for ${deviceId} (PID: ${procData.pid})`))
+        .catch((e) => logger.warn(`Failed to kill scrcpy for ${deviceId}`, e));
     });
 
-    // 2. Clean up all camera processes
+    // 2. Clean up all camera processes using unified function
     cameraProcesses.forEach((procData, deviceId) => {
-      try {
-        if (procData.pid) {
-          if (process.platform === "win32") {
-            exec(`taskkill /PID ${procData.pid} /F /T`);
-          } else {
-            exec(`pkill -9 -P ${procData.pid}`, () => {});
-            procData.proc?.kill("SIGKILL");
-          }
-          logger.info(`Killed camera process for ${deviceId} (PID: ${procData.pid})`);
-        }
-      } catch (e) {
-        logger.warn(`Failed to kill camera for ${deviceId}`, e);
-      }
+      terminateProcess(procData.pid, procData.proc)
+        .then(() => logger.info(`Killed camera process for ${deviceId} (PID: ${procData.pid})`))
+        .catch((e) => logger.warn(`Failed to kill camera for ${deviceId}`, e));
     });
 
     // 3. Clean up ADB server processes
@@ -246,11 +327,11 @@ function cleanupAllProcesses(): Promise<void> {
 
     logger.info("All processes cleaned up");
 
-    // Wait 500ms to ensure processes are fully terminated
+    // Wait to ensure processes are fully terminated
     setTimeout(() => {
       isCleaningUp = false;
       resolve();
-    }, 500);
+    }, CLEANUP_TIMEOUT);
   });
 }
 
@@ -977,11 +1058,13 @@ ipcMain.handle(
       notifyScrcpyExit();
     });
 
-    // Check if scrcpy is still running periodically (every 2 seconds)
-    const checkInterval = setInterval(() => {
+    // Check if scrcpy is still running periodically
+    // Using registered interval for proper cleanup
+    const checkInterval = registerInterval(() => {
       const procInfo = deviceProcesses.get(deviceId);
       if (!procInfo) {
         clearInterval(checkInterval);
+        activeIntervals.delete(checkInterval);
         return;
       }
 
@@ -991,15 +1074,17 @@ ipcMain.handle(
           if (err || !stdout.includes(String(procInfo.pid))) {
             // Process no longer exists, notify exit
             clearInterval(checkInterval);
+            activeIntervals.delete(checkInterval);
             notifyScrcpyExit();
           }
         });
       } catch (e) {
         // Error checking, assume process is dead
         clearInterval(checkInterval);
+        activeIntervals.delete(checkInterval);
         notifyScrcpyExit();
       }
-    }, 2000);
+    }, PROCESS_CHECK_INTERVAL);
 
     // Save WiFi device to history and update connection state
     if (isWifi) {
@@ -1125,11 +1210,24 @@ ipcMain.handle(
       return { success: true };
     }
 
+    // Validate device ID
+    if (!isValidDeviceId(deviceId)) {
+      return { success: false, error: "Invalid device ID format" };
+    }
+
+    // Sanitize device path to prevent command injection
+    const sanitizedDevicePath = sanitizeDevicePath(devicePath);
+    if (sanitizedDevicePath !== devicePath) {
+      logger.warn(`Device path sanitized: ${devicePath} -> ${sanitizedDevicePath}`);
+    }
+
     const adbPath = getAdbPath();
 
     return new Promise((resolve) => {
-      // Ensure savePath is a directory path - if it ends with a filename, extract directory
+      // Validate save path to prevent path traversal
+      const downloadsPath = app.getPath("downloads");
       let targetDir = savePath;
+
       try {
         if (existsSync(savePath) && lstatSync(savePath).isFile()) {
           targetDir = path.dirname(savePath);
@@ -1138,17 +1236,18 @@ ipcMain.handle(
         // Path doesn't exist, might be a new file path
       }
 
+      // Validate the final path is within allowed directory
+      const validatedPath = validateSavePath(targetDir, downloadsPath);
+      if (!validatedPath) {
+        return resolve({ success: false, error: "Invalid save path: path traversal detected" });
+      }
+
       // Use spawn with explicit args to avoid shell encoding issues
       const { spawn } = require("child_process");
-      const args = ["-s", deviceId, "pull", devicePath, targetDir];
+      const args = ["-s", deviceId, "pull", sanitizedDevicePath, validatedPath];
       const child = spawn(adbPath, args);
 
-      let stdout = "";
       let stderr = "";
-
-      child.stdout.on("data", (data: Buffer) => {
-        stdout += data.toString();
-      });
 
       child.stderr.on("data", (data: Buffer) => {
         stderr += data.toString();
@@ -1161,7 +1260,7 @@ ipcMain.handle(
           return;
         }
 
-        logger.info(`Downloaded file from ${deviceId}: ${devicePath} -> ${targetDir}`);
+        logger.info(`Downloaded file from ${deviceId}: ${devicePath} -> ${validatedPath}`);
         resolve({ success: true });
       });
 
@@ -1181,12 +1280,23 @@ ipcMain.handle(
       return { success: true };
     }
 
+    // Validate device ID
+    if (!isValidDeviceId(deviceId)) {
+      return { success: false, error: "Invalid device ID format" };
+    }
+
+    // Sanitize device path to prevent command injection
+    const sanitizedDevicePath = sanitizeDevicePath(devicePath);
+    if (sanitizedDevicePath !== devicePath) {
+      logger.warn(`Device path sanitized: ${devicePath} -> ${sanitizedDevicePath}`);
+    }
+
     const adbPath = getAdbPath();
 
     return new Promise((resolve) => {
       // Use spawn with explicit args to avoid shell encoding issues
       const { spawn } = require("child_process");
-      const args = ["-s", deviceId, "push", filePath, devicePath];
+      const args = ["-s", deviceId, "push", filePath, sanitizedDevicePath];
       const child = spawn(adbPath, args);
 
       let stderr = "";
@@ -1202,7 +1312,7 @@ ipcMain.handle(
           return;
         }
 
-        logger.info(`Uploaded file to ${deviceId}: ${filePath} -> ${devicePath}`);
+        logger.info(`Uploaded file to ${deviceId}: ${filePath} -> ${sanitizedDevicePath}`);
         resolve({ success: true });
       });
 
@@ -1222,22 +1332,45 @@ ipcMain.handle(
       return { success: true };
     }
 
+    // Validate device ID
+    if (!isValidDeviceId(deviceId)) {
+      return { success: false, error: "Invalid device ID format" };
+    }
+
+    // Sanitize device path to prevent command injection
+    const sanitizedPath = sanitizeDevicePath(devicePath);
+    if (sanitizedPath !== devicePath) {
+      logger.warn(`Path sanitized: ${devicePath} -> ${sanitizedPath}`);
+    }
+
     const adbPath = getAdbPath();
-    
+
     return new Promise((resolve) => {
-      exec(
-        `"${adbPath}" -s ${deviceId} shell rm -rf "${devicePath}"`,
-        { encoding: "utf8" },
-        (error, stdout, stderr) => {
-          if (error) {
-            logger.error(`Failed to delete file on ${deviceId}`, { error, stderr });
-            resolve({ success: false, error: error.message });
-            return;
-          }
-          logger.info(`Deleted file on ${deviceId}: ${devicePath}`);
-          resolve({ success: true });
+      // Use spawn with explicit args to avoid shell injection
+      const { spawn } = require("child_process");
+      const args = ["-s", deviceId, "shell", "rm", "-rf", "--", sanitizedPath];
+      const child = spawn(adbPath, args);
+
+      let stderr = "";
+
+      child.stderr.on("data", (data: Buffer) => {
+        stderr += data.toString();
+      });
+
+      child.on("close", (code: number) => {
+        if (code !== 0) {
+          logger.error(`Failed to delete file on ${deviceId}`, { stderr, code });
+          resolve({ success: false, error: stderr || "Delete failed" });
+          return;
         }
-      );
+        logger.info(`Deleted file on ${deviceId}: ${sanitizedPath}`);
+        resolve({ success: true });
+      });
+
+      child.on("error", (error: Error) => {
+        logger.error(`Failed to delete file on ${deviceId}`, { error: error.message });
+        resolve({ success: false, error: error.message });
+      });
     });
   }
 );
@@ -1250,22 +1383,45 @@ ipcMain.handle(
       return { success: true };
     }
 
+    // Validate device ID
+    if (!isValidDeviceId(deviceId)) {
+      return { success: false, error: "Invalid device ID format" };
+    }
+
+    // Sanitize device path to prevent command injection
+    const sanitizedPath = sanitizeDevicePath(devicePath);
+    if (sanitizedPath !== devicePath) {
+      logger.warn(`Path sanitized: ${devicePath} -> ${sanitizedPath}`);
+    }
+
     const adbPath = getAdbPath();
-    
+
     return new Promise((resolve) => {
-      exec(
-        `"${adbPath}" -s ${deviceId} shell mkdir -p "${devicePath}"`,
-        { encoding: "utf8" },
-        (error, stdout, stderr) => {
-          if (error) {
-            logger.error(`Failed to create folder on ${deviceId}`, { error, stderr });
-            resolve({ success: false, error: error.message });
-            return;
-          }
-          logger.info(`Created folder on ${deviceId}: ${devicePath}`);
-          resolve({ success: true });
+      // Use spawn with explicit args to avoid shell injection
+      const { spawn } = require("child_process");
+      const args = ["-s", deviceId, "shell", "mkdir", "-p", "--", sanitizedPath];
+      const child = spawn(adbPath, args);
+
+      let stderr = "";
+
+      child.stderr.on("data", (data: Buffer) => {
+        stderr += data.toString();
+      });
+
+      child.on("close", (code: number) => {
+        if (code !== 0) {
+          logger.error(`Failed to create folder on ${deviceId}`, { stderr, code });
+          resolve({ success: false, error: stderr || "Create folder failed" });
+          return;
         }
-      );
+        logger.info(`Created folder on ${deviceId}: ${sanitizedPath}`);
+        resolve({ success: true });
+      });
+
+      child.on("error", (error: Error) => {
+        logger.error(`Failed to create folder on ${deviceId}`, { error: error.message });
+        resolve({ success: false, error: error.message });
+      });
     });
   }
 );
@@ -1328,18 +1484,10 @@ ipcMain.handle(
     const proc = deviceProcesses.get(deviceId);
     if (proc && !TEST_MODE) {
       if (proc.pid) {
-        try {
-          // 使用 taskkill 强制终止 scrcpy 进程
-          exec(`taskkill /PID ${proc.pid} /F /T`);
-          logger.debug(`Killed scrcpy process for ${deviceId}`);
-        } catch (e) {
-          try {
-            proc.proc?.kill();
-            logger.debug(`Killed scrcpy process (fallback) for ${deviceId}`);
-          } catch (e2) {
-            logger.warn(`Failed to kill scrcpy process for ${deviceId}`, e2);
-          }
-        }
+        // Use unified terminate function
+        terminateProcess(proc.pid, proc.proc)
+          .then(() => logger.debug(`Killed scrcpy process for ${deviceId}`))
+          .catch((e) => logger.warn(`Failed to kill scrcpy process for ${deviceId}`, e));
       }
     }
     deviceProcesses.delete(deviceId);
@@ -1805,7 +1953,7 @@ async function repairRecordingFile(filePath: string): Promise<boolean> {
         repairProc.kill();
         currentStrategy++;
         tryNextStrategy();
-      }, 10000); // 10 second timeout per strategy
+      }, REPAIR_STRATEGY_TIMEOUT); // 10 second timeout per strategy
 
       let stderrData = "";
 
@@ -1897,7 +2045,7 @@ ipcMain.handle(
         }
 
         // Wait briefly for graceful shutdown
-        await new Promise((resolve) => setTimeout(resolve, 800));
+        await new Promise((resolve) => setTimeout(resolve, GRACEFUL_SHUTDOWN_WAIT));
 
         // Check if process exited gracefully
         try {
@@ -1906,7 +2054,7 @@ ipcMain.handle(
           logger.info(`Process still running, sending taskkill`);
           try {
             execSync(`taskkill /PID ${proc.pid}`, { encoding: "utf8" });
-            await new Promise((resolve) => setTimeout(resolve, 500));
+            await new Promise((resolve) => setTimeout(resolve, FORCE_KILL_WAIT));
           } catch (e) {
             logger.debug(`Taskkill failed: ${e}`);
           }
@@ -1921,7 +2069,7 @@ ipcMain.handle(
             execSync(`tasklist /FI "PID eq ${proc.pid}"`, { encoding: "utf8" });
             logger.warn(`Force killing PID: ${proc.pid}`);
             exec(`taskkill /PID ${proc.pid} /F /T`);
-            await new Promise((resolve) => setTimeout(resolve, 300));
+            await new Promise((resolve) => setTimeout(resolve, FORCE_KILL_DELAY));
           } catch (e) {
             recordingSaved = true;
             logger.info(`Process terminated`);
@@ -3040,16 +3188,18 @@ ipcMain.handle(
     if (TEST_MODE) {
       return {
         success: true,
-        downloadPath: path.join(app.getPath("downloads"), "iScrcpy-Setup-1.1.0.exe"),
+        // Download to desktop for easy access and manual cleanup by user
+        downloadPath: path.join(app.getPath("desktop"), "iScrcpy-Setup-1.1.0.exe"),
       };
     }
 
     try {
       logger.info(`Downloading update from ${downloadUrl}`);
 
-      const downloadsPath = app.getPath("downloads");
+      // Download to desktop for easy access and manual cleanup by user
+      const desktopPath = app.getPath("desktop");
       const fileName = downloadUrl.split("/").pop() || "iScrcpy-Setup.exe";
-      const downloadPath = path.join(downloadsPath, fileName);
+      const downloadPath = path.join(desktopPath, fileName);
 
       // Get a valid window for download
       const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0] || mainWindow;
@@ -3059,7 +3209,7 @@ ipcMain.handle(
 
       // Use electron-dl for better download handling with progress
       await download(win, downloadUrl, {
-        directory: downloadsPath,
+        directory: desktopPath,
         filename: fileName,
         onProgress: (progress) => {
           // Send progress to renderer
