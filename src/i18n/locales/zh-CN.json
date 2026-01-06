@@ -28,6 +28,7 @@
     "record": "开始录制",
     "audio": "音频",
     "camera": "相机",
+    "detectingDevices": "正在检测设备...",
     "fileManager": {
       "title": "文件管理",
       "loading": "加载中...",
@@ -68,7 +69,7 @@
     "toast": {
       "screenMirroringStarted": "{{deviceName}} 投屏已启动",
       "screenMirroringStopped": "{{deviceName}} 已断开投屏",
-      "screenMirroringDisconnected": "投屏已断开",
+      "screenMirroringDisconnected": "{{deviceName}} 投屏已断开",
       "screenMirroringFailed": "投屏失败",
       "wifiConnected": "WiFi 设备 {{address}} 连接成功",
       "wifiConnectFailed": "WiFi 连接失败",
@@ -227,7 +228,9 @@
       "detail": "最小化到托盘将保持 iScrcpy 在后台运行。\n退出将完全关闭应用程序。",
       "minimizeToTray": "最小化到托盘",
       "quit": "退出",
-      "cancel": "取消"
+      "cancel": "取消",
+      "terminating": "正在终止服务...",
+      "terminatingDesc": "请稍候，正在清理资源..."
     }
   },
   "common": {

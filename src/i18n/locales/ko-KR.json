@@ -28,6 +28,7 @@
     "record": "녹화",
     "audio": "음성",
     "camera": "카메라",
+    "detectingDevices": "기기 감지 중...",
     "fileManager": {
       "title": "파일 관리자",
       "loading": "로딩 중...",
@@ -68,7 +69,7 @@
     "toast": {
       "screenMirroringStarted": "{{deviceName}} 미러링이 시작되었습니다",
       "screenMirroringStopped": "{{deviceName}} 미러링이 중지되었습니다",
-      "screenMirroringDisconnected": "미러링 연결이 끊어졌습니다",
+      "screenMirroringDisconnected": "{{deviceName}} 미러링 연결이 끊어졌습니다",
       "screenMirroringFailed": "미러링 실패",
       "wifiConnected": "WiFi 기기 {{address}} 연결 성공",
       "wifiConnectFailed": "WiFi 연결 실패",
@@ -228,7 +229,9 @@
       "detail": "트레이로 최소화하면 iScrcpy가 백그라운드에서 계속 실행됩니다.\n종료하면 애플리케이션이 완전히 종료됩니다.",
       "minimizeToTray": "트레이로 최소화",
       "quit": "종료",
-      "cancel": "취소"
+      "cancel": "취소",
+      "terminating": "서비스 중지 중...",
+      "terminatingDesc": "리소스를 정리하는 중..."
     }
   },
   "common": {

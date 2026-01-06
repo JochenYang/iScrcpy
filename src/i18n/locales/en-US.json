@@ -28,6 +28,7 @@
     "record": "Record",
     "audio": "Audio",
     "camera": "Camera",
+    "detectingDevices": "Detecting devices...",
     "fileManager": {
       "title": "File Manager",
       "loading": "Loading...",
@@ -68,7 +69,7 @@
     "toast": {
       "screenMirroringStarted": "{{deviceName}} mirroring started",
       "screenMirroringStopped": "{{deviceName}} mirroring stopped",
-      "screenMirroringDisconnected": "Screen mirroring disconnected",
+      "screenMirroringDisconnected": "{{deviceName}} screen mirroring disconnected",
       "screenMirroringFailed": "Screen mirroring failed",
       "wifiConnected": "WiFi device {{address}} connected successfully",
       "wifiConnectFailed": "WiFi connection failed",
@@ -239,7 +240,9 @@
       "detail": "Minimize to Tray will keep iScrcpy running in the background.\nQuit will completely exit the application.",
       "minimizeToTray": "Minimize to Tray",
       "quit": "Quit",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "terminating": "Stopping services...",
+      "terminatingDesc": "Please wait while cleaning up resources..."
     }
   },
   "tray": {

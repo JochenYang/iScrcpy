@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.4] - 2026-01-07
+
+### Fixed
+
+- Fixed device status flicker on startup (devices now show persisted state immediately)
+- Fixed log level not being respected in production environment
+- Fixed ADB server ready polling issue (prevented repeated `adb start-server` calls)
+- Fixed device tracker initialization timing issue
+- Fixed quit animation not displaying when closing app
+
+### Changed
+
+- Optimized startup speed - window now displays immediately while ADB starts in background
+- Device tracker now initializes after ADB is ready to prevent connection errors
+- Device status merge logic improved - current device status takes priority over historical data
+- Persisted storage now only saves device metadata (id, name, type), not status
+- Loading indicator now displays immediately on startup
+- Auto-reconnect WiFi devices only on manual refresh, not on every startup
+
+### Added
+
+- Added quit termination animation with spinner
+- Added multi-language support for termination messages (7 languages)
+- Added device detection loading indicator with translations
+- Added device removed toast message with translations
+
+### Refactored
+
+- Refactored `ensureAdbServerReady()` to use spawn() and prevent concurrent launches
+- Added retry mechanism for device loading with exponential backoff
+
 ## [1.1.3] - 2026-01-06
 
 ### Fixed

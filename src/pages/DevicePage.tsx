@@ -5,7 +5,6 @@ import DeviceCard from "../components/DeviceCard";
 import FileManager from "../components/FileManager";
 import { useDeviceStore } from "../store/deviceStore";
 import { DeviceInfo } from "../types/electron";
-import i18n from "../i18n";
 
 export default function DevicePage() {
   const { t } = useTranslation();
@@ -23,6 +22,7 @@ export default function DevicePage() {
   const [wifiIp, setWifiIp] = useState("");
   const [showWifiInput, setShowWifiInput] = useState(false);
   const [fileManagerDevice, setFileManagerDevice] = useState<{id: string; name: string} | null>(null);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   // Use ref to track knownDevices to avoid infinite loop
   const knownDevicesRef = useRef(knownDevices);
@@ -39,75 +39,105 @@ export default function DevicePage() {
     if (!silent) {
       setRefreshing(true);
     }
-    try {
-      const result = await electronAPI.adbDevices();
-      if (result.success && result.devices) {
-        const currentDevices = result.devices as DeviceInfo[];
-        const now = Date.now();
-        const known = knownDevicesRef.current;
-        
-        // Merge with known devices
-        const mergedDevices = currentDevices.map(device => {
-          const existing = known.find(d => d.id === device.id);
-          return existing ? { ...device, lastSeen: existing.lastSeen } : { ...device, lastSeen: now };
-        });
-        
-        // Update known devices - keep all known devices, update their status
-        const updatedKnown = known.map(knownDevice => {
-          const current = currentDevices.find(d => d.id === knownDevice.id);
-          if (current) {
-            // Update status and name if available from current device
-            return {
-              ...knownDevice,
-              name: current.name !== "Unknown Device" ? current.name : knownDevice.name,
-              status: current.status,
-              lastSeen: now,
-            };
+
+    let retryCount = 0;
+    const maxRetries = 3;
+
+    while (retryCount < maxRetries) {
+      try {
+        const result = await electronAPI.adbDevices();
+        if (result.success && result.devices) {
+          const currentDevices = result.devices as DeviceInfo[];
+          const now = Date.now();
+          const known = knownDevicesRef.current;
+          const removed = useDeviceStore.getState().removedDevices;
+
+          // Current devices map for quick lookup
+          const currentDeviceMap = new Map(currentDevices.map(d => [d.id, d]));
+
+          // Merge devices: current devices take priority, historical data as fallback
+          // This ensures connected status comes from ADB, while metadata (name) comes from history
+          const mergedDevices = currentDevices.map(device => {
+            const existing = known.find(d => d.id === device.id);
+            if (existing) {
+              // Keep historical metadata (name) but use current status from ADB
+              return {
+                ...device,
+                lastSeen: now,
+                name: device.name !== "Unknown Device" ? device.name : existing.name,
+              };
+            }
+            return { ...device, lastSeen: now };
+          });
+
+          // Update known devices: USB devices mark as offline if not detected
+          // WiFi devices keep their status (may be temporarily undetected by ADB)
+          const updatedKnown = known.map(knownDevice => {
+            const current = currentDeviceMap.get(knownDevice.id);
+            if (current) {
+              // Device is currently connected, update with real-time status
+              return {
+                ...knownDevice,
+                name: current.name !== "Unknown Device" ? current.name : knownDevice.name,
+                status: current.status,
+                lastSeen: now,
+              };
+            }
+            // Device not in ADB list
+            // USB: disconnection is immediate, mark as offline
+            // WiFi: keep original status (ADB may temporarily not detect it)
+            if (knownDevice.type === "wifi") {
+              return knownDevice;
+            }
+            return { ...knownDevice, status: "offline", lastSeen: now };
+          });
+
+          // Add new devices that are not in knownDevices and not removed
+          // USB devices will be restored when USB is reconnected
+          for (const device of currentDevices) {
+            const isInUpdatedKnown = updatedKnown.find(d => d.id === device.id);
+            const wasRemoved = removed.some(d => d.id === device.id);
+            const isUsbDevice = device.status === "device" && !device.id.includes(":");
+
+            if (!isInUpdatedKnown && (!wasRemoved || isUsbDevice)) {
+              updatedKnown.push({
+                ...device,
+                lastSeen: now,
+                name: device.name !== "Unknown Device" ? device.name : device.id,
+              });
+            }
           }
-          // Device not in ADB list
-          // USB devices: mark as offline (disconnection is immediate)
-          // WiFi devices: keep original status (may be temporarily undetected)
-          if (knownDevice.type === "wifi") {
-            return knownDevice;
+
+          // Update store with merged results
+          useDeviceStore.setState({ devices: mergedDevices, knownDevices: updatedKnown });
+
+          // Auto-reconnect WiFi devices that were connected but not currently detected
+          // Only when force refresh is enabled (e.g., manual refresh)
+          if (forceRefresh) {
+            const wifiDevicesNeedingReconnect = updatedKnown.filter(d =>
+              d.type === "wifi" &&
+              !currentDevices.some(curr => curr.id === d.id)
+            );
+
+            for (const device of wifiDevicesNeedingReconnect) {
+              electronAPI.connectWifi(device.id);
+            }
           }
-          return { ...knownDevice, status: "offline", lastSeen: now };
-        });
-        
-        // Add new devices from currentDevices
-        // Skip devices that are in removedDevices (user manually removed them)
-        // EXCEPT: USB devices (status=device AND no colon in ID) will be restored when USB is connected
-        const currentRemoved = useDeviceStore.getState().removedDevices;
-        
-        for (const device of currentDevices) {
-          const isInUpdatedKnown = updatedKnown.find(d => d.id === device.id);
-          const wasRemoved = currentRemoved.find(d => d.id === device.id);
-          // USB devices have status "device" and no colon in ID (e.g., "abc123")
-          // WiFi devices have status "device" but contain colon in ID (e.g., "192.168.5.5:5555")
-          const isUsbDevice = device.status === "device" && !device.id.includes(":");
-          
-          // Add if: not in knownDevices AND (not removed OR is USB device)
-          if (!isInUpdatedKnown && (!wasRemoved || isUsbDevice)) {
-            updatedKnown.push({ ...device, lastSeen: now });
-          }
+
+          // Success, exit the retry loop
+          break;
         }
-        
-        // Use zustand's set to update both
-        useDeviceStore.setState({ devices: mergedDevices, knownDevices: updatedKnown });
-        
-        // Auto-connect WiFi devices that are in knownDevices but not detected by ADB
-        // This handles the case where app restart resets ADB server
-        const wifiDevicesNeedingReconnect = updatedKnown.filter(d => 
-          d.type === "wifi" && 
-          !currentDevices.some(curr => curr.id === d.id)
-        );
-        
-        for (const device of wifiDevicesNeedingReconnect) {
-          electronAPI.connectWifi(device.id);
+      } catch (error) {
+        console.error("Failed to load devices:", error);
+        retryCount++;
+        if (retryCount < maxRetries) {
+          // Wait before retry (500ms, 1000ms, 2000ms)
+          await new Promise(resolve => setTimeout(resolve, 500 * Math.pow(2, retryCount - 1)));
+          continue;
         }
       }
-    } catch (error) {
-      console.error("Failed to load devices:", error);
     }
+
     setRefreshing(false);
   }, []);
 
@@ -172,7 +202,7 @@ export default function DevicePage() {
         knownDevices: knownDevices.filter(d => d.id !== deviceId),
         removedDevices: [...useDeviceStore.getState().removedDevices, device]
       });
-      showToast(t("devices.toast.deviceRemoved", { defaultValue: "设备已移除" }));
+        showToast(t("devices.toast.deviceRemoved"));
     }
   };
 
@@ -329,9 +359,12 @@ export default function DevicePage() {
   };
 
   useEffect(() => {
-    // Initial load - don't mark devices as offline immediately
-    loadDevices({ silent: false, forceRefresh: false });
-    // Silent polling every 5 seconds - mark devices as offline if not detected
+    // Initial load - show loading state immediately, load devices in background
+    setIsInitializing(true);
+    loadDevices({ silent: false, forceRefresh: false }).then(() => {
+      setIsInitializing(false);
+    });
+    // Silent polling every 5 seconds to update device status
     const pollInterval = setInterval(() => {
       loadDevices({ silent: true, forceRefresh: true });
     }, 5000);
@@ -345,7 +378,7 @@ export default function DevicePage() {
       const device = devices.find((d) => d.id === deviceId);
       showToast(
         t("devices.toast.screenMirroringDisconnected", {
-          defaultValue: `${device?.name || deviceId} 投屏已断开`,
+          deviceName: device?.name || deviceId,
         })
       );
       await loadDevices({ silent: true });
@@ -558,13 +591,22 @@ export default function DevicePage() {
 
       {allDevices.length === 0 && (
         <div className="empty-state visible">
-          <svg width="64" height="64" viewBox="0 0 64 64" fill="currentColor" opacity="0.3">
-            <rect x="16" y="8" width="32" height="48" rx="4" />
-            <rect x="20" y="48" width="24" height="4" />
-            <circle cx="32" cy="28" r="6" />
-          </svg>
-          <p>{t("devices.noDevices")}</p>
-          <span>{t("devices.noDevicesDesc")}</span>
+          {isInitializing ? (
+            <>
+              <div className="spinner" style={{ width: 48, height: 48, marginBottom: 16 }} />
+              <p>{t("devices.detectingDevices")}</p>
+            </>
+          ) : (
+            <>
+              <svg width="64" height="64" viewBox="0 0 64 64" fill="currentColor" opacity="0.3">
+                <rect x="16" y="8" width="32" height="48" rx="4" />
+                <rect x="20" y="48" width="24" height="4" />
+                <circle cx="32" cy="28" r="6" />
+              </svg>
+              <p>{t("devices.noDevices")}</p>
+              <span>{t("devices.noDevicesDesc")}</span>
+            </>
+          )}
         </div>
       )}
 

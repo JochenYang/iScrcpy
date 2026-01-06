@@ -26,6 +26,7 @@
     "record": "Enregistrer",
     "audio": "Audio",
     "camera": "Caméra",
+    "detectingDevices": "Détection des appareils...",
     "fileManager": {
       "title": "Gestionnaire de fichiers",
       "loading": "Chargement...",
@@ -66,7 +67,7 @@
     "toast": {
       "screenMirroringStarted": "{{deviceName}} duplication d'écran démarrée",
       "screenMirroringStopped": "{{deviceName}} duplication d'écran arrêtée",
-      "screenMirroringDisconnected": "Duplication d'écran déconnectée",
+      "screenMirroringDisconnected": "{{deviceName}} duplication d'écran déconnectée",
       "screenMirroringFailed": "Échec de la duplication d'écran",
       "wifiConnected": "Appareil WiFi {{address}} connecté avec succès",
       "wifiConnectFailed": "Échec de la connexion WiFi",
@@ -226,7 +227,9 @@
       "detail": "Réduire dans la barre des tâches gardera iScrcpy en arrière-plan.\nQuitter fermera complètement l'application.",
       "minimizeToTray": "Réduire dans la barre",
       "quit": "Quitter",
-      "cancel": "Annuler"
+      "cancel": "Annuler",
+      "terminating": "Arrêt des services...",
+      "terminatingDesc": "Nettoyage des ressources..."
     }
   },
   "common": {

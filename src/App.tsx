@@ -16,6 +16,7 @@ export type TabType = "devices" | "display" | "encoding" | "server" | "settings"
 function App() {
   const [activeTab, setActiveTab] = useState<TabType>("devices");
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [isQuitting, setIsQuitting] = useState(false);
 
   useEffect(() => {
     // Listen for close confirmation request from main process
@@ -23,19 +24,33 @@ function App() {
       setShowCloseConfirm(true);
     });
 
+    // Listen for quit animation request from main process
+    electronAPI.onQuitAnimation(() => {
+      setIsQuitting(true);
+    });
+
     return () => {
       electronAPI.removeCloseConfirmListener();
+      electronAPI.removeQuitAnimationListener();
     };
   }, []);
 
-  const handleCloseConfirm = (action: "minimize" | "quit" | "cancel") => {
-    setShowCloseConfirm(false);
-    if (action === "minimize") {
+  const handleCloseConfirm = async (action: "minimize" | "quit" | "cancel") => {
+    if (action === "quit") {
+      setIsQuitting(true);
+      try {
+        await electronAPI.quitApp();
+      } catch (error) {
+        console.error("Failed to quit app:", error);
+        setIsQuitting(false);
+        setShowCloseConfirm(false);
+      }
+    } else if (action === "minimize") {
+      setShowCloseConfirm(false);
       electronAPI.sendCloseConfirmResult({ minimizeToTray: true });
-    } else if (action === "quit") {
-      electronAPI.sendCloseConfirmResult({ minimizeToTray: false });
+    } else {
+      setShowCloseConfirm(false);
     }
-    // If action is "cancel", just close the dialog without sending result
   };
 
   const renderContent = () => {
@@ -69,6 +84,7 @@ function App() {
         onClose={() => handleCloseConfirm("cancel")}
         onMinimizeToTray={() => handleCloseConfirm("minimize")}
         onQuit={() => handleCloseConfirm("quit")}
+        isQuitting={isQuitting}
       />
     </div>
   );

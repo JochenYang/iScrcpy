@@ -26,6 +26,7 @@
     "record": "Kaydet",
     "audio": "Ses",
     "camera": "Kamera",
+    "detectingDevices": "Cihazlar algılanıyor...",
     "fileManager": {
       "title": "Dosya Yöneticisi",
       "loading": "Yükleniyor...",
@@ -66,7 +67,7 @@
     "toast": {
       "screenMirroringStarted": "{{deviceName}} ekran yansıtma başlatıldı",
       "screenMirroringStopped": "{{deviceName}} ekran yansıtma durduruldu",
-      "screenMirroringDisconnected": "Ekran yansıtma bağlantısı kesildi",
+      "screenMirroringDisconnected": "{{deviceName}} ekran yansıtma bağlantısı kesildi",
       "screenMirroringFailed": "Ekran yansıtma başarısız",
       "wifiConnected": "WiFi cihazı {{address}} başarıyla bağlandı",
       "wifiConnectFailed": "WiFi bağlantısı başarısız",
@@ -226,7 +227,9 @@
       "detail": "Tepsiye küçült, iScrcpy'nin arka planda çalışmaya devam etmesini sağlar.\nKapat tamamen uygulamayı sonlandırır.",
       "minimizeToTray": "Tepsiye Küçült",
       "quit": "Kapat",
-      "cancel": "İptal"
+      "cancel": "İptal",
+      "terminating": "Hizmetler durduruluyor...",
+      "terminatingDesc": "Kaynaklar temizleniyor..."
     }
   },
   "common": {

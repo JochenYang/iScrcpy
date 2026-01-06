@@ -197,6 +197,11 @@ export interface ElectronAPI {
   onShowCloseConfirm: (callback: () => void) => void;
   removeCloseConfirmListener: () => void;
   sendCloseConfirmResult: (result: { minimizeToTray: boolean }) => void;
+  quitApp: () => Promise<void>;
+
+  // Quit animation
+  onQuitAnimation: (callback: () => void) => void;
+  removeQuitAnimationListener: () => void;
 
   // File operations
   openFolder: (path: string) => void;

@@ -92,9 +92,17 @@ export const electronAPI: ElectronAPI = {
   // Close confirmation
   onShowCloseConfirm: (callback: () => void) =>
     window.electronAPI.onShowCloseConfirm(callback),
-  removeCloseConfirmListener: () => window.electronAPI.removeCloseConfirmListener(),
+  removeCloseConfirmListener: () =>
+    window.electronAPI.removeCloseConfirmListener(),
   sendCloseConfirmResult: (result: { minimizeToTray: boolean }) =>
     window.electronAPI.sendCloseConfirmResult(result),
+  quitApp: () => window.electronAPI.quitApp(),
+
+  // Quit animation
+  onQuitAnimation: (callback: () => void) =>
+    window.electronAPI.onQuitAnimation(callback),
+  removeQuitAnimationListener: () =>
+    window.electronAPI.removeQuitAnimationListener(),
 
   // File operations
   openFolder: (path: string) => window.electronAPI.openFolder(path),

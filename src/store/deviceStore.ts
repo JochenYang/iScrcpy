@@ -42,20 +42,19 @@ export const useDeviceStore = create<DeviceStore>()(
         const knownDevices = get().knownDevices;
         const existingIndex = knownDevices.findIndex(d => d.id === device.id);
         const updatedKnown = [...knownDevices];
-        
+
         if (existingIndex >= 0) {
           updatedKnown[existingIndex] = { ...device, lastSeen: Date.now() };
         } else {
           updatedKnown.push({ ...device, lastSeen: Date.now() });
         }
-        
+
         set({ knownDevices: updatedKnown });
       },
 
       removeKnownDevice: (deviceId) => {
         set((state) => {
           const deviceToRemove = state.knownDevices.find(d => d.id === deviceId);
-          // Only add to removedDevices if not already there (avoid duplicates)
           const alreadyRemoved = state.removedDevices.some(d => d.id === deviceId);
           return {
             knownDevices: state.knownDevices.filter(d => d.id !== deviceId),
@@ -109,8 +108,16 @@ export const useDeviceStore = create<DeviceStore>()(
       name: "device-storage",
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
-        knownDevices: state.knownDevices,
-        removedDevices: state.removedDevices,
+        knownDevices: state.knownDevices.map(d => ({
+          id: d.id,
+          name: d.name,
+          type: d.type,
+        })),
+        removedDevices: state.removedDevices.map(d => ({
+          id: d.id,
+          name: d.name,
+          type: d.type,
+        })),
       }),
     }
   )
