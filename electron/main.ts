@@ -135,6 +135,7 @@ interface DeviceHistory {
   port: number; // Port (default 5555)
   lastConnected: number; // Timestamp
   autoConnect: boolean; // Whether to auto-connect on startup
+  isConnected: boolean; // Whether device is currently connected (persisted state)
 }
 
 interface Settings {
@@ -320,9 +321,11 @@ async function initDeviceTracker(): Promise<void> {
 
     deviceTracker.on("remove", (device: any) => {
       logger.info(`Device disconnected: ${device.id} (${device.type})`);
-      // Remove from connectedDevices so status will be updated correctly
+      // Update connectedDevices and persistent state
       connectedDevices.delete(device.id);
       connectedDevicesInfo.delete(device.id);
+      // Update persisted connection state
+      updateDeviceConnectionState(device.id, false);
       if (mainWindow) {
         mainWindow.webContents.send("device-change", { type: "remove", device });
       }
@@ -417,6 +420,18 @@ function loadSettings(): void {
       if (saved.logLevel) {
         settings.logLevel = saved.logLevel;
         logger.setLevel(saved.logLevel);
+      }
+      if (saved.deviceHistory && Array.isArray(saved.deviceHistory)) {
+        settings.deviceHistory = saved.deviceHistory;
+        // Restore connected devices from persisted state
+        connectedDevices.clear();
+        for (const device of settings.deviceHistory) {
+          if (device.isConnected) {
+            connectedDevices.add(device.id);
+            connectedDevicesInfo.set(device.id, { name: device.name });
+          }
+        }
+        logger.info(`Restored ${connectedDevices.size} connected devices from history`);
       }
     } catch (e) {
       console.error("Failed to load settings:", e);
@@ -513,8 +528,8 @@ function getAdbVersion(): Promise<{
 function createWindow(): void {
   // Get icon path
   const iconPath = app.isPackaged
-    ? path.join(process.resourcesPath, "build", "icon.ico")
-    : path.join(process.cwd(), "build", "icon.ico");
+    ? path.join(process.resourcesPath, "icons", "icon.ico")
+    : path.join(process.cwd(), "icons", "icon.ico");
 
   mainWindow = new BrowserWindow({
     width: 1000,
@@ -558,33 +573,27 @@ function createWindow(): void {
   });
 
   // Listen for close confirmation result from renderer
-  ipcMain.on("close-confirm-result", (_, result: { minimizeToTray: boolean }) => {
+  ipcMain.on("close-confirm-result", async (_, result: { minimizeToTray: boolean }) => {
     if (result.minimizeToTray) {
       // Minimize to tray - just hide the window
       mainWindow?.hide();
     } else {
-      // Quit - allow close
-      mainWindow?.destroy();
-      app.quit();
+      // Quit - use same logic as tray quit
+      isCleaningUp = true;
+      await cleanupAllProcesses();
+      if (mainWindow) {
+        mainWindow.destroy();
+        mainWindow = null;
+      }
+      if (tray) {
+        tray.destroy();
+        tray = null;
+      }
+      app.exit(0);
     }
   });
 
   mainWindow.on("closed", () => {
-    // Cleanup all processes
-    Array.from(deviceProcesses.entries()).forEach(([, proc]) => {
-      if (proc.pid) {
-        try {
-          process.kill(-proc.pid);
-        } catch (e) {
-          try {
-            proc.proc?.kill();
-          } catch (e2) {}
-        }
-      }
-    });
-    deviceProcesses.clear();
-    connectedDevices.clear();
-    connectedDevicesInfo.clear();
     mainWindow = null;
   });
 }
@@ -992,7 +1001,7 @@ ipcMain.handle(
       }
     }, 2000);
 
-    // Save WiFi device to history
+    // Save WiFi device to history and update connection state
     if (isWifi) {
       const [ip, portStr] = deviceId.split(":");
       const port = parseInt(portStr) || 5555;
@@ -1001,12 +1010,15 @@ ipcMain.handle(
         (d) => d.id === deviceId
       );
       if (existingDevice) {
-        // Update last connected time
+        // Update last connected time and connection state
         existingDevice.lastConnected = Date.now();
+        existingDevice.isConnected = true;
       } else {
-        // Add to history with autoConnect=false by default
-        addDeviceToHistory(deviceId, "Unknown Device", ip, port, false);
+        // Add to history with autoConnect=false and isConnected=true
+        addDeviceToHistory(deviceId, "Unknown Device", ip, port, false, true);
       }
+      // Update persistent connection state
+      updateDeviceConnectionState(deviceId, true);
     }
 
     return { success: true, deviceId };
@@ -1389,7 +1401,8 @@ function addDeviceToHistory(
   name: string,
   ip: string,
   port: number = 5555,
-  autoConnect: boolean = false
+  autoConnect: boolean = false,
+  isConnected: boolean = false
 ): void {
   // Remove existing entry with same device ID
   settings.deviceHistory = settings.deviceHistory.filter(
@@ -1404,6 +1417,7 @@ function addDeviceToHistory(
     port,
     lastConnected: Date.now(),
     autoConnect,
+    isConnected,
   });
 
   // Keep only last 20 devices
@@ -1431,6 +1445,19 @@ function updateDeviceAutoConnect(deviceId: string, autoConnect: boolean): void {
   if (device) {
     device.autoConnect = autoConnect;
 
+    // Save to file
+    const settingsPath = path.join(app.getPath("userData"), "settings.json");
+    writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+  }
+}
+
+function updateDeviceConnectionState(deviceId: string, isConnected: boolean): void {
+  const device = settings.deviceHistory.find((d) => d.id === deviceId);
+  if (device) {
+    device.isConnected = isConnected;
+    if (isConnected) {
+      device.lastConnected = Date.now();
+    }
     // Save to file
     const settingsPath = path.join(app.getPath("userData"), "settings.json");
     writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
@@ -2711,11 +2738,18 @@ function updateTray(lang: string): void {
     { type: "separator" },
     {
       label: translations.quit,
-      click: () => {
+      click: async () => {
+        isCleaningUp = true;
+        await cleanupAllProcesses();
         if (mainWindow) {
           mainWindow.destroy();
+          mainWindow = null;
         }
-        app.quit();
+        if (tray) {
+          tray.destroy();
+          tray = null;
+        }
+        app.exit(0);
       },
     },
   ]);
@@ -2728,8 +2762,8 @@ function updateTray(lang: string): void {
 function initTray(): void {
   // Create tray icon
   const iconPath = app.isPackaged
-    ? path.join(process.resourcesPath, "build", "icon.png")
-    : path.join(process.cwd(), "build", "icon.png");
+    ? path.join(process.resourcesPath, "icons", "icon.png")
+    : path.join(process.cwd(), "icons", "icon.png");
 
   let trayIcon: NativeImage;
 
@@ -2762,11 +2796,18 @@ function initTray(): void {
     { type: "separator" },
     {
       label: defaultTranslations.quit,
-      click: () => {
+      click: async () => {
+        isCleaningUp = true;
+        await cleanupAllProcesses();
         if (mainWindow) {
           mainWindow.destroy();
+          mainWindow = null;
         }
-        app.quit();
+        if (tray) {
+          tray.destroy();
+          tray = null;
+        }
+        app.exit(0);
       },
     },
   ]);
@@ -2842,30 +2883,22 @@ app.whenReady().then(async () => {
 
 // Clean up all processes before app quits
 app.on("will-quit", async (e) => {
-  if (isQuittingForUpdate) {
+  // 如果正在退出中，直接返回
+  if (isCleaningUp || isQuittingForUpdate) {
+    e.preventDefault();
     return;
   }
 
+  isCleaningUp = true;
   logger.info("App is quitting, cleaning up all processes...");
-  e.preventDefault();
 
   try {
     await cleanupAllProcesses();
-    logger.info("Cleanup completed, quitting app...");
-
-    // In dev mode, force exit to avoid loop
-    if (!app.isPackaged) {
-      process.exit(0);
-    } else {
-      app.quit();
-    }
+    logger.info("Cleanup completed, letting app quit");
+    // 不调用 app.quit()，让 Electron 自动退出
   } catch (err) {
     logger.error("Error during cleanup before quit", err);
-    if (!app.isPackaged) {
-      process.exit(1);
-    } else {
-      app.quit();
-    }
+    // 即使清理失败也让应用退出
   }
 });
 

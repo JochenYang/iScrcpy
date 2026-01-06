@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-01-06
+
+### Fixed
+
+- Fixed tray right-click exit not responding
+- Fixed tray icon residue after exit
+- Fixed context menu not displaying on second right-click
+- Fixed 4 iscrcpy processes remaining after exit
+- Optimized exit flow to use app.exit(0) for direct exit
+
+### Changed
+
+- WiFi device connection state is now persisted (maintains connection status after app restart)
+- Renamed "build" folder to "icons" for clearer resource organization
+
+### Refactored
+
+- Unified exit flow across all exit scenarios (tray quit, window close, X button)
+- Simplified mainWindow.on("closed") handler
+- Simplified will-quit handler to prevent duplicate cleanup
+- Removed duplicate process cleanup logic
+
 ## [1.1.0] - 2026-01-05
 
 ### Fixed
