@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-01-06
+
+### Fixed
+
+- Fixed device status flicker on startup (devices now show persisted state immediately)
+- Fixed log level not being respected in production environment
+
+### Changed
+
+- Device tracker now initializes after window is shown to prevent status flicker
+- Log level filtering now properly respects user settings in production mode
+
 ## [1.1.2] - 2026-01-06
 
 ### Security

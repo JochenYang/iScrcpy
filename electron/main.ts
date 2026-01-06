@@ -638,10 +638,35 @@ function createWindow(): void {
 
   mainWindow.once("ready-to-show", () => {
     mainWindow?.show();
-    // Auto-connect to saved devices after window is shown
-    setTimeout(() => {
-      autoConnectSavedDevices();
-    }, 1000);
+
+    // Restore device states from persisted history first (prevent status flicker)
+    // This ensures devices show their last known state immediately
+    for (const device of settings.deviceHistory) {
+      if (device.isConnected && mainWindow) {
+        mainWindow.webContents.send("device-change", {
+          type: "add",
+          device: {
+            id: device.id,
+            name: device.name,
+            type: device.id.includes(":") ? "wifi" : "usb",
+            status: "device",
+          },
+        });
+        // Ensure connectedDevices set is populated
+        connectedDevices.add(device.id);
+        connectedDevicesInfo.set(device.id, { name: device.name });
+      }
+    }
+
+    // Initialize device tracker after window is shown and persisted states are restored
+    // This prevents the flicker issue where device tracker reports "offline" before auto-connect
+    setTimeout(async () => {
+      await initDeviceTracker();
+      // Auto-connect to saved devices after device tracker is ready
+      setTimeout(() => {
+        autoConnectSavedDevices();
+      }, 500);
+    }, 500);
   });
 
   // Intercept window close to show confirmation dialog
@@ -3022,9 +3047,7 @@ app.whenReady().then(async () => {
   // Cleanup old installer from previous update
   cleanupOldInstaller();
 
-  // Initialize device tracker for real-time device monitoring
-  await initDeviceTracker();
-
+  // Load settings first before creating window
   loadSettings();
   createWindow();
 });
