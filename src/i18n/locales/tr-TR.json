@@ -98,6 +98,7 @@
     "videoBitrateDesc": "Video kodlama için bit hızı (Mbps)",
     "frameRate": "Kare Hızı",
     "frameRateDesc": "Maksimum kare hızını sınırla",
+    "customMaxSize": "Özel Çözünürlük",
     "buffer": "Video Tamponu",
     "bufferDesc": "Yüksek değerler takılmayı azaltır ancak gecikmeyi artırır (0 = devre dışı)",
     "alwaysOnTop": "Her Zaman Üstte",

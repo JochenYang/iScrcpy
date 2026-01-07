@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.7] - 2026-01-07
+
+### Fixed
+
+- Fixed installer deletion failure on Windows (EBUSY: resource busy or locked)
+- Changed deletion logic to delete pending installer on NEXT startup instead of current
+- Fixed resolution custom option not showing input box
+- Fixed custom resolution option text showing "最大分辨率" instead of "自定义分辨率"
+
+### Added
+
+- Added maxSizeMode field to track preset vs custom resolution selection
+- Added customMaxSize translations for all 7 languages
+
+### Changed
+
+- Improved resolution selector: selecting "Custom Resolution" now immediately shows input box
+- Simplified installer cleanup using settings-based pendingInstallerPath instead of separate file
+
 ## [1.1.6] - 2026-01-07
 
 ### Fixed

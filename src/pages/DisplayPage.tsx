@@ -21,10 +21,11 @@ import {
 
 interface DisplaySettings {
   maxSize: number;
+  maxSizeMode: 'preset' | 'custom'; // Track whether user selected preset or custom
+  customMaxSize: number;
   videoBitrate: number;
   frameRate: number;
   // Custom option values (independent from preset options)
-  customMaxSize: number;
   customVideoBitrate: number;
   customFrameRate: number;
   buffer: number; // Video buffer in milliseconds for smoother playback
@@ -60,6 +61,7 @@ export default function DisplayPage() {
   });
   const [settings, setSettings] = useState<DisplaySettings>({
     maxSize: 1920, // 1080p (1920 longest edge for 1080x1920 mobile resolution)
+    maxSizeMode: 'preset',
     videoBitrate: 8,
     frameRate: 60,
     customMaxSize: 1920,
@@ -97,6 +99,7 @@ export default function DisplayPage() {
       if (savedDisplay.customVideoBitrate === undefined) savedDisplay.customVideoBitrate = 10;
       if (savedDisplay.customFrameRate === undefined) savedDisplay.customFrameRate = 90;
       if (savedDisplay.buffer === undefined) savedDisplay.buffer = 0;
+      if (savedDisplay.maxSizeMode === undefined) savedDisplay.maxSizeMode = 'preset';
       setSettings((prev) => ({ ...prev, ...savedDisplay }));
     }
     if (result.encoding) {
@@ -178,10 +181,16 @@ export default function DisplayPage() {
   const handleMaxSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
     if (value === "custom") {
-      setSettings({ ...settings, maxSize: settings.customMaxSize });
+      // Switch to custom mode, show input box
+      setSettings({ ...settings, maxSizeMode: 'custom', maxSize: settings.customMaxSize });
     } else {
-      setSettings({ ...settings, maxSize: parseInt(value) });
+      // Switch to preset mode, hide input box
+      setSettings({ ...settings, maxSizeMode: 'preset', maxSize: parseInt(value) });
     }
+  };
+
+  const handleCustomMaxSizeChange = (value: number) => {
+    setSettings({ ...settings, maxSize: value, customMaxSize: value });
   };
 
   const handleVideoBitrateChange = (
@@ -202,10 +211,6 @@ export default function DisplayPage() {
     } else {
       setSettings({ ...settings, frameRate: parseInt(value) });
     }
-  };
-
-  const handleCustomMaxSizeChange = (value: number) => {
-    setSettings({ ...settings, maxSize: value, customMaxSize: value });
   };
 
   const handleCustomBitrateChange = (value: number) => {
@@ -229,6 +234,7 @@ export default function DisplayPage() {
 
   // Helper functions for select values
   const getMaxSizeValue = () => {
+    if (settings.maxSizeMode === 'custom') return "custom";
     if (isPresetMaxSize(settings.maxSize)) return String(settings.maxSize);
     return "custom";
   };
@@ -316,9 +322,9 @@ export default function DisplayPage() {
               <option value="1920">1080p (1080×1920)</option>
               <option value="2560">2K (1440×2560)</option>
               <option value="3840">4K (2160×3840)</option>
-              <option value="custom">{t("display.maxSize")}...</option>
+              <option value="custom">{t("display.customMaxSize")}...</option>
             </select>
-            {!isPresetMaxSize(settings.maxSize) && (
+            {settings.maxSizeMode === 'custom' && (
               <div className="custom-input-group">
                 <input
                   type="number"

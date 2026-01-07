@@ -15,9 +15,11 @@ export interface DeviceInfo {
 
 // Display settings
 export interface DisplaySettings {
-  maxSize: number | "custom";
-  videoBitrate: number | "custom";
-  frameRate: number | "custom";
+  maxSize: number;
+  maxSizeMode: 'preset' | 'custom'; // Track whether user selected preset or custom
+  customMaxSize: number;
+  videoBitrate: number;
+  frameRate: number;
   buffer: number; // Buffer size in milliseconds for smoother video (default: 50)
   alwaysOnTop: boolean;
   fullscreen: boolean;

@@ -166,9 +166,11 @@ logger.info("Application paths configured", {
 
 // Types
 interface DisplaySettings {
-  maxSize: number | "custom";
-  videoBitrate: number | "custom";
-  frameRate: number | "custom";
+  maxSize: number;
+  maxSizeMode: 'preset' | 'custom'; // Track whether user selected preset or custom
+  customMaxSize: number;
+  videoBitrate: number;
+  frameRate: number;
   buffer: number; // Buffer size in milliseconds for smoother video playback (default: 50)
   alwaysOnTop: boolean;
   fullscreen: boolean;
@@ -217,6 +219,7 @@ interface Settings {
   server: ServerSettings;
   logLevel: string;
   deviceHistory: DeviceHistory[];
+  pendingInstallerPath: string | null; // Pending installer to delete on next startup
 }
 
 interface DeviceInfo {
@@ -234,7 +237,6 @@ const connectedDevices = new Set<string>();
 const connectedDevicesInfo = new Map<string, { name: string }>();
 let isQuittingForUpdate = false;
 let isCleaningUp = false;  // Prevent double cleanup
-const INSTALLER_INFO_FILE = "installer-info.json";
 let adbClient: any = null;
 let deviceTracker: any = null;
 
@@ -355,57 +357,44 @@ function cleanupAllProcesses(): Promise<void> {
   });
 }
 
-// Save installer path for cleanup after installation
-function saveInstallerPath(installerPath: string): void {
-  try {
-    const userDataPath = app.getPath("userData");
-    const installerInfoPath = path.join(userDataPath, INSTALLER_INFO_FILE);
-    const info = { path: installerPath, timestamp: Date.now() };
-    writeFileSync(installerInfoPath, JSON.stringify(info, null, 2));
-    logger.info(`Installer path saved: ${installerPath}`);
-  } catch (e) {
-    logger.warn("Failed to save installer path", e);
-  }
-}
-
 // Cleanup old installer file from previous update
-function cleanupOldInstaller(): void {
+// Deletes the PENDING installer (not current one), then saves current path for next startup
+function cleanupOldInstaller(installerPath?: string): void {
   try {
-    const userDataPath = app.getPath("userData");
-    const installerInfoPath = path.join(userDataPath, INSTALLER_INFO_FILE);
-
-    if (!existsSync(installerInfoPath)) {
-      return;
-    }
-
-    const infoStr = readFileSync(installerInfoPath, "utf-8");
-    const info = JSON.parse(infoStr);
-
-    logger.info(`Found old installer: ${info.path}`);
-
-    if (existsSync(info.path)) {
+    // Step 1: Try to delete the pending installer from previous run
+    const pendingPath = settings.pendingInstallerPath;
+    if (pendingPath && existsSync(pendingPath)) {
+      logger.info(`Found pending installer to delete: ${pendingPath}`);
       try {
-        unlinkSync(info.path);
-        logger.info(`Deleted old installer: ${info.path}`);
+        unlinkSync(pendingPath);
+        logger.info(`Successfully deleted pending installer: ${pendingPath}`);
       } catch (e) {
         // File is locked, try rename then delete (Windows workaround)
-        const tempPath = info.path + ".old";
+        const tempPath = pendingPath + ".old";
         try {
-          renameSync(info.path, tempPath);
+          renameSync(pendingPath, tempPath);
           unlinkSync(tempPath);
-          logger.info(`Deleted old installer (renamed first): ${info.path}`);
+          logger.info(`Successfully deleted pending installer (renamed first): ${pendingPath}`);
         } catch (e2) {
-          // If rename also fails, skip cleanup and warn
-          logger.warn(`Failed to delete old installer: ${info.path}`, e2);
+          // Keep the pending path for next startup attempt
+          logger.warn(`Failed to delete pending installer: ${pendingPath}`, e2);
+          // Still proceed to save current path for next time
         }
       }
     }
 
-    // Remove the info file
-    unlinkSync(installerInfoPath);
-    logger.info("Removed installer info file");
+    // Step 2: Save current installer path for deletion on NEXT startup
+    if (installerPath) {
+      settings.pendingInstallerPath = installerPath;
+      logger.info(`Scheduled installer for deletion on next startup: ${installerPath}`);
+    } else {
+      settings.pendingInstallerPath = null;
+    }
+
+    // Step 3: Update settings file
+    saveSettingsToFile();
   } catch (e) {
-    logger.warn("Failed to cleanup old installer", e);
+    logger.warn("Failed to cleanup installer", e);
   }
 }
 
@@ -469,7 +458,9 @@ function stopDeviceTracker(): void {
 // Use type assertion to allow older settings to work
 const settings: Settings = {
   display: {
-    maxSize: 1920, // 1080p (1920 longest edge for 1080x1920 mobile resolution)
+    maxSize: 1920,
+    maxSizeMode: 'preset',
+    customMaxSize: 1920,
     videoBitrate: 8,
     frameRate: 60,
     buffer: 50, // Buffer size in ms for smoother video playback
@@ -511,6 +502,7 @@ const settings: Settings = {
   },
   logLevel: "info",
   deviceHistory: [],
+  pendingInstallerPath: null, // Track pending installer for deletion on next startup
 };
 
 // Load settings from file
@@ -545,6 +537,10 @@ function loadSettings(): void {
           }
         }
         logger.info(`Restored ${connectedDevices.size} connected devices from history`);
+      }
+      // Load pending installer path for cleanup
+      if (saved.pendingInstallerPath !== undefined) {
+        settings.pendingInstallerPath = saved.pendingInstallerPath;
       }
     } catch (e) {
       console.error("Failed to load settings:", e);
@@ -3358,8 +3354,8 @@ ipcMain.handle(
       logger.info("Cleaning up processes before installing update...");
       await cleanupAllProcesses();
 
-      // Save installer path for cleanup after installation
-      saveInstallerPath(installerPath);
+      // Schedule installer for deletion on next startup
+      cleanupOldInstaller(installerPath);
 
       // Open the installer - user needs to manually install
       await shell.openPath(installerPath);
