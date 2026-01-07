@@ -1,0 +1,184 @@
+name: release-assets
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Version tag (e.g., v1.0.1)'
+        required: false
+        default: ''
+  push:
+    tags:
+      - v*.*.*
+
+jobs:
+  extract-changelog:
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    outputs:
+      body: ${{ steps.extract.outputs.body }}
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+
+      - name: Extract changelog for this version
+        id: extract
+        run: |
+          # Get tag version
+          if [[ -n "${{ github.event.inputs.tag }}" ]]; then
+            TAG_VERSION="${{ github.event.inputs.tag }}"
+          else
+            TAG_VERSION="${GITHUB_REF_NAME}"
+          fi
+          
+          # Remove 'v' prefix
+          VERSION="${TAG_VERSION#v}"
+          echo "Extracting changelog for: $TAG_VERSION"
+          
+          # Extract changelog section for this version
+          CHANGELOG=$(awk "/^## \[$VERSION\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md)
+          
+          # If changelog is empty, use a default message
+          if [ -z "$CHANGELOG" ]; then
+            CHANGELOG="Release version $VERSION"
+          fi
+          
+          # Save to output
+          echo "body<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        shell: bash
+
+  build-win:
+    runs-on: windows-latest
+    needs: extract-changelog
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build Windows
+        run: npm run dist:win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Release Assets
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.exe
+            dist/*.zip
+            dist/*.blockmap
+            dist/*.yml
+          body: ${{ needs.extract-changelog.outputs.body }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-mac:
+    runs-on: macos-latest
+    needs: extract-changelog
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build macOS
+        run: |
+          echo "CSC_LINK=" >> $GITHUB_ENV
+          echo "CSC_IDENTITY_AUTO_DISCOVERY=false" >> $GITHUB_ENV
+          npm run dist:mac
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Release Assets
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.dmg
+            dist/*.zip
+          body: ${{ needs.extract-changelog.outputs.body }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-linux:
+    runs-on: ubuntu-latest
+    needs: extract-changelog
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build Linux
+        run: npm run dist:linux
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Release Assets
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.AppImage
+            dist/*.deb
+            dist/*.rpm
+            dist/*.tar.gz
+          body: ${{ needs.extract-changelog.outputs.body }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-version:
+    runs-on: ubuntu-latest
+    needs: [extract-changelog, build-win, build-mac, build-linux]
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+
+      - name: Get version info
+        id: version
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME}"
+          VERSION="${TAG_VERSION#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$TAG_VERSION" >> $GITHUB_OUTPUT
+        shell: bash
+
+      # Note: version.json is now manually managed
+      # To update version.json after release:
+      # 1. Pull latest gh-pages branch
+      # 2. Modify version.json with new release info
+      # 3. Commit and push to gh-pages
+
+      - name: Notify completion
+        run: |
+          echo "Build complete!"
+          echo "Version: ${{ steps.version.outputs.version }}"
+          echo ""
+          echo "To update version.json for auto-update checking:"
+          echo "1. Pull gh-pages: git checkout gh-pages && git pull origin gh-pages"
+          echo "2. Update version.json with release notes and download URLs"
+          echo "3. Commit and push: git add version.json && git commit -m 'chore: update version.json for ${{ steps.version.outputs.version }}' && git push origin gh-pages"
+
