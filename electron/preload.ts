@@ -127,6 +127,15 @@ contextBridge.exposeInMainWorld("electronAPI", {
   sendCloseConfirmResult: (result: { minimizeToTray: boolean }) => {
     ipcRenderer.send("close-confirm-result", result);
   },
+  quitApp: () => ipcRenderer.invoke("quit-app"),
+
+  // Quit animation
+  onQuitAnimation: (callback: () => void) => {
+    ipcRenderer.on("quit-animation", () => callback());
+  },
+  removeQuitAnimationListener: () => {
+    ipcRenderer.removeAllListeners("quit-animation");
+  },
 
   // File operations
   openFolder: (path: string) => ipcRenderer.invoke("open-folder", path),

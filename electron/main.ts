@@ -64,6 +64,25 @@ function isValidDeviceId(deviceId: string): boolean {
   return deviceIdPattern.test(deviceId);
 }
 
+// Start ADB server and wait for it to be ready
+function startAdbServer(): Promise<void> {
+  if (TEST_MODE) {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve) => {
+    const adbPath = getAdbPath();
+    exec(`"${adbPath}" start-server`, { encoding: "utf8" }, (error, stdout, stderr) => {
+      if (error) {
+        logger.warn("ADB start failed:", error.message);
+      } else {
+        logger.debug("ADB server started");
+      }
+      resolve();
+    });
+  });
+}
+
 // Helper function to get default recording path
 function getDefaultRecordPath(deviceId: string): string {
   const downloadsPath = app.getPath("downloads");
@@ -658,15 +677,17 @@ function createWindow(): void {
       }
     }
 
-    // Initialize device tracker after window is shown and persisted states are restored
-    // This prevents the flicker issue where device tracker reports "offline" before auto-connect
-    setTimeout(async () => {
-      await initDeviceTracker();
-      // Auto-connect to saved devices after device tracker is ready
+    // Start ADB server first, then initialize device tracker
+    // This ensures ADB is ready before device tracker tries to connect
+    startAdbServer().then(() => {
+      // ADB is ready, now safe to initialize tracker
+      initDeviceTracker();
+
+      // Auto-connect to saved devices after tracker is ready
       setTimeout(() => {
         autoConnectSavedDevices();
       }, 500);
-    }, 500);
+    });
   });
 
   // Intercept window close to show confirmation dialog
@@ -702,9 +723,42 @@ function createWindow(): void {
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
+
+  // Listen for quit animation request from renderer
+  mainWindow.webContents.on("render-process-gone", (_, details) => {
+    logger.warn("Render process gone:", details);
+  });
 }
 
 // IPC Handlers
+
+// Quit app handler
+ipcMain.handle("quit-app", async (): Promise<void> => {
+  logger.info("User requested quit via IPC");
+
+  // Notify renderer to show termination animation first
+  if (mainWindow) {
+    mainWindow.webContents.send("quit-animation");
+  }
+
+  // Give renderer time to show animation
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
+  // Start cleanup
+  isCleaningUp = true;
+  await cleanupAllProcesses();
+
+  if (mainWindow) {
+    mainWindow.destroy();
+    mainWindow = null;
+  }
+  if (tray) {
+    tray.destroy();
+    tray = null;
+  }
+
+  app.exit(0);
+});
 
 // Get devices
 ipcMain.handle(

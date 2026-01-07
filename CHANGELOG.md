@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.5] - 2026-01-07
+
+### Fixed
+
+- Fixed app startup failure in production environment
+- Fixed ADB daemon not starting properly causing "cannot connect to daemon" error
+- Fixed missing IPC handlers (quit-app, onQuitAnimation) causing renderer errors
+- Fixed device tracker initialization failing when ADB not ready
+
+### Changed
+
+- Changed ADB server startup to use exec() instead of spawn() with unref() for reliable startup
+- Changed startup sequence: show window → start ADB → init tracker → auto-connect
+- Simplified ADB server ready logic by removing caching mechanism
+
+### Added
+
+- Added startAdbServer() function that properly waits for ADB to start
+
 ## [1.1.4] - 2026-01-07
 
 ### Fixed
