@@ -102,6 +102,8 @@
     "videoBitrateDesc": "Bitrate for video encoding (Mbps)",
     "frameRate": "Frame Rate",
     "frameRateDesc": "Limit the maximum frame rate",
+    "buffer": "Video Buffer",
+    "bufferDesc": "Higher values reduce stutter but increase latency (0 = disabled)",
     "alwaysOnTop": "Always on Top",
     "alwaysOnTopDesc": "Keep the mirroring window always on top",
     "fullscreen": "Fullscreen",

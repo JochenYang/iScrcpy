@@ -18,6 +18,7 @@ export interface DisplaySettings {
   maxSize: number | "custom";
   videoBitrate: number | "custom";
   frameRate: number | "custom";
+  buffer: number; // Buffer size in milliseconds for smoother video (default: 50)
   alwaysOnTop: boolean;
   fullscreen: boolean;
   stayAwake: boolean;
@@ -171,8 +172,8 @@ export interface ElectronAPI {
   getLogStats: () => Promise<LogStats>;
   clearLogs: () => Promise<ClearLogsResult>;
 
-  // Settings
-  saveSettings: (type: string, settings: object) => Promise<{ success: boolean }>;
+  // Settings - supports single type or batch save
+  saveSettings: (type: string | { display?: object; encoding?: object; server?: object }, settings?: object) => Promise<{ success: boolean }>;
   loadSettings: () => Promise<{
     display?: DisplaySettings;
     encoding?: EncodingSettings;

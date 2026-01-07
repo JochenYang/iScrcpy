@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Smartphone,
@@ -41,7 +41,34 @@ interface RecordOptions {
   camera?: boolean;
 }
 
-export default function DeviceCard({
+function arePropsEqual(
+  prevProps: DeviceCardProps,
+  nextProps: DeviceCardProps
+): boolean {
+  // Only re-render when device props or connection status actually changes
+  if (prevProps.device.id !== nextProps.device.id) return false;
+  if (prevProps.device.name !== nextProps.device.name) return false;
+  if (prevProps.device.type !== nextProps.device.type) return false;
+  if (prevProps.device.status !== nextProps.device.status) return false;
+  if (prevProps.isConnected !== nextProps.isConnected) return false;
+  if (prevProps.isMirroring !== nextProps.isMirroring) return false;
+
+  // Reference type check (callback functions)
+  if (prevProps.onConnect !== nextProps.onConnect) return false;
+  if (prevProps.onDisconnect !== nextProps.onDisconnect) return false;
+  if (prevProps.onEnableWifi !== nextProps.onEnableWifi) return false;
+  if (prevProps.onStartRecord !== nextProps.onStartRecord) return false;
+  if (prevProps.onStopRecord !== nextProps.onStopRecord) return false;
+  if (prevProps.onToggleAudio !== nextProps.onToggleAudio) return false;
+  if (prevProps.onStartCamera !== nextProps.onStartCamera) return false;
+  if (prevProps.onStopCamera !== nextProps.onStopCamera) return false;
+  if (prevProps.onOpenFileManager !== nextProps.onOpenFileManager) return false;
+  if (prevProps.onRemove !== nextProps.onRemove) return false;
+
+  return true;
+}
+
+export default React.memo(function DeviceCard({
   device,
   isConnected,
   isMirroring,
@@ -64,9 +91,9 @@ export default function DeviceCard({
   const [isCameraActive, setIsCameraActive] = useState(false);
 
   // Status logic:
-  // - Mirroring: "投屏�? (regardless of ADB connection)
-  // - ADB connected + not mirroring: "已连�? (green)
-  // - ADB disconnected: "离线" (gray)
+  // - Mirroring: "Mirroring" (regardless of ADB connection)
+  // - ADB connected + not mirroring: "Connected" (green)
+  // - ADB disconnected: "Disconnected" (gray)
   const statusText = isMirroring
     ? t("devices.connecting")
     : isConnected
@@ -114,7 +141,10 @@ export default function DeviceCard({
       });
 
       if (result.success && result.path) {
-        const installResult = await electronAPI.installApk(device.id, result.path);
+        const installResult = await electronAPI.installApk(
+          device.id,
+          result.path
+        );
 
         if (installResult.success) {
           const toast = document.createElement("div");
@@ -128,7 +158,8 @@ export default function DeviceCard({
         } else {
           const toast = document.createElement("div");
           toast.className = "toast toast-error";
-          toast.textContent = installResult.error || t("devices.installApk.failed");
+          toast.textContent =
+            installResult.error || t("devices.installApk.failed");
           document.body.appendChild(toast);
           setTimeout(() => {
             toast.classList.add("fade-out");
@@ -150,7 +181,11 @@ export default function DeviceCard({
   };
 
   return (
-    <div className={`device-card ${isMirroring ? "mirroring" : isConnected ? "connected" : "offline"}`}>
+    <div
+      className={`device-card ${
+        isMirroring ? "mirroring" : isConnected ? "connected" : "offline"
+      }`}
+    >
       <div className="device-icon">
         <Smartphone size={24} />
       </div>
@@ -159,7 +194,9 @@ export default function DeviceCard({
         <div className="device-id">{device.id}</div>
         <div className="device-badges">
           <span
-            className={`badge badge-status ${isMirroring ? "mirroring" : isConnected ? "connected" : "offline"}`}
+            className={`badge badge-status ${
+              isMirroring ? "mirroring" : isConnected ? "connected" : "offline"
+            }`}
           >
             {statusText}
           </span>
@@ -189,7 +226,9 @@ export default function DeviceCard({
 
         {/* Camera button - always visible for independent camera start */}
         <button
-          className={`btn btn-outline btn-small ${isCameraActive ? "active" : ""}`}
+          className={`btn btn-outline btn-small ${
+            isCameraActive ? "active" : ""
+          }`}
           onClick={handleCameraToggle}
           title={t("devices.camera")}
         >
@@ -222,14 +261,18 @@ export default function DeviceCard({
         {isMirroring && isConnected && (
           <>
             <button
-              className={`btn btn-outline btn-small ${isRecording ? "recording" : ""}`}
+              className={`btn btn-outline btn-small ${
+                isRecording ? "recording" : ""
+              }`}
               onClick={handleRecordToggle}
               title={t("devices.record")}
             >
               <Radio size={14} />
             </button>
             <button
-              className={`btn btn-outline btn-small ${!audioEnabled ? "muted" : ""}`}
+              className={`btn btn-outline btn-small ${
+                !audioEnabled ? "muted" : ""
+              }`}
               onClick={handleAudioToggle}
               title={t("devices.audio")}
             >
@@ -302,5 +345,5 @@ export default function DeviceCard({
       </div>
     </div>
   );
-}
-
+},
+arePropsEqual);

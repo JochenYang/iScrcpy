@@ -100,6 +100,8 @@
     "videoBitrateDesc": "ビデオエンコードのビットレート（Mbps）",
     "frameRate": "フレームレート",
     "frameRateDesc": "最大フレームレートを制限",
+    "buffer": "ビデオバッファ",
+    "bufferDesc": "高い値は途切れを軽減しますが遅延が増加します（0 = 無効）",
     "alwaysOnTop": "常に最前面",
     "alwaysOnTopDesc": "ミラーリングウィンドウを常に最前面に表示",
     "fullscreen": "フルスクリーン",

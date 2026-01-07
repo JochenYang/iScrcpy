@@ -98,6 +98,8 @@
     "videoBitrateDesc": "Débit pour l'encodage vidéo (Mbps)",
     "frameRate": "Fréquence d'Images",
     "frameRateDesc": "Limiter la fréquence d'images maximale",
+    "buffer": "Buffer Vidéo",
+    "bufferDesc": "Des valeurs plus élevées réduisent les saccades mais augmentent la latence (0 = désactivé)",
     "alwaysOnTop": "Toujours au Premier Plan",
     "alwaysOnTopDesc": "Garder la fenêtre de duplication toujours au premier plan",
     "fullscreen": "Plein Écran",

@@ -7,7 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.1.5] - 2026-01-07
+## [1.1.6] - 2026-01-07
+
+### Fixed
+
+- Fixed scrcpy startup failure due to incorrect buffer parameter (changed from --buffer to --video-buffer)
+- Fixed settings saving outputting duplicate log entries (optimized to single file write)
+
+### Added
+
+- Added Video Buffer setting for smoother playback on high-resolution or unstable networks
+- Added multi-language support for Video Buffer UI (7 languages)
+- Added improved command preview showing all active scrcpy parameters
+
+### Changed
+
+- Changed default Video Buffer to 0 for real-time mirroring (no additional latency)
+- Optimized settings save to use batch operation for display and encoding settings
+- Improved label and icon spacing in form groups for better visual appearance
+- Updated all comments to English for codebase consistency
+
+### Performance
+
+- Added React.memo to DeviceCard component to prevent unnecessary re-renders during polling
+- DeviceCard now only re-renders when device props or connection status actually changes
 
 ### Fixed
 

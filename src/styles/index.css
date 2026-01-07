@@ -685,10 +685,16 @@ body {
 }
 
 .form-group label {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 14px;
   color: var(--on-surface-variant);
   margin-bottom: 8px;
+}
+
+.form-group label svg {
+  flex-shrink: 0;
 }
 
 .form-group select,

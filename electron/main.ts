@@ -169,6 +169,7 @@ interface DisplaySettings {
   maxSize: number | "custom";
   videoBitrate: number | "custom";
   frameRate: number | "custom";
+  buffer: number; // Buffer size in milliseconds for smoother video playback (default: 50)
   alwaysOnTop: boolean;
   fullscreen: boolean;
   stayAwake: boolean;
@@ -387,7 +388,16 @@ function cleanupOldInstaller(): void {
         unlinkSync(info.path);
         logger.info(`Deleted old installer: ${info.path}`);
       } catch (e) {
-        logger.warn(`Failed to delete old installer: ${info.path}`, e);
+        // File is locked, try rename then delete (Windows workaround)
+        const tempPath = info.path + ".old";
+        try {
+          renameSync(info.path, tempPath);
+          unlinkSync(tempPath);
+          logger.info(`Deleted old installer (renamed first): ${info.path}`);
+        } catch (e2) {
+          // If rename also fails, skip cleanup and warn
+          logger.warn(`Failed to delete old installer: ${info.path}`, e2);
+        }
       }
     }
 
@@ -455,11 +465,14 @@ function stopDeviceTracker(): void {
 }
 
 // Default settings
+// Note: buffer field added to interface but may not exist in saved settings
+// Use type assertion to allow older settings to work
 const settings: Settings = {
   display: {
     maxSize: 1920, // 1080p (1920 longest edge for 1080x1920 mobile resolution)
     videoBitrate: 8,
     frameRate: 60,
+    buffer: 50, // Buffer size in ms for smoother video playback
     alwaysOnTop: false,
     fullscreen: false,
     stayAwake: false,
@@ -994,6 +1007,11 @@ ipcMain.handle(
     }
     if (typeof display.frameRate === "number" && display.frameRate > 0) {
       args.push("--max-fps", String(display.frameRate));
+    }
+    // Add video-buffer parameter for smoother video playback, reducing stutter
+    // Default buffer is 50ms, can be adjusted based on network/device performance
+    if (typeof display.buffer === "number" && display.buffer > 0) {
+      args.push("--video-buffer", String(display.buffer));
     }
     if (display.alwaysOnTop) args.push("--always-on-top");
     if (display.fullscreen) args.push("--fullscreen");
@@ -1586,31 +1604,46 @@ ipcMain.handle(
   }
 );
 
-// Save settings
+// Save settings - supports single type or multiple settings at once
 ipcMain.handle(
   "save-settings",
   async (
     _,
-    type: string,
-    newSettings: object
+    type: string | { display?: object; encoding?: object; server?: object },
+    newSettings?: object
   ): Promise<{ success: boolean }> => {
-    if (type === "display") {
-      settings.display = {
-        ...settings.display,
-        ...(newSettings as Partial<DisplaySettings>),
-      };
-    } else if (type === "encoding") {
-      settings.encoding = {
-        ...settings.encoding,
-        ...(newSettings as Partial<EncodingSettings>),
-      };
-    } else if (type === "server") {
-      settings.server = {
-        ...settings.server,
-        ...(newSettings as Partial<ServerSettings>),
-      };
-    } else if (type === "deviceHistory") {
-      settings.deviceHistory = newSettings as DeviceHistory[];
+    // Handle batch save (object parameter)
+    if (typeof type === "object" && !newSettings) {
+      if (type.display) {
+        settings.display = { ...settings.display, ...(type.display as Partial<DisplaySettings>) };
+      }
+      if (type.encoding) {
+        settings.encoding = { ...settings.encoding, ...(type.encoding as Partial<EncodingSettings>) };
+      }
+      if (type.server) {
+        settings.server = { ...settings.server, ...(type.server as Partial<ServerSettings>) };
+      }
+    } else {
+      // Handle single type save (legacy mode)
+      const settingsType = type as string;
+      if (settingsType === "display") {
+        settings.display = {
+          ...settings.display,
+          ...(newSettings as Partial<DisplaySettings>),
+        };
+      } else if (settingsType === "encoding") {
+        settings.encoding = {
+          ...settings.encoding,
+          ...(newSettings as Partial<EncodingSettings>),
+        };
+      } else if (settingsType === "server") {
+        settings.server = {
+          ...settings.server,
+          ...(newSettings as Partial<ServerSettings>),
+        };
+      } else if (settingsType === "deviceHistory") {
+        settings.deviceHistory = newSettings as DeviceHistory[];
+      }
     }
 
     // Save to userData directory (works in both dev and packaged mode)
@@ -2966,17 +2999,13 @@ function updateTray(lang: string): void {
     {
       label: translations.quit,
       click: async () => {
-        isCleaningUp = true;
-        await cleanupAllProcesses();
+        // Show window and let user confirm before quitting
         if (mainWindow) {
-          mainWindow.destroy();
-          mainWindow = null;
+          mainWindow.show();
+          mainWindow.focus();
+          // Ask renderer to show close confirmation dialog
+          mainWindow.webContents.send("show-close-confirm");
         }
-        if (tray) {
-          tray.destroy();
-          tray = null;
-        }
-        app.exit(0);
       },
     },
   ]);
@@ -3024,17 +3053,13 @@ function initTray(): void {
     {
       label: defaultTranslations.quit,
       click: async () => {
-        isCleaningUp = true;
-        await cleanupAllProcesses();
+        // Show window and let user confirm before quitting
         if (mainWindow) {
-          mainWindow.destroy();
-          mainWindow = null;
+          mainWindow.show();
+          mainWindow.focus();
+          // Ask renderer to show close confirmation dialog
+          mainWindow.webContents.send("show-close-confirm");
         }
-        if (tray) {
-          tray.destroy();
-          tray = null;
-        }
-        app.exit(0);
       },
     },
   ]);

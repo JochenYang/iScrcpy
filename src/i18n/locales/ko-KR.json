@@ -100,6 +100,8 @@
     "videoBitrateDesc": "비디오 인코딩 비트레이트 (Mbps)",
     "frameRate": "프레임 레이트",
     "frameRateDesc": "최대 프레임 레이트 제한",
+    "buffer": "비디오 버퍼",
+    "bufferDesc": "높은 값은 끊김을 줄이지만 지연 시간이 증가합니다 (0 = 비활성화)",
     "alwaysOnTop": "항상 위",
     "alwaysOnTopDesc": "미러링 창을 항상 맨 위에 유지",
     "fullscreen": "전체 화면",

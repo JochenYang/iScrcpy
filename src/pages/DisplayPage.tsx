@@ -27,6 +27,7 @@ interface DisplaySettings {
   customMaxSize: number;
   customVideoBitrate: number;
   customFrameRate: number;
+  buffer: number; // Video buffer in milliseconds for smoother playback
   alwaysOnTop: boolean;
   fullscreen: boolean;
   stayAwake: boolean;
@@ -64,6 +65,7 @@ export default function DisplayPage() {
     customMaxSize: 1920,
     customVideoBitrate: 10,
     customFrameRate: 90,
+    buffer: 0, // 0 = disabled for real-time mirroring, higher values reduce stutter but increase latency
     alwaysOnTop: false,
     fullscreen: false,
     stayAwake: false,
@@ -94,6 +96,7 @@ export default function DisplayPage() {
       if (savedDisplay.customMaxSize === undefined) savedDisplay.customMaxSize = 1920;
       if (savedDisplay.customVideoBitrate === undefined) savedDisplay.customVideoBitrate = 10;
       if (savedDisplay.customFrameRate === undefined) savedDisplay.customFrameRate = 90;
+      if (savedDisplay.buffer === undefined) savedDisplay.buffer = 0;
       setSettings((prev) => ({ ...prev, ...savedDisplay }));
     }
     if (result.encoding) {
@@ -103,8 +106,11 @@ export default function DisplayPage() {
 
   const handleSave = async () => {
     setSaving(true);
-    await electronAPI.saveSettings("display", settings);
-    await electronAPI.saveSettings("encoding", encodingSettings);
+    // Batch save all settings in a single operation
+    await electronAPI.saveSettings({
+      display: settings,
+      encoding: encodingSettings,
+    });
     showToast(t("display.saved"));
     setSaving(false);
   };
@@ -130,6 +136,8 @@ export default function DisplayPage() {
     if (maxSize && maxSize !== 1920) parts.push(`--max-size=${maxSize}`);
     if (bitrate) parts.push(`--video-bit-rate=${bitrate}M`);
     if (fps && fps !== 60) parts.push(`--max-fps=${fps}`);
+    // Video buffer for smoother playback
+    if (settings.buffer && settings.buffer > 0) parts.push(`--video-buffer=${settings.buffer}`);
     if (settings.alwaysOnTop) parts.push("--always-on-top");
     if (settings.fullscreen) parts.push("--fullscreen");
     if (settings.stayAwake) parts.push("--stay-awake");
@@ -142,17 +150,25 @@ export default function DisplayPage() {
     if (settings.recordTimeLimit > 0) {
       parts.push(`--time-limit=${settings.recordTimeLimit}`);
     }
-    if (settings.recordAudio) parts.push("--record-audio");
+    // Note: --record-audio requires scrcpy 1.17+ with audio support
+    // if (settings.recordAudio) parts.push("--record-audio");
     if (settings.camera) {
       if (settings.cameraId) parts.push(`--camera-id=${settings.cameraId}`);
       parts.push(`--camera-size=${settings.cameraSize}`);
       if (settings.cameraFps !== 30) parts.push(`--camera-fps=${settings.cameraFps}`);
     }
+    // Encoding options
+    if (encodingSettings.videoCodec && encodingSettings.videoCodec !== "h264") {
+      parts.push(`--video-codec=${encodingSettings.videoCodec}`);
+    }
+    if (encodingSettings.audioCodec && encodingSettings.audioCodec !== "opus") {
+      parts.push(`--audio-codec=${encodingSettings.audioCodec}`);
+    }
     return parts.join(" ");
   };
 
   // Check if a value is a preset option (0 = original)
-  // scrcpy --max-size limits the longest edge, so for mobile竖屏 resolutions:
+  // scrcpy --max-size limits the longest edge, so for mobile portrait resolutions:
   // 480p = 480x854, 720p = 720x1280, 1080p = 1080x1920, etc.
   const isPresetMaxSize = (value: number) =>
     [0, 854, 1280, 1920, 2560, 3840].includes(value);
@@ -369,6 +385,27 @@ export default function DisplayPage() {
                 <span className="input-suffix">fps</span>
               </div>
             )}
+          </div>
+
+          <div className="form-group">
+            <label>
+              <Clock size={16} />
+              <span>{t("display.buffer")}</span>
+            </label>
+            <div className="number-input">
+              <input
+                type="number"
+                min="0"
+                max="500"
+                placeholder="0"
+                value={settings.buffer || ""}
+                onChange={(e) =>
+                  setSettings({ ...settings, buffer: parseInt(e.target.value) || 0 })
+                }
+              />
+              <span className="input-suffix">ms</span>
+            </div>
+            <small className="form-hint">{t("display.bufferDesc")}</small>
           </div>
         </div>
       </div>

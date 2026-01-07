@@ -98,6 +98,8 @@
     "videoBitrateDesc": "Tasa de bits para codificación de video (Mbps)",
     "frameRate": "Tasa de Fotogramas",
     "frameRateDesc": "Limitar la tasa de fotogramas máxima",
+    "buffer": "Buffer de Video",
+    "bufferDesc": "Valores más altos reducen las interrupciones pero aumentan la latencia (0 = deshabilitado)",
     "alwaysOnTop": "Siempre Encima",
     "alwaysOnTopDesc": "Mantener la ventana de duplicación siempre encima",
     "fullscreen": "Pantalla Completa",

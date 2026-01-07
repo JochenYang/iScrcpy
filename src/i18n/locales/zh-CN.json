@@ -102,6 +102,8 @@
     "videoBitrateDesc": "视频编码的比特率（Mbps）",
     "frameRate": "帧率",
     "frameRateDesc": "限制视频的最大帧率",
+    "buffer": "视频缓冲",
+    "bufferDesc": "较高值可减少卡顿但会增加延迟（0 = 禁用）",
     "alwaysOnTop": "窗口置顶",
     "alwaysOnTopDesc": "投屏窗口始终保持在最前面",
     "fullscreen": "全屏模式",
