@@ -1,0 +1,35 @@
+# Electron
+node_modules/
+out/
+dist/
+dist-electron/
+dist-win/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+.claude
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Settings
+settings.json
+
+# Build
+*.exe.manifest
+
+# Keep app binaries (required for packaging)
+!app/win/*.exe
+
+# Temp
+temp/
+tmp/
+doc/

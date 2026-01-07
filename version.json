@@ -1,0 +1,10 @@
+{
+  "version": "1.1.7",
+  "releaseNotes": "\n### Fixed\n\n- Fixed installer deletion failure on Windows (EBUSY: resource busy or locked)\n- Changed deletion logic to delete pending installer on NEXT startup instead of current\n- Fixed resolution custom option not showing input box\n- Fixed custom resolution option text showing 最大分辨率 instead of 自定义分辨率\n\n### Added\n\n- Added maxSizeMode field to track preset vs custom resolution selection\n- Added customMaxSize translations for all 7 languages\n\n### Changed\n\n- Improved resolution selector: selecting Custom Resolution now immediately shows input box\n- Simplified installer cleanup using settings-based pendingInstallerPath instead of separate file\n",
+  "downloadUrl": {
+    "windows": "https://github.com/JochenYang/iScrcpy/releases/download/v1.1.7/iScrcpy-1.1.7-win-x64.exe",
+    "mac": "https://github.com/JochenYang/iScrcpy/releases/download/v1.1.7/iScrcpy-1.1.7-mac-x64.dmg",
+    "linux": "https://github.com/JochenYang/iScrcpy/releases/download/v1.1.7/iScrcpy-1.1.7-linux-x86_64.AppImage"
+  },
+  "publishedAt": "2026-01-07T13:41:06Z"
+}
