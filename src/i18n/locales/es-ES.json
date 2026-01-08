@@ -93,6 +93,7 @@
     "title": "Configuración de Pantalla",
     "maxSize": "Resolución Máxima",
     "maxSizeDesc": "Limitar el tamaño máximo (ancho o alto) del video",
+    "customMaxSize": "Resolución Personalizada",
     "originalResolution": "Resolución Original",
     "videoBitrate": "Tasa de Bits de Video",
     "videoBitrateDesc": "Tasa de bits para codificación de video (Mbps)",

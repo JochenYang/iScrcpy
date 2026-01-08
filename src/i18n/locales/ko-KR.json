@@ -95,6 +95,7 @@
     "title": "디스플레이 설정",
     "maxSize": "최대 해상도",
     "maxSizeDesc": "비디오의 최대 크기(너비 또는 높이) 제한",
+    "customMaxSize": "사용자 정의 해상도",
     "originalResolution": "원본 해상도",
     "videoBitrate": "비디오 비트레이트",
     "videoBitrateDesc": "비디오 인코딩 비트레이트 (Mbps)",

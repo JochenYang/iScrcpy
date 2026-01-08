@@ -97,6 +97,7 @@
     "title": "Display Settings",
     "maxSize": "Max Resolution",
     "maxSizeDesc": "Limit the maximum size (width or height) of the video",
+    "customMaxSize": "Custom Resolution",
     "originalResolution": "Original Resolution",
     "videoBitrate": "Video Bitrate",
     "videoBitrateDesc": "Bitrate for video encoding (Mbps)",

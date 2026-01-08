@@ -358,44 +358,40 @@ function cleanupAllProcesses(): Promise<void> {
 }
 
 // Cleanup old installer file from previous update
-// Deletes the PENDING installer (not current one), then saves current path for next startup
-function cleanupOldInstaller(installerPath?: string): void {
-  try {
-    // Step 1: Try to delete the pending installer from previous run
-    const pendingPath = settings.pendingInstallerPath;
-    if (pendingPath && existsSync(pendingPath)) {
-      logger.info(`Found pending installer to delete: ${pendingPath}`);
-      try {
-        unlinkSync(pendingPath);
-        logger.info(`Successfully deleted pending installer: ${pendingPath}`);
-      } catch (e) {
-        // File is locked, try rename then delete (Windows workaround)
-        const tempPath = pendingPath + ".old";
-        try {
-          renameSync(pendingPath, tempPath);
-          unlinkSync(tempPath);
-          logger.info(`Successfully deleted pending installer (renamed first): ${pendingPath}`);
-        } catch (e2) {
-          // Keep the pending path for next startup attempt
-          logger.warn(`Failed to delete pending installer: ${pendingPath}`, e2);
-          // Still proceed to save current path for next time
-        }
+// Uses retry with exponential backoff because Windows locks the file immediately after installation
+function cleanupOldInstaller(): void {
+  const pendingPath = settings.pendingInstallerPath;
+  if (!pendingPath || !existsSync(pendingPath)) {
+    // No pending installer or file doesn't exist
+    settings.pendingInstallerPath = null;
+    return;
+  }
+
+  logger.info(`Found pending installer: ${pendingPath}`);
+
+  // Retry deletion with exponential backoff
+  let attempts = 0;
+  const maxAttempts = 10;
+  const baseDelay = 1000; // 1 second base delay
+
+  const tryDelete = () => {
+    attempts++;
+    try {
+      unlinkSync(pendingPath);
+      logger.info(`Deleted pending installer: ${pendingPath}`);
+      settings.pendingInstallerPath = null;
+    } catch (e) {
+      if (attempts < maxAttempts) {
+        const delay = baseDelay * Math.pow(1.5, attempts - 1);
+        logger.debug(`Installer locked, retrying in ${delay}ms (attempt ${attempts}/${maxAttempts})`);
+        setTimeout(tryDelete, delay);
+      } else {
+        logger.warn(`Failed to delete pending installer after ${maxAttempts} attempts: ${pendingPath}`);
       }
     }
+  };
 
-    // Step 2: Save current installer path for deletion on NEXT startup
-    if (installerPath) {
-      settings.pendingInstallerPath = installerPath;
-      logger.info(`Scheduled installer for deletion on next startup: ${installerPath}`);
-    } else {
-      settings.pendingInstallerPath = null;
-    }
-
-    // Step 3: Update settings file
-    saveSettingsToFile();
-  } catch (e) {
-    logger.warn("Failed to cleanup installer", e);
-  }
+  tryDelete();
 }
 
 // Initialize device tracker for real-time device monitoring
@@ -463,7 +459,7 @@ const settings: Settings = {
     customMaxSize: 1920,
     videoBitrate: 8,
     frameRate: 60,
-    buffer: 50, // Buffer size in ms for smoother video playback
+    buffer: 0, // Buffer size in ms (0 = disabled for real-time mirroring)
     alwaysOnTop: false,
     fullscreen: false,
     stayAwake: false,
@@ -686,17 +682,22 @@ function createWindow(): void {
       }
     }
 
-    // Start ADB server first, then initialize device tracker
-    // This ensures ADB is ready before device tracker tries to connect
-    startAdbServer().then(() => {
-      // ADB is ready, now safe to initialize tracker
-      initDeviceTracker();
+    // Start ADB server in background (non-blocking)
+    // Initialize device tracker immediately - it will retry if ADB is not ready yet
+    // This parallel approach reduces startup time
+    startAdbServer();
 
-      // Auto-connect to saved devices after tracker is ready
-      setTimeout(() => {
-        autoConnectSavedDevices();
-      }, 500);
+    // Initialize tracker immediately, it handles ADB not ready gracefully
+    // Use setImmediate to ensure window is fully shown first
+    setImmediate(() => {
+      initDeviceTracker();
     });
+
+    // Auto-connect to saved devices after a shorter delay
+    // Tracker will be ready by then for most cases
+    setTimeout(() => {
+      autoConnectSavedDevices();
+    }, 300);
   });
 
   // Intercept window close to show confirmation dialog
@@ -990,7 +991,7 @@ ipcMain.handle(
       }
     }
 
-    // Build scrcpy args - minimal for testing
+    // Build scrcpy args
     const args = ["-s", deviceId];
     const { display, encoding, server } = settings;
 

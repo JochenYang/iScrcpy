@@ -7,24 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.1.7] - 2026-01-07
+## [1.1.7] - 2026-01-08
 
 ### Fixed
 
-- Fixed installer deletion failure on Windows (EBUSY: resource busy or locked)
-- Changed deletion logic to delete pending installer on NEXT startup instead of current
+- Fixed custom resolution/frameRate/bitrate not persisting after restart (state management bug)
+- Fixed custom resolution label showing "Max Resolution" instead of "Custom Resolution"
+- Fixed installer file deletion failing on Windows due to file locking
+- Changed default video buffer to 0 (disabled for real-time mirroring)
 - Fixed resolution custom option not showing input box
-- Fixed custom resolution option text showing "最大分辨率" instead of "自定义分辨率"
-
-### Added
-
-- Added maxSizeMode field to track preset vs custom resolution selection
-- Added customMaxSize translations for all 7 languages
 
 ### Changed
 
-- Improved resolution selector: selecting "Custom Resolution" now immediately shows input box
-- Simplified installer cleanup using settings-based pendingInstallerPath instead of separate file
+- Removed auto-generation of version.json during release workflow (manual update required)
+- Optimized event listener binding in DevicePage (bind once instead of re-binding on state changes)
+- Optimized startup process: parallel ADB start and device tracker initialization
+- Reduced auto-connect delay from 500ms to 300ms
 
 ## [1.1.6] - 2026-01-07
 

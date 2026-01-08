@@ -95,6 +95,7 @@
     "title": "ディスプレイ設定",
     "maxSize": "最大解像度",
     "maxSizeDesc": "ビデオの最大サイズ（幅または高さ）を制限",
+    "customMaxSize": "カスタム解像度",
     "originalResolution": "元の解像度",
     "videoBitrate": "ビデオビットレート",
     "videoBitrateDesc": "ビデオエンコードのビットレート（Mbps）",

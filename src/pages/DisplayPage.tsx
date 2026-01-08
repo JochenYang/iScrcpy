@@ -85,6 +85,9 @@ export default function DisplayPage() {
     disableScreensaver: false,
   });
   const [saving, setSaving] = useState(false);
+  const [isCustomMaxSize, setIsCustomMaxSize] = useState(false);
+  const [isCustomBitrate, setIsCustomBitrate] = useState(false);
+  const [isCustomFps, setIsCustomFps] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -101,6 +104,10 @@ export default function DisplayPage() {
       if (savedDisplay.buffer === undefined) savedDisplay.buffer = 0;
       if (savedDisplay.maxSizeMode === undefined) savedDisplay.maxSizeMode = 'preset';
       setSettings((prev) => ({ ...prev, ...savedDisplay }));
+      // Restore custom selection states based on whether current values are presets
+      setIsCustomMaxSize(!isPresetMaxSize(savedDisplay.maxSize));
+      setIsCustomBitrate(!isPresetBitrate(savedDisplay.videoBitrate));
+      setIsCustomFps(!isPresetFps(savedDisplay.frameRate));
     }
     if (result.encoding) {
       setEncodingSettings((prev) => ({ ...prev, ...result.encoding }));
@@ -181,11 +188,11 @@ export default function DisplayPage() {
   const handleMaxSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
     if (value === "custom") {
-      // Switch to custom mode, show input box
-      setSettings({ ...settings, maxSizeMode: 'custom', maxSize: settings.customMaxSize });
+      setIsCustomMaxSize(true);
+      // Don't change maxSize yet, let user input custom value
     } else {
-      // Switch to preset mode, hide input box
-      setSettings({ ...settings, maxSizeMode: 'preset', maxSize: parseInt(value) });
+      setIsCustomMaxSize(false);
+      setSettings({ ...settings, maxSize: parseInt(value) });
     }
   };
 
@@ -198,8 +205,10 @@ export default function DisplayPage() {
   ) => {
     const value = e.target.value;
     if (value === "custom") {
-      setSettings({ ...settings, videoBitrate: settings.customVideoBitrate });
+      setIsCustomBitrate(true);
+      // Don't change videoBitrate yet, let user input custom value
     } else {
+      setIsCustomBitrate(false);
       setSettings({ ...settings, videoBitrate: parseInt(value) });
     }
   };
@@ -207,8 +216,10 @@ export default function DisplayPage() {
   const handleFrameRateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
     if (value === "custom") {
-      setSettings({ ...settings, frameRate: settings.customFrameRate });
+      setIsCustomFps(true);
+      // Don't change frameRate yet, let user input custom value
     } else {
+      setIsCustomFps(false);
       setSettings({ ...settings, frameRate: parseInt(value) });
     }
   };
@@ -234,17 +245,19 @@ export default function DisplayPage() {
 
   // Helper functions for select values
   const getMaxSizeValue = () => {
-    if (settings.maxSizeMode === 'custom') return "custom";
+    if (isCustomMaxSize) return "custom";
     if (isPresetMaxSize(settings.maxSize)) return String(settings.maxSize);
     return "custom";
   };
 
   const getBitrateValue = () => {
+    if (isCustomBitrate) return "custom";
     if (isPresetBitrate(settings.videoBitrate)) return String(settings.videoBitrate);
     return "custom";
   };
 
   const getFpsValue = () => {
+    if (isCustomFps) return "custom";
     if (isPresetFps(settings.frameRate)) return String(settings.frameRate);
     return "custom";
   };
@@ -313,7 +326,7 @@ export default function DisplayPage() {
           <div className="form-group select-form-group">
             <label>
               <Maximize2 size={16} />
-              {t("display.maxSize")}
+              {isCustomMaxSize ? t("display.customMaxSize") : t("display.maxSize")}
             </label>
             <select value={getMaxSizeValue()} onChange={handleMaxSizeChange}>
               <option value="0">{t("display.originalResolution")}</option>
@@ -324,7 +337,7 @@ export default function DisplayPage() {
               <option value="3840">4K (2160×3840)</option>
               <option value="custom">{t("display.customMaxSize")}...</option>
             </select>
-            {settings.maxSizeMode === 'custom' && (
+            {isCustomMaxSize && (
               <div className="custom-input-group">
                 <input
                   type="number"
@@ -354,7 +367,7 @@ export default function DisplayPage() {
               <option value="32">32 Mbps</option>
               <option value="custom">{t("display.videoBitrate")}...</option>
             </select>
-            {!isPresetBitrate(settings.videoBitrate) && (
+            {isCustomBitrate && (
               <div className="custom-input-group">
                 <input
                   type="number"
@@ -380,7 +393,7 @@ export default function DisplayPage() {
               <option value="144">144 fps</option>
               <option value="custom">{t("display.frameRate")}...</option>
             </select>
-            {!isPresetFps(settings.frameRate) && (
+            {isCustomFps && (
               <div className="custom-input-group">
                 <input
                   type="number"

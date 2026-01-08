@@ -93,6 +93,7 @@
     "title": "Paramètres d'Affichage",
     "maxSize": "Résolution Maximale",
     "maxSizeDesc": "Limiter la taille maximale (largeur ou hauteur) de la vidéo",
+    "customMaxSize": "Résolution Personnalisée",
     "originalResolution": "Résolution Originale",
     "videoBitrate": "Débit Vidéo",
     "videoBitrateDesc": "Débit pour l'encodage vidéo (Mbps)",

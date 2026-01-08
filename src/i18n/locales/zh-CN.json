@@ -97,6 +97,7 @@
     "title": "投屏设置",
     "maxSize": "最大分辨率",
     "maxSizeDesc": "限制视频的最大尺寸（宽度或高度）",
+    "customMaxSize": "自定义分辨率",
     "originalResolution": "原始分辨率",
     "videoBitrate": "视频比特率",
     "videoBitrateDesc": "视频编码的比特率（Mbps）",

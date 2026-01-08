@@ -371,11 +371,20 @@ export default function DevicePage() {
     return () => clearInterval(pollInterval);
   }, [loadDevices]);
 
+  // Use ref to track devices without causing re-renders
+  const devicesRef = useRef(devices);
+  devicesRef.current = devices;
+
+  // Use ref for store actions to avoid re-binding
+  const removeMirroringDeviceRef = useRef(removeMirroringDevice);
+  removeMirroringDeviceRef.current = removeMirroringDevice;
+
   useEffect(() => {
+    // Define handlers - these reference refs instead of dependencies
     const handleScrcpyExit = async (deviceId: string) => {
       console.log(`Scrcpy exited for device: ${deviceId}`);
-      removeMirroringDevice(deviceId);
-      const device = devices.find((d) => d.id === deviceId);
+      removeMirroringDeviceRef.current(deviceId);
+      const device = devicesRef.current.find((d) => d.id === deviceId);
       showToast(
         t("devices.toast.screenMirroringDisconnected", {
           deviceName: device?.name || deviceId,
@@ -409,6 +418,7 @@ export default function DevicePage() {
       }
     };
 
+    // Bind all event listeners once on mount
     if (typeof electronAPI.onScrcpyExit === "function") {
       electronAPI.onScrcpyExit(handleScrcpyExit);
     }
@@ -422,6 +432,7 @@ export default function DevicePage() {
       electronAPI.onDeviceChange(handleDeviceChange);
     }
 
+    // Cleanup on unmount only
     return () => {
       if (typeof electronAPI.removeScrcpyExitListener === "function") {
         electronAPI.removeScrcpyExitListener();
@@ -436,7 +447,7 @@ export default function DevicePage() {
         electronAPI.removeDeviceChangeListener();
       }
     };
-  }, [devices, addMirroringDevice, removeMirroringDevice, t, loadDevices]);
+  }, []); // Empty dependency array - bind once on mount
 
   // Merge knownDevices and devices to get complete device list with latest status
   const deviceStatusMap = new Map(devices.map(d => [d.id, d.status]));

@@ -93,6 +93,7 @@
     "title": "Ekran Ayarları",
     "maxSize": "Maksimum Çözünürlük",
     "maxSizeDesc": "Videonun maksimum boyutunu (genişlik veya yükseklik) sınırla",
+    "customMaxSize": "Özel Çözünürlük",
     "originalResolution": "Orijinal Çözünürlük",
     "videoBitrate": "Video Bit Hızı",
     "videoBitrateDesc": "Video kodlama için bit hızı (Mbps)",
