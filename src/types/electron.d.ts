@@ -191,6 +191,19 @@ export interface ElectronAPI {
   getElectronVersion: () => Promise<VersionInfo>;
   getChromeVersion: () => Promise<VersionInfo>;
 
+  // Encoder management
+  getEncoders: (deviceId: string, codec: string) => Promise<{
+    success: boolean;
+    encoders?: Array<{
+      name: string;
+      type: "video" | "audio";
+      codec: string;
+      isHardware: boolean;
+      isRecommended: boolean;
+    }>;
+    error?: string;
+  }>;
+
   // Window controls
   windowMinimize: () => void;
   windowMaximize: () => void;

@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.8] - 2026-01-09
+
+### Added
+
+- Added hardware encoder selection support for improved WiFi streaming performance
+- Users can now select from available device encoders via dropdown menu
+- Recommended hardware encoders (c2.qti.*, OMX.qcom.*) are marked with ★ indicator
+- Encoder info display shows current selected encoder name
+- Click-to-load approach (encoders load on dropdown click for better UX)
+- Added multi-language translations for encoder UI (7 languages)
+
+### Fixed
+
+- Fixed saved encoder value not displaying after page reload
+- Fixed encoder parsing issue when loading saved settings
+- Removed debug console.log statements from EncodingPage component
+
+### Changed
+
+- Updated videoEncoder description text to guide users to hardware encoder selection
+- Improved encoder loading UX with toast notification when encoders are loaded
+- Encoder selection now uses "codec & encoder" format internally for better compatibility
+
 ## [1.1.7] - 2026-01-08
 
 ### Fixed

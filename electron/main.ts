@@ -72,9 +72,20 @@ function startAdbServer(): Promise<void> {
 
   return new Promise((resolve) => {
     const adbPath = getAdbPath();
-    exec(`"${adbPath}" start-server`, { encoding: "utf8" }, (error, stdout, stderr) => {
+    // Use PowerShell to properly handle the command
+    exec(`"${adbPath}" start-server`, { encoding: "utf8", timeout: 10000 }, (error, stdout, stderr) => {
       if (error) {
         logger.warn("ADB start failed:", error.message);
+        // Retry once
+        setTimeout(() => {
+          exec(`"${adbPath}" start-server`, { encoding: "utf8", timeout: 10000 }, (retryError, _stdout, _stderr) => {
+            if (retryError) {
+              logger.warn("ADB retry start failed:", retryError.message);
+            } else {
+              logger.info("ADB server started (retry)");
+            }
+          });
+        }, 1000);
       } else {
         logger.debug("ADB server started");
       }
@@ -123,6 +134,93 @@ function resolveRecordPath(
   }
 
   return customTrimmedPath;
+}
+
+// Get list of available video encoders from device
+interface EncoderInfo {
+  name: string;
+  type: "video" | "audio";
+  codec: string;
+  isHardware: boolean;
+  isRecommended: boolean;
+}
+
+function getEncodersFromDevice(
+  deviceId: string,
+  codec: string
+): Promise<{ success: boolean; encoders?: EncoderInfo[]; error?: string }> {
+  return new Promise((resolve) => {
+    // Use scrcpy --list-encoders to get available encoders for the specified codec
+    const scrcpyPath = SCRCPY_PATH;
+    const args = [
+      `--video-codec=${codec}`,
+      "--list-encoders",
+      `--serial=${deviceId}`
+    ];
+    const cmd = `"${scrcpyPath}" ${args.join(" ")}`;
+
+    logger.debug(`Fetching encoders for device ${deviceId} with codec ${codec}`);
+
+    exec(cmd,
+      { encoding: "utf8", timeout: 20000 },
+      (error, stdout, stderr) => {
+        if (error) {
+          logger.warn(`Failed to get encoders: ${error.message}`);
+          resolve({ success: false, error: error.message });
+          return;
+        }
+
+        const encoders: EncoderInfo[] = [];
+        const lines = stdout.split("\n").filter((line) => line.trim());
+
+        logger.debug(`scrcpy output lines: ${lines.length}`);
+
+        // Parse scrcpy output format:
+        // --video-codec=h264 --video-encoder=c2.qti.avc.encoder (hw) [vendor]
+        // --audio-codec=opus --audio-encoder=c2.android.opus.encoder (sw)
+        const encoderRegex = /--(video|audio)-codec=(\w+)\s+--(video|audio)-encoder=([^\s]+)\s+\((hw|sw)\)/i;
+
+        for (const line of lines) {
+          const match = line.match(encoderRegex);
+          if (match) {
+            const type = match[1].toLowerCase() as "video" | "audio";
+            const codecType = match[2].toLowerCase();
+            const name = match[4];
+            const isHardware = match[5].toLowerCase() === "hw";
+
+            // Recommend all hardware encoders
+            const isRecommended = isHardware;
+
+            encoders.push({ name, type, codec: codecType, isHardware, isRecommended });
+          }
+        }
+
+        logger.debug(`Parsed ${encoders.length} encoders from output`);
+
+        // Remove duplicates
+        const seen = new Set<string>();
+        const uniqueEncoders = encoders.filter((e) => {
+          const key = `${e.name}-${e.type}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+
+        // Sort: video first, then recommended, then hardware
+        uniqueEncoders.sort((a, b) => {
+          if (a.type === "video" && b.type !== "video") return -1;
+          if (a.type !== "video" && b.type === "video") return 1;
+          if (a.isRecommended && !b.isRecommended) return -1;
+          if (!a.isRecommended && b.isRecommended) return 1;
+          if (a.isHardware && !b.isHardware) return -1;
+          if (!a.isHardware && b.isHardware) return 1;
+          return a.name.localeCompare(b.name);
+        });
+
+        resolve({ success: true, encoders: uniqueEncoders });
+      }
+    );
+  });
 }
 
 // Platform-specific paths
@@ -191,6 +289,7 @@ interface DisplaySettings {
 
 interface EncodingSettings {
   videoCodec: string;
+  videoEncoder: string; // Hardware encoder name (e.g., "c2.qti.avc.encoder")
   audioCodec: string;
   bitrateMode: string;
 }
@@ -428,11 +527,21 @@ async function initDeviceTracker(): Promise<void> {
 
     deviceTracker.on("error", (err: any) => {
       logger.error("Device tracker error:", err);
+      // Attempt to restart tracker after error
+      setTimeout(() => {
+        logger.info("Attempting to restart device tracker...");
+        initDeviceTracker();
+      }, 2000);
     });
 
     logger.info("Device tracker initialized");
   } catch (e) {
     logger.warn("Failed to init device tracker:", e);
+    // Retry after delay
+    setTimeout(() => {
+      logger.info("Retrying device tracker initialization...");
+      initDeviceTracker();
+    }, 2000);
   }
 }
 
@@ -478,6 +587,7 @@ const settings: Settings = {
   },
   encoding: {
     videoCodec: "h264",
+    videoEncoder: "", // Empty means use default (will auto-select if needed)
     audioCodec: "opus",
     bitrateMode: "vbr",
   },
@@ -1869,6 +1979,10 @@ ipcMain.handle(
     if (encoding.videoCodec && encoding.videoCodec !== "h264") {
       args.push("--video-codec", encoding.videoCodec);
     }
+    // Add video encoder if selected (hardware encoder for better performance)
+    if (encoding.videoEncoder) {
+      args.push("--video-encoder", encoding.videoEncoder);
+    }
     if (encoding.audioCodec && encoding.audioCodec !== "opus") {
       args.push("--audio-codec", encoding.audioCodec);
     }
@@ -2231,6 +2345,10 @@ ipcMain.handle(
     if (encoding.videoCodec && encoding.videoCodec !== "h264") {
       args.push("--video-codec", encoding.videoCodec);
     }
+    // Add video encoder if selected (hardware encoder for better performance)
+    if (encoding.videoEncoder) {
+      args.push("--video-encoder", encoding.videoEncoder);
+    }
     if (encoding.audioCodec && encoding.audioCodec !== "opus") {
       args.push("--audio-codec", encoding.audioCodec);
     }
@@ -2387,6 +2505,10 @@ ipcMain.handle(
     if (encoding.videoCodec && encoding.videoCodec !== "h264") {
       args.push("--video-codec", encoding.videoCodec);
     }
+    // Add video encoder if selected (hardware encoder for better performance)
+    if (encoding.videoEncoder) {
+      args.push("--video-encoder", encoding.videoEncoder);
+    }
     if (encoding.audioCodec && encoding.audioCodec !== "opus") {
       args.push("--audio-codec", encoding.audioCodec);
     }
@@ -2531,6 +2653,10 @@ ipcMain.handle(
 
     if (encoding.videoCodec && encoding.videoCodec !== "h264") {
       args.push("--video-codec", encoding.videoCodec);
+    }
+    // Add video encoder if selected (hardware encoder for better performance)
+    if (encoding.videoEncoder) {
+      args.push("--video-encoder", encoding.videoEncoder);
     }
     if (encoding.audioCodec && encoding.audioCodec !== "opus") {
       args.push("--audio-codec", encoding.audioCodec);
@@ -2702,6 +2828,14 @@ ipcMain.handle("get-electron-version", async () => {
 ipcMain.handle("get-chrome-version", async () => {
   return { version: process.versions.chrome };
 });
+
+// Get available video encoders for a device
+ipcMain.handle(
+  "get-encoders",
+  async (_, deviceId: string, codec: string): Promise<{ success: boolean; encoders?: EncoderInfo[]; error?: string }> => {
+    return getEncodersFromDevice(deviceId, codec);
+  }
+);
 
 // Window controls
 ipcMain.handle("window-minimize", () => mainWindow?.minimize());
@@ -3356,7 +3490,7 @@ ipcMain.handle(
       await cleanupAllProcesses();
 
       // Schedule installer for deletion on next startup
-      cleanupOldInstaller(installerPath);
+      settings.pendingInstallerPath = installerPath;
 
       // Open the installer - user needs to manually install
       await shell.openPath(installerPath);

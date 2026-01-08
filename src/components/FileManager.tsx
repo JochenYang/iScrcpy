@@ -4,7 +4,6 @@ import {
   Folder,
   FileText,
   ArrowLeft,
-  ArrowRight,
   Download,
   Upload,
   Trash2,
@@ -97,10 +96,6 @@ export default function FileManager({ deviceId, deviceName, onClose }: FileManag
       const newPath = parts.length === 0 ? "/" : "/" + parts.join("/");
       handleNavigate(newPath);
     }
-  };
-
-  const handleBreadcrumbClick = (path: string) => {
-    handleNavigate(path);
   };
 
   const handleDownload = async () => {

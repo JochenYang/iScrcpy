@@ -72,8 +72,8 @@ export const electronAPI: ElectronAPI = {
   getLogStats: () => window.electronAPI.getLogStats(),
   clearLogs: () => window.electronAPI.clearLogs(),
 
-  // Settings
-  saveSettings: (type: string, settings: object) =>
+  // Settings - supports single type or batch save
+  saveSettings: (type: string | { display?: object; encoding?: object; server?: object }, settings?: object) =>
     window.electronAPI.saveSettings(type, settings),
   loadSettings: () => window.electronAPI.loadSettings(),
 
@@ -83,6 +83,9 @@ export const electronAPI: ElectronAPI = {
   getAdbVersion: () => window.electronAPI.getAdbVersion(),
   getElectronVersion: () => window.electronAPI.getElectronVersion(),
   getChromeVersion: () => window.electronAPI.getChromeVersion(),
+
+  // Encoder management
+  getEncoders: (deviceId: string, codec: string) => window.electronAPI.getEncoders(deviceId, codec),
 
   // Window controls
   windowMinimize: () => window.electronAPI.windowMinimize(),

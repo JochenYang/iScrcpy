@@ -30,14 +30,14 @@ export default function AboutPage() {
     // Get scrcpy version
     electronAPI.getVersion().then((result) => {
       if (result.success && result.version) {
-        setVersions((prev) => ({ ...prev, scrcpyVersion: result.version }));
+        setVersions((prev) => ({ ...prev, scrcpyVersion: result.version! }));
       }
     });
 
     // Get ADB version
     electronAPI.getAdbVersion().then((result) => {
       if (result.success && result.version) {
-        setVersions((prev) => ({ ...prev, adbVersion: result.version }));
+        setVersions((prev) => ({ ...prev, adbVersion: result.version! }));
       }
     });
   }, []);

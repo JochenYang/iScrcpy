@@ -112,6 +112,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getElectronVersion: () => ipcRenderer.invoke("get-electron-version"),
   getChromeVersion: () => ipcRenderer.invoke("get-chrome-version"),
 
+  // Encoder management
+  getEncoders: (deviceId: string, codec: string) => ipcRenderer.invoke("get-encoders", deviceId, codec),
+
   // Window controls
   windowMinimize: () => ipcRenderer.invoke("window-minimize"),
   windowMaximize: () => ipcRenderer.invoke("window-maximize"),

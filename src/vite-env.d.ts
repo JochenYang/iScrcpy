@@ -100,16 +100,19 @@ interface Window {
     createDeviceFolder: (deviceId: string, devicePath: string) => Promise<{ success: boolean; error?: string }>;
     installApk: (deviceId: string, apkPath: string) => Promise<{ success: boolean; packageName?: string; error?: string }>;
 
-    // Settings
+    // Settings - supports single type or batch save
     saveSettings: (
-      type: string,
-      settings: object
+      type: string | { display?: object; encoding?: object; server?: object },
+      settings?: object
     ) => Promise<{ success: boolean }>;
     loadSettings: () => Promise<{
       display?: {
-        maxSize: number | "custom";
-        videoBitrate: number | "custom";
+        maxSize: number;
+        maxSizeMode: 'preset' | 'custom';
+        customMaxSize: number;
+        videoBitrate: number;
         frameRate: number;
+        buffer: number;
         alwaysOnTop: boolean;
         fullscreen: boolean;
         stayAwake: boolean;
@@ -128,6 +131,7 @@ interface Window {
       };
       encoding?: {
         videoCodec: string;
+        videoEncoder: string;
         audioCodec: string;
         bitrateMode: string;
       };
@@ -163,6 +167,19 @@ interface Window {
     getElectronVersion: () => Promise<{ version: string }>;
     getChromeVersion: () => Promise<{ version: string }>;
 
+    // Encoder management
+    getEncoders: (deviceId: string, codec: string) => Promise<{
+      success: boolean;
+      encoders?: Array<{
+        name: string;
+        type: "video" | "audio";
+        codec: string;
+        isHardware: boolean;
+        isRecommended: boolean;
+      }>;
+      error?: string;
+    }>;
+
     // Window controls
     windowMinimize: () => void;
     windowMaximize: () => void;
@@ -172,6 +189,11 @@ interface Window {
     onShowCloseConfirm: (callback: () => void) => void;
     removeCloseConfirmListener: () => void;
     sendCloseConfirmResult: (result: { minimizeToTray: boolean }) => void;
+    quitApp: () => Promise<void>;
+
+    // Quit animation
+    onQuitAnimation: (callback: () => void) => void;
+    removeQuitAnimationListener: () => void;
 
     // File operations
     openFolder: (path: string) => void;
