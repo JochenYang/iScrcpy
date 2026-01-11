@@ -147,6 +147,7 @@
       "entitlements": "entitlements.plist",
       "entitlementsInherit": "entitlements.plist",
       "notarize": false,
+      "sign": false,
       "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
     },
     "dmg": {
