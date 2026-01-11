@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useDeviceStore } from "../store/deviceStore";
 import { electronAPI } from "../utils/electron";
+import { showToast, showSuccess, showError } from "../utils/toast";
 
 interface DeviceCardProps {
   device: {
@@ -147,36 +148,14 @@ export default React.memo(function DeviceCard({
         );
 
         if (installResult.success) {
-          const toast = document.createElement("div");
-          toast.className = "toast";
-          toast.textContent = t("devices.installApk.success");
-          document.body.appendChild(toast);
-          setTimeout(() => {
-            toast.classList.add("fade-out");
-            setTimeout(() => toast.remove(), 300);
-          }, 2000);
+          showSuccess(t("devices.installApk.success"));
         } else {
-          const toast = document.createElement("div");
-          toast.className = "toast toast-error";
-          toast.textContent =
-            installResult.error || t("devices.installApk.failed");
-          document.body.appendChild(toast);
-          setTimeout(() => {
-            toast.classList.add("fade-out");
-            setTimeout(() => toast.remove(), 300);
-          }, 3000);
+          showError(installResult.error || t("devices.installApk.failed"));
         }
       }
     } catch (err) {
       console.error("Failed to install APK:", err);
-      const toast = document.createElement("div");
-      toast.className = "toast toast-error";
-      toast.textContent = t("devices.installApk.failed");
-      document.body.appendChild(toast);
-      setTimeout(() => {
-        toast.classList.add("fade-out");
-        setTimeout(() => toast.remove(), 300);
-      }, 3000);
+      showError(t("devices.installApk.failed"));
     }
   };
 
@@ -308,31 +287,17 @@ export default React.memo(function DeviceCard({
                 } else {
                   if (device.type === "usb") {
                     // USB device offline, need physical connection
-                    const toast = document.createElement("div");
-                    toast.className = "toast";
-                    toast.textContent = t("devices.toast.connectUsbDevice");
-                    document.body.appendChild(toast);
-                    setTimeout(() => {
-                      toast.classList.add("fade-out");
-                      setTimeout(() => toast.remove(), 300);
-                    }, 2000);
+                    showToast(t("devices.toast.connectUsbDevice"));
                   } else {
                     // WiFi device offline, check if previously connected via USB
                     const isPreviouslyConnected = device.status !== "offline";
-                    const toast = document.createElement("div");
-                    toast.className = "toast";
                     if (isPreviouslyConnected) {
                       // Device was connected before, likely WiFi disconnected
-                      toast.textContent = t("devices.toast.wifiDisconnected");
+                      showToast(t("devices.toast.wifiDisconnected"));
                     } else {
                       // New device, prompt to enable WiFi mode via USB
-                      toast.textContent = t("devices.toast.enableWifiFirst");
+                      showToast(t("devices.toast.enableWifiFirst"));
                     }
-                    document.body.appendChild(toast);
-                    setTimeout(() => {
-                      toast.classList.add("fade-out");
-                      setTimeout(() => toast.remove(), 300);
-                    }, 3000);
                     onConnect(device.id);
                   }
                 }

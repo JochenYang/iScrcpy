@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.9] - 2026-01-11
+
+### Fixed
+
+- Fixed duplicate toast notifications when stopping mirroring (toast appeared twice in different languages)
+- Toast now properly prevents overlapping when triggered rapidly
+- Unified toast implementation across DevicePage and DeviceCard components
+
+### Added
+
+- Added shared toast utility with type support (success, error, warning, info)
+- Toast styles now support different visual types with proper theme colors
+
 ## [1.1.8] - 2026-01-09
 
 ### Added

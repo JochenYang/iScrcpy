@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { electronAPI } from "../utils/electron";
+import { showToast } from "../utils/toast";
 import DeviceCard from "../components/DeviceCard";
 import FileManager from "../components/FileManager";
 import { useDeviceStore } from "../store/deviceStore";
@@ -347,17 +348,6 @@ export default function DevicePage() {
     }
   };
 
-  const showToast = (message: string) => {
-    const toast = document.createElement("div");
-    toast.className = "toast";
-    toast.textContent = message;
-    document.body.appendChild(toast);
-    setTimeout(() => {
-      toast.classList.add("fade-out");
-      setTimeout(() => toast.remove(), 300);
-    }, 2000);
-  };
-
   useEffect(() => {
     // Initial load - show loading state immediately, load devices in background
     setIsInitializing(true);
@@ -383,6 +373,15 @@ export default function DevicePage() {
     // Define handlers - these reference refs instead of dependencies
     const handleScrcpyExit = async (deviceId: string) => {
       console.log(`Scrcpy exited for device: ${deviceId}`);
+
+      // Check if this device was already removed from mirroringDevices
+      // If so, it was handled by disconnectDevice and we should skip the toast
+      const currentMirroringDevices = useDeviceStore.getState().mirroringDevices;
+      if (!currentMirroringDevices.has(deviceId)) {
+        console.log(`Device ${deviceId} already removed from mirroringDevices, skipping toast`);
+        return;
+      }
+
       removeMirroringDeviceRef.current(deviceId);
       const device = devicesRef.current.find((d) => d.id === deviceId);
       showToast(
@@ -458,8 +457,17 @@ export default function DevicePage() {
   // First add all known devices
   for (const device of knownDevices) {
     const currentStatus = deviceStatusMap.get(device.id);
-    // If device is in knownDevices but not in current devices list, mark as offline
-    const finalStatus = currentStatus !== undefined ? currentStatus : "offline";
+    let finalStatus: string;
+    if (currentStatus !== undefined) {
+      // Device is currently detected by ADB, use real-time status
+      finalStatus = currentStatus;
+    } else if (device.type === "wifi") {
+      // WiFi device not detected: use cached status (may be temporarily offline in ADB)
+      finalStatus = device.status || "offline";
+    } else {
+      // USB device not detected: mark as offline
+      finalStatus = "offline";
+    }
     allDevicesMap.set(device.id, {
       ...device,
       status: finalStatus,

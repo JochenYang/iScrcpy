@@ -112,11 +112,13 @@ export const useDeviceStore = create<DeviceStore>()(
           id: d.id,
           name: d.name,
           type: d.type,
+          status: d.status,
         })),
         removedDevices: state.removedDevices.map(d => ({
           id: d.id,
           name: d.name,
           type: d.type,
+          status: d.status,
         })),
       }),
     }
