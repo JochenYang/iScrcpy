@@ -1,18 +1,18 @@
 {
-  "version": "1.1.9",
+  "version": "1.1.10",
   "releaseNotes": {
-    "en-US": "### Fixed\n\n- Fixed duplicate toast notifications when stopping mirroring (toast appeared twice in different languages)\n- Toast now properly prevents overlapping when triggered rapidly\n- Unified toast implementation across DevicePage and DeviceCard components\n\n### Added\n\n- Added shared toast utility with type support (success, error, warning, info)\n- Toast styles now support different visual types with proper theme colors",
-    "zh-CN": "### 修复\n\n- 修复停止投屏时 toast 重复显示的问题（不同语言显示两次）\n- 快速连续触发 toast 时现在能正确防止重叠\n- 统一 DevicePage 和 DeviceCard 组件的 toast 实现\n\n### 新增\n\n- 新增共享 toast 工具，支持类型（成功、错误、警告、信息）\n- Toast 样式现在支持不同类型，使用正确的主题颜色",
-    "ja-JP": "### 修正\n\n- ミラーリング停止時にト通知が重複して表示される問題を修正（異なる言語で2回表示）\n- 急速連続してト通知がトリガーされた場合に適切に重複を防止\n- DevicePageとDeviceCardコンポーネントのト通知実装を統一\n\n### 追加\n\n- 型サポート（成功、エラー、警告、情報）付きの共有ト通知ユーティリティを追加\n- ト通知スタイルが適切なテーマ色で異なる視覚タイプをサポート",
-    "ko-KR": "### 수정\n\n- 미러링 중지 시 토스트 알림이 중복 표시되는 문제 수정（다른 언어로 두 번 표시）\n- 빠르게 연속으로 토스트가 트리거될 때 적절하게 중복 방지\n- DevicePage와 DeviceCard 컴포넌트의 토스트 구현 통일\n\n### 추가\n\n- 타입 지원이 포함된 공유 토스트 유틸리티 추가（성공, 오류, 경고, 정보）\n- 토스트 스타일이 적절한 테마 색상으로 다양한 시각적 타입 지원",
-    "es-ES": "### Corregido\n\n- Corregida la notificacion toast duplicada al detener el duplicado（aparecio dos veces en diferentes idiomas）\n- El toast ahora evita correctamente la superposicion cuando se activa rapidamente\n- Implementacion de toast unificada en los componentes DevicePage y DeviceCard\n\n### Agregado\n\n- Agregada utilidad toast compartida con soporte de tipo（exito, error, advertencia, info）\n- Los estilos de toast ahora soportan diferentes tipos visuales con colores de tema adecuados",
-    "fr-FR": "### Correction\n\n- Correction des notifications toast en double lors de l'arret du miroir（affichage deux fois dans不同的 langues）\n- Le toast previent correctement le chevauchement lorsqu'il est declenche rapidement\n- Implementation unifiee du toast dans les composants DevicePage et DeviceCard\n\n### Ajout\n\n- Utilisation de toast partagee avec support du type（succes, erreur, avertissement, info）\n- Les styles de toast supportent maintenant differents types visuels avec les couleurs de theme appropriees",
-    "tr-TR": "### Düzeltildi\n\n- Ayna durdurulurken çift bildirim gösterilmesi sorunu düzeltildi（farklı dillerde iki kez gösterildi）\n- Bildirimler hızlı tetiklendiğinde artık düzgün şekilde üst üste binmeyi önlüyor\n- DevicePage ve DeviceCard bileşenlerinde bildirim uygulaması birleştirildi\n\n### Eklendi\n\n- Tür desteği ile（başarı, hata, uyarı, bilgi）paylaşımlı bildirim yardımcı programı eklendi\n- Bildirim stilleri artık uygun tema renkleriyle farklı görsel türleri destekliyor"
+    "en-US": "### Fixed\n\n- Fixed toast notifications showing previous language after switching app language\n- Fixed ADB processes not being killed on app quit (cleanup was skipped due to race condition)\n- Removed redundant isCleaningUp flag setting in quit-app handler",
+    "zh-CN": "### 修复\n\n- 修复切换应用语言后 toast 通知显示旧语言的问题\n- 修复退出应用时 ADB 进程未被终止的问题（由于竞态条件导致清理被跳过）\n- 移除 quit-app handler 中冗余的 isCleaningUp 标志设置",
+    "ja-JP": "### 修正\n\n- アプリ言語切り替え後に前の言語でト通知が表示される問題を修正\n- アプリ終了時に ADB プロセスが終了されない問題を修正（競合状態によりスキップされた）\n- quit-app ハンドラの冗長な isCleaningUp フラグ設定を削除",
+    "ko-KR": "### 수정\n\n- 앱 언어 전환 후 이전 언어로 토스트 알림이 표시되는 문제 수정\n- 앱 종료 시 ADB 프로세스가 종료되지 않는 문제 수정（경쟁 조건으로 인해 건너뛰어짐）\n- quit-app 핸더에서 중복되는 isCleaningUp 플래그 설정 제거",
+    "es-ES": "### Corregido\n\n- Corregida la notificacion toast que mostraba el idioma anterior despues de cambiar el idioma de la aplicacion\n- Corregido que los procesos ADB no se eliminaban al salir de la aplicacion（se omitio la limpieza debido a una condicion de carrera）\n- Eliminada la configuracion redundante del indicador isCleaningUp en el controlador quit-app",
+    "fr-FR": "### Correction\n\n- Correction de l'affichage de l'ancienne langue dans les notifications toast après changement de langue\n- Correction des processus ADB qui n'étaient pas terminés lors de la fermeture（nettoyage sauté en raison d'une condition de course）\n- Suppression du parametre isCleaningUp redondant dans le gestionnaire quit-app",
+    "tr-TR": "### Düzeltildi\n\n- Uygulama dili değiştirildikten sonra bildirimlerin önceki dili göstermesi sorunu düzeltildi\n- Uygulamadan çıkarken ADB işlemlerinin sonlandırılmaması sorunu düzeltildi（yarış koşulu nedeniyle temizleme atlandı）\n- quit-app işleyicisindeki gereksiz isCleaningUp bayrak ayarı kaldırıldı"
   },
   "downloadUrl": {
-    "windows": "https://github.com/JochenYang/iScrcpy/releases/download/v1.1.9/iScrcpy-1.1.9-win-x64.exe",
-    "mac": "https://github.com/JochenYang/iScrcpy/releases/download/v1.1.9/iScrcpy-1.1.9-mac-x64.dmg",
-    "linux": "https://github.com/JochenYang/iScrcpy/releases/download/v1.1.9/iScrcpy-1.1.9-linux-x86_64.AppImage"
+    "windows": "https://github.com/JochenYang/iScrcpy/releases/download/v1.1.10/iScrcpy-1.1.10-win-x64.exe",
+    "mac": "https://github.com/JochenYang/iScrcpy/releases/download/v1.1.10/iScrcpy-1.1.10-mac-x64.dmg",
+    "linux": "https://github.com/JochenYang/iScrcpy/releases/download/v1.1.10/iScrcpy-1.1.10-linux-x86_64.AppImage"
   },
-  "publishedAt": "2026-01-11T10:00:00.000Z"
+  "publishedAt": "2026-01-13T10:00:00.000Z"
 }
