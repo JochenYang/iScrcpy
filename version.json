@@ -1,0 +1,18 @@
+{
+  "version": "1.1.10",
+  "releaseNotes": {
+    "en-US": "### Fixed\n\n- Fixed toast notifications showing previous language after switching app language\n- Fixed ADB processes not being killed on app quit (cleanup was skipped due to race condition)\n- Removed redundant isCleaningUp flag setting in quit-app handler",
+    "zh-CN": "### 修复\n\n- 修复切换应用语言后 toast 通知显示旧语言的问题\n- 修复退出应用时 ADB 进程未被终止的问题（由于竞态条件导致清理被跳过）\n- 移除 quit-app handler 中冗余的 isCleaningUp 标志设置",
+    "ja-JP": "### 修正\n\n- アプリ言語切り替え後に前の言語でト通知が表示される問題を修正\n- アプリ終了時に ADB プロセスが終了されない問題を修正（競合状態によりスキップされた）\n- quit-app ハンドラの冗長な isCleaningUp フラグ設定を削除",
+    "ko-KR": "### 수정\n\n- 앱 언어 전환 후 이전 언어로 토스트 알림이 표시되는 문제 수정\n- 앱 종료 시 ADB 프로세스가 종료되지 않는 문제 수정（경쟁 조건으로 인해 건너뛰어짐）\n- quit-app 핸더에서 중복되는 isCleaningUp 플래그 설정 제거",
+    "es-ES": "### Corregido\n\n- Corregida la notificacion toast que mostraba el idioma anterior despues de cambiar el idioma de la aplicacion\n- Corregido que los procesos ADB no se eliminaban al salir de la aplicacion（se omitio la limpieza debido a una condicion de carrera）\n- Eliminada la configuracion redundante del indicador isCleaningUp en el controlador quit-app",
+    "fr-FR": "### Correction\n\n- Correction de l'affichage de l'ancienne langue dans les notifications toast après changement de langue\n- Correction des processus ADB qui n'étaient pas terminés lors de la fermeture（nettoyage sauté en raison d'une condition de course）\n- Suppression du parametre isCleaningUp redondant dans le gestionnaire quit-app",
+    "tr-TR": "### Düzeltildi\n\n- Uygulama dili değiştirildikten sonra bildirimlerin önceki dili göstermesi sorunu düzeltildi\n- Uygulamadan çıkarken ADB işlemlerinin sonlandırılmaması sorunu düzeltildi（yarış koşulu nedeniyle temizleme atlandı）\n- quit-app işleyicisindeki gereksiz isCleaningUp bayrak ayarı kaldırıldı"
+  },
+  "downloadUrl": {
+    "windows": "https://github.com/JochenYang/iScrcpy/releases/download/v1.1.10/iScrcpy-1.1.10-win-x64.exe",
+    "mac": "https://github.com/JochenYang/iScrcpy/releases/download/v1.1.10/iScrcpy-1.1.10-mac-x64.dmg",
+    "linux": "https://github.com/JochenYang/iScrcpy/releases/download/v1.1.10/iScrcpy-1.1.10-linux-x86_64.AppImage"
+  },
+  "publishedAt": "2026-01-13T10:00:00.000Z"
+}

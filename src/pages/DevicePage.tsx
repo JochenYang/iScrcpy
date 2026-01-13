@@ -6,6 +6,7 @@ import DeviceCard from "../components/DeviceCard";
 import FileManager from "../components/FileManager";
 import { useDeviceStore } from "../store/deviceStore";
 import { DeviceInfo } from "../types/electron";
+import i18n from "../i18n";
 
 export default function DevicePage() {
   const { t } = useTranslation();
@@ -384,8 +385,10 @@ export default function DevicePage() {
 
       removeMirroringDeviceRef.current(deviceId);
       const device = devicesRef.current.find((d) => d.id === deviceId);
+      // Use i18n.t directly to get the current language translation
+      // This fixes the issue where language changes aren't reflected in toast messages
       showToast(
-        t("devices.toast.screenMirroringDisconnected", {
+        i18n.t("devices.toast.screenMirroringDisconnected", {
           deviceName: device?.name || deviceId,
         })
       );
@@ -394,7 +397,7 @@ export default function DevicePage() {
 
     const handleCameraExit = (deviceId: string) => {
       console.log(`Camera exited for device: ${deviceId}`);
-      showToast(t("devices.toast.cameraStopped"));
+      showToast(i18n.t("devices.toast.cameraStopped"));
     };
 
     const handleScrcpyStarted = (deviceId: string) => {

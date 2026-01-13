@@ -864,8 +864,7 @@ ipcMain.handle("quit-app", async (): Promise<void> => {
   // Give renderer time to show animation
   await new Promise((resolve) => setTimeout(resolve, 500));
 
-  // Start cleanup
-  isCleaningUp = true;
+  // Start cleanup - cleanupAllProcesses will set isCleaningUp internally
   await cleanupAllProcesses();
 
   if (mainWindow) {

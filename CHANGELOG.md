@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.10] - 2026-01-13
+
+### Fixed
+
+- Fixed toast notifications showing previous language after switching app language
+- Fixed ADB processes not being killed on app quit (cleanup was skipped due to race condition)
+- Removed redundant isCleaningUp flag setting in quit-app handler
+
 ## [1.1.9] - 2026-01-11
 
 ### Fixed
