@@ -14,9 +14,39 @@ const GRACEFUL_SHUTDOWN_WAIT = 800;
 const FORCE_KILL_WAIT = 500;
 const CLEANUP_TIMEOUT = 500;
 const FORCE_KILL_DELAY = 300;
+const SETTINGS_SAVE_DEBOUNCE = 500; // Debounce delay for settings save
+
+// Device polling configuration
+const DEVICE_POLL_INTERVAL = 10000; // 10 seconds (configurable)
+
+// Log retention configuration
+const LOG_RETENTION_DAYS = 7; // Keep logs for 7 days (configurable)
 
 // Test mode flag - only enable in non-production environments
 const TEST_MODE = process.env.NODE_ENV === "test" && !app.isPackaged;
+
+// Debounced async settings save function
+let settingsSaveTimeout: NodeJS.Timeout | null = null;
+async function saveSettingsToFile(): Promise<void> {
+  if (settingsSaveTimeout) {
+    clearTimeout(settingsSaveTimeout);
+  }
+  
+  return new Promise((resolve) => {
+    settingsSaveTimeout = setTimeout(async () => {
+      try {
+        const settingsPath = path.join(app.getPath("userData"), "settings.json");
+        const { writeFile } = await import("fs/promises");
+        await writeFile(settingsPath, JSON.stringify(settings, null, 2), "utf8");
+        logger.debug(`Settings saved to: ${settingsPath}`);
+        resolve();
+      } catch (error) {
+        logger.error("Failed to save settings:", error);
+        resolve(); // Resolve anyway to prevent hanging
+      }
+    }, SETTINGS_SAVE_DEBOUNCE);
+  });
+}
 
 // Result type for consistent error handling
 type Result<T> = { success: true; data: T } | { success: false; error: string };
@@ -365,8 +395,9 @@ async function terminateProcess(pid: number, proc?: ChildProcess): Promise<boole
       proc?.kill("SIGKILL");
     }
     return true;
-  } catch (e) {
-    logger.warn(`Failed to terminate process ${pid}`, e);
+  } catch (e: unknown) {
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    logger.warn(`Failed to terminate process ${pid}`, errorMessage);
     return false;
   }
 }
@@ -407,14 +438,20 @@ function cleanupAllProcesses(): Promise<void> {
     deviceProcesses.forEach((procData, deviceId) => {
       terminateProcess(procData.pid, procData.proc)
         .then(() => logger.info(`Killed scrcpy process for ${deviceId} (PID: ${procData.pid})`))
-        .catch((e) => logger.warn(`Failed to kill scrcpy for ${deviceId}`, e));
+        .catch((e: unknown) => {
+          const errorMessage = e instanceof Error ? e.message : String(e);
+          logger.warn(`Failed to kill scrcpy for ${deviceId}`, errorMessage);
+        });
     });
 
     // 2. Clean up all camera processes using unified function
     cameraProcesses.forEach((procData, deviceId) => {
       terminateProcess(procData.pid, procData.proc)
         .then(() => logger.info(`Killed camera process for ${deviceId} (PID: ${procData.pid})`))
-        .catch((e) => logger.warn(`Failed to kill camera for ${deviceId}`, e));
+        .catch((e: unknown) => {
+          const errorMessage = e instanceof Error ? e.message : String(e);
+          logger.warn(`Failed to kill camera for ${deviceId}`, errorMessage);
+        });
     });
 
     // 3. Clean up ADB server processes
@@ -425,8 +462,9 @@ function cleanupAllProcesses(): Promise<void> {
         exec(`pkill -9 adb`, () => {});
       }
       logger.info("Attempted to kill ADB server processes");
-    } catch (e) {
-      logger.warn("Failed to kill ADB processes", e);
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      logger.warn("Failed to kill ADB processes", errorMessage);
     }
 
     // Stop device tracker
@@ -435,8 +473,9 @@ function cleanupAllProcesses(): Promise<void> {
         deviceTracker.end();
         deviceTracker = null;
         logger.info("Device tracker stopped");
-      } catch (e) {
-        logger.warn("Failed to stop device tracker:", e);
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        logger.warn("Failed to stop device tracker:", errorMessage);
       }
     }
 
@@ -479,13 +518,14 @@ function cleanupOldInstaller(): void {
       unlinkSync(pendingPath);
       logger.info(`Deleted pending installer: ${pendingPath}`);
       settings.pendingInstallerPath = null;
-    } catch (e) {
+    } catch (e: unknown) {
       if (attempts < maxAttempts) {
         const delay = baseDelay * Math.pow(1.5, attempts - 1);
         logger.debug(`Installer locked, retrying in ${delay}ms (attempt ${attempts}/${maxAttempts})`);
         setTimeout(tryDelete, delay);
       } else {
-        logger.warn(`Failed to delete pending installer after ${maxAttempts} attempts: ${pendingPath}`);
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        logger.warn(`Failed to delete pending installer after ${maxAttempts} attempts: ${pendingPath}`, errorMessage);
       }
     }
   };
@@ -535,8 +575,9 @@ async function initDeviceTracker(): Promise<void> {
     });
 
     logger.info("Device tracker initialized");
-  } catch (e) {
-    logger.warn("Failed to init device tracker:", e);
+  } catch (e: unknown) {
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    logger.warn("Failed to init device tracker:", errorMessage);
     // Retry after delay
     setTimeout(() => {
       logger.info("Retrying device tracker initialization...");
@@ -553,8 +594,9 @@ function stopDeviceTracker(): void {
       deviceTracker = null;
       logger.info("Device tracker stopped");
     }
-  } catch (e) {
-    logger.warn("Failed to stop device tracker:", e);
+  } catch (e: unknown) {
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    logger.warn("Failed to stop device tracker:", errorMessage);
   }
 }
 
@@ -648,8 +690,9 @@ function loadSettings(): void {
       if (saved.pendingInstallerPath !== undefined) {
         settings.pendingInstallerPath = saved.pendingInstallerPath;
       }
-    } catch (e) {
-      console.error("Failed to load settings:", e);
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      console.error("Failed to load settings:", errorMessage);
     }
   }
 }
@@ -1281,8 +1324,10 @@ ipcMain.handle(
             notifyScrcpyExit();
           }
         });
-      } catch (e) {
+      } catch (e: unknown) {
         // Error checking, assume process is dead
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        logger.warn(`Error checking process status for ${deviceId}:`, errorMessage);
         clearInterval(checkInterval);
         activeIntervals.delete(checkInterval);
         notifyScrcpyExit();
@@ -1355,8 +1400,9 @@ ipcMain.handle(
           targetPath = resolved;
           logger.info(`Resolved path: ${devicePath} -> ${targetPath}`);
         }
-      } catch (err) {
-        logger.warn(`Failed to resolve symlink for ${devicePath}: ${err}`);
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        logger.warn(`Failed to resolve symlink for ${devicePath}: ${errorMessage}`);
       }
 
       // Use adbkit's readdir which properly handles all file types including special characters
@@ -1381,8 +1427,9 @@ ipcMain.handle(
                 size = prettyBytes(Number(sizeStr));
                 logger.debug(`File size for ${entry.name}: ${size}`);
               }
-            } catch (err) {
-              logger.warn(`Failed to get size for ${fullPath}: ${err}`);
+            } catch (err: unknown) {
+              const errorMessage = err instanceof Error ? err.message : String(err);
+              logger.warn(`Failed to get size for ${fullPath}: ${errorMessage}`);
             }
           }
 
@@ -1398,9 +1445,10 @@ ipcMain.handle(
 
       logger.debug(`Listed ${files.length} files`);
       return { success: true, files, currentPath: targetPath };
-    } catch (error: any) {
-      logger.error(`Failed to list files for ${deviceId}`, { error: error.message });
-      return { success: false, error: error.message };
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error(`Failed to list files for ${deviceId}`, { error: errorMessage });
+      return { success: false, error: errorMessage };
     }
   }
 );
@@ -1435,8 +1483,10 @@ ipcMain.handle(
         if (existsSync(savePath) && lstatSync(savePath).isFile()) {
           targetDir = path.dirname(savePath);
         }
-      } catch (e) {
+      } catch (e: unknown) {
         // Path doesn't exist, might be a new file path
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        logger.debug(`Error checking savePath existence: ${errorMessage}`);
       }
 
       // Validate the final path is within allowed directory
@@ -1467,9 +1517,10 @@ ipcMain.handle(
         resolve({ success: true });
       });
 
-      child.on("error", (error: Error) => {
-        logger.error(`Failed to download file from ${deviceId}`, { error: error.message });
-        resolve({ success: false, error: error.message });
+      child.on("error", (error: unknown) => {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        logger.error(`Failed to download file from ${deviceId}`, { error: errorMessage });
+        resolve({ success: false, error: errorMessage });
       });
     });
   }
@@ -1519,9 +1570,10 @@ ipcMain.handle(
         resolve({ success: true });
       });
 
-      child.on("error", (error: Error) => {
-        logger.error(`Failed to upload file to ${deviceId}`, { error: error.message });
-        resolve({ success: false, error: error.message });
+      child.on("error", (error: unknown) => {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        logger.error(`Failed to upload file to ${deviceId}`, { error: errorMessage });
+        resolve({ success: false, error: errorMessage });
       });
     });
   }
@@ -1570,9 +1622,10 @@ ipcMain.handle(
         resolve({ success: true });
       });
 
-      child.on("error", (error: Error) => {
-        logger.error(`Failed to delete file on ${deviceId}`, { error: error.message });
-        resolve({ success: false, error: error.message });
+      child.on("error", (error: unknown) => {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        logger.error(`Failed to delete file on ${deviceId}`, { error: errorMessage });
+        resolve({ success: false, error: errorMessage });
       });
     });
   }
@@ -1621,9 +1674,10 @@ ipcMain.handle(
         resolve({ success: true });
       });
 
-      child.on("error", (error: Error) => {
-        logger.error(`Failed to create folder on ${deviceId}`, { error: error.message });
-        resolve({ success: false, error: error.message });
+      child.on("error", (error: unknown) => {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        logger.error(`Failed to create folder on ${deviceId}`, { error: errorMessage });
+        resolve({ success: false, error: errorMessage });
       });
     });
   }
@@ -1690,7 +1744,10 @@ ipcMain.handle(
         // Use unified terminate function
         terminateProcess(proc.pid, proc.proc)
           .then(() => logger.debug(`Killed scrcpy process for ${deviceId}`))
-          .catch((e) => logger.warn(`Failed to kill scrcpy process for ${deviceId}`, e));
+          .catch((e: unknown) => {
+            const errorMessage = e instanceof Error ? e.message : String(e);
+            logger.warn(`Failed to kill scrcpy process for ${deviceId}`, errorMessage);
+          });
       }
     }
     deviceProcesses.delete(deviceId);
@@ -1753,23 +1810,22 @@ ipcMain.handle(
     }
 
     // Save to userData directory (works in both dev and packaged mode)
-    const settingsPath = path.join(app.getPath("userData"), "settings.json");
-    writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+    await saveSettingsToFile();
 
-    logger.info(`Settings saved to: ${settingsPath}`);
+    logger.info(`Settings saved`);
     return { success: true };
   }
 );
 
 // Device history management functions
-function addDeviceToHistory(
+async function addDeviceToHistory(
   deviceId: string,
   name: string,
   ip: string,
   port: number = 5555,
   autoConnect: boolean = false,
   isConnected: boolean = false
-): void {
+): Promise<void> {
   // Remove existing entry with same device ID
   settings.deviceHistory = settings.deviceHistory.filter(
     (d) => d.id !== deviceId
@@ -1792,32 +1848,29 @@ function addDeviceToHistory(
   }
 
   // Save to file
-  const settingsPath = path.join(app.getPath("userData"), "settings.json");
-  writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+  await saveSettingsToFile();
 }
 
-function removeDeviceFromHistory(deviceId: string): void {
+async function removeDeviceFromHistory(deviceId: string): Promise<void> {
   settings.deviceHistory = settings.deviceHistory.filter(
     (d) => d.id !== deviceId
   );
 
   // Save to file
-  const settingsPath = path.join(app.getPath("userData"), "settings.json");
-  writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+  await saveSettingsToFile();
 }
 
-function updateDeviceAutoConnect(deviceId: string, autoConnect: boolean): void {
+async function updateDeviceAutoConnect(deviceId: string, autoConnect: boolean): Promise<void> {
   const device = settings.deviceHistory.find((d) => d.id === deviceId);
   if (device) {
     device.autoConnect = autoConnect;
 
     // Save to file
-    const settingsPath = path.join(app.getPath("userData"), "settings.json");
-    writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+    await saveSettingsToFile();
   }
 }
 
-function updateDeviceConnectionState(deviceId: string, isConnected: boolean): void {
+async function updateDeviceConnectionState(deviceId: string, isConnected: boolean): Promise<void> {
   const device = settings.deviceHistory.find((d) => d.id === deviceId);
   if (device) {
     device.isConnected = isConnected;
@@ -1825,8 +1878,7 @@ function updateDeviceConnectionState(deviceId: string, isConnected: boolean): vo
       device.lastConnected = Date.now();
     }
     // Save to file
-    const settingsPath = path.join(app.getPath("userData"), "settings.json");
-    writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+    await saveSettingsToFile();
   }
 }
 
@@ -1878,8 +1930,9 @@ ipcMain.handle(
       logger.setLevel(level as any);
       saveSettingsToFile();
       return { success: true, level };
-    } catch (error) {
-      return { success: false, error: String(error) };
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return { success: false, error: errorMessage };
     }
   }
 );
@@ -1921,19 +1974,28 @@ ipcMain.handle(
         if (procAny.stdin && !procAny.stdin.destroyed) {
           try {
             procAny.stdin.write("q\n");
-          } catch (e) {}
+          } catch (e: unknown) {
+            const errorMessage = e instanceof Error ? e.message : String(e);
+            logger.debug(`Failed to write quit command to stdin: ${errorMessage}`);
+          }
         }
         // Try taskkill
         try {
           execSync(`taskkill /PID ${proc.pid}`, { encoding: "utf8" });
-        } catch (e) {}
+        } catch (e: unknown) {
+          const errorMessage = e instanceof Error ? e.message : String(e);
+          logger.debug(`Taskkill command failed (process may have already exited): ${errorMessage}`);
+        }
         // Quick wait
         await new Promise((resolve) => setTimeout(resolve, 500));
         // Force kill if still running
         try {
           execSync(`tasklist /FI "PID eq ${proc.pid}"`, { encoding: "utf8" });
           exec(`taskkill /PID ${proc.pid} /F /T`);
-        } catch (e) {}
+        } catch (e: unknown) {
+          const errorMessage = e instanceof Error ? e.message : String(e);
+          logger.debug(`Process ${proc.pid} already terminated: ${errorMessage}`);
+        }
       }
     }
     deviceProcesses.delete(deviceId);
@@ -2095,8 +2157,9 @@ async function sendCtrlC(pid: number): Promise<boolean> {
           }
         }
       );
-    } catch (e) {
-      logger.debug(`Failed to send CTRL+C to PID ${pid}: ${e}`);
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      logger.debug(`Failed to send CTRL+C to PID ${pid}: ${errorMessage}`);
       resolve(false);
     }
   });
@@ -2153,7 +2216,10 @@ async function repairRecordingFile(filePath: string): Promise<boolean> {
         if (existsSync(fixedPath)) {
           try {
             unlinkSync(fixedPath);
-          } catch (e) {}
+          } catch (e: unknown) {
+            const errorMessage = e instanceof Error ? e.message : String(e);
+            logger.warn(`Failed to cleanup partial fixed file ${fixedPath}: ${errorMessage}`);
+          }
         }
         resolve(false);
         return;
@@ -2201,15 +2267,19 @@ async function repairRecordingFile(filePath: string): Promise<boolean> {
             renameSync(fixedPath, filePath);
             logger.info(`Successfully repaired: ${filePath}`);
             resolve(true);
-          } catch (e) {
-            logger.warn(`Failed to replace file: ${e}`);
+          } catch (e: unknown) {
+            const errorMessage = e instanceof Error ? e.message : String(e);
+            logger.warn(`Failed to replace file: ${errorMessage}`);
             // Keep the fixed file with different name
             try {
               renameSync(
                 fixedPath,
                 filePath.replace(/\.mp4$/i, "_repaired.mp4")
               );
-            } catch (e2) {}
+            } catch (e2: unknown) {
+              const errorMessage2 = e2 instanceof Error ? e2.message : String(e2);
+              logger.warn(`Failed to rename repaired file: ${errorMessage2}`);
+            }
             resolve(false);
           }
         } else {
@@ -2221,10 +2291,11 @@ async function repairRecordingFile(filePath: string): Promise<boolean> {
         }
       });
 
-      repairProc.on("error", (err: Error) => {
+      repairProc.on("error", (err: unknown) => {
         clearTimeout(timeout);
+        const errorMessage = err instanceof Error ? err.message : String(err);
         logger.warn(
-          `Repair strategy ${currentStrategy + 1} error: ${err.message}`
+          `Repair strategy ${currentStrategy + 1} error: ${errorMessage}`
         );
         currentStrategy++;
         tryNextStrategy();
@@ -2261,8 +2332,9 @@ ipcMain.handle(
           try {
             procAny.stdin.write("q\n");
             logger.info(`Sent 'q' command to scrcpy stdin`);
-          } catch (e) {
-            logger.debug(`Failed to write to stdin: ${e}`);
+          } catch (e: unknown) {
+            const errorMessage = e instanceof Error ? e.message : String(e);
+            logger.debug(`Failed to write to stdin: ${errorMessage}`);
           }
         }
 
@@ -2277,11 +2349,13 @@ ipcMain.handle(
           try {
             execSync(`taskkill /PID ${proc.pid}`, { encoding: "utf8" });
             await new Promise((resolve) => setTimeout(resolve, FORCE_KILL_WAIT));
-          } catch (e) {
-            logger.debug(`Taskkill failed: ${e}`);
+          } catch (e: unknown) {
+            const errorMessage = e instanceof Error ? e.message : String(e);
+            logger.debug(`Taskkill failed: ${errorMessage}`);
           }
-        } catch (e) {
-          logger.info(`Process exited gracefully`);
+        } catch (e: unknown) {
+          const errorMessage = e instanceof Error ? e.message : String(e);
+          logger.info(`Process exited gracefully: ${errorMessage}`);
           recordingSaved = true;
         }
 
@@ -2292,9 +2366,10 @@ ipcMain.handle(
             logger.warn(`Force killing PID: ${proc.pid}`);
             exec(`taskkill /PID ${proc.pid} /F /T`);
             await new Promise((resolve) => setTimeout(resolve, FORCE_KILL_DELAY));
-          } catch (e) {
+          } catch (e: unknown) {
+            const errorMessage = e instanceof Error ? e.message : String(e);
             recordingSaved = true;
-            logger.info(`Process terminated`);
+            logger.info(`Process terminated: ${errorMessage}`);
           }
         }
 
@@ -2447,18 +2522,20 @@ ipcMain.handle(
           proc.proc?.kill("SIGINT");
           logger.info(`Sent SIGINT to PID ${proc.pid}`);
           await new Promise((resolve) => setTimeout(resolve, 2000));
-        } catch (e) {
-          logger.debug(`SIGINT failed, trying taskkill: ${e}`);
+        } catch (e: unknown) {
+          const errorMessage = e instanceof Error ? e.message : String(e);
+          logger.debug(`SIGINT failed, trying taskkill: ${errorMessage}`);
           // Method 2: Try graceful taskkill
           try {
             execSync(`taskkill /PID ${proc.pid} /T`, { encoding: "utf8" });
             await new Promise((resolve) => setTimeout(resolve, 1500));
-          } catch (e2) {
+          } catch (e2: unknown) {
             // Method 3: Force kill
             try {
               exec(`taskkill /PID ${proc.pid} /F /T`);
-            } catch (e3) {
-              logger.warn(`Failed to kill scrcpy process: ${e3}`);
+            } catch (e3: unknown) {
+              const errorMessage3 = e3 instanceof Error ? e3.message : String(e3);
+              logger.warn(`Failed to force kill scrcpy process ${proc.pid}: ${errorMessage3}`);
             }
           }
         }
@@ -2603,10 +2680,13 @@ ipcMain.handle(
       if (proc.pid) {
         try {
           exec(`taskkill /PID ${proc.pid} /F /T`);
-        } catch (e) {
+        } catch (e: unknown) {
           try {
             proc.proc?.kill();
-          } catch (e2) {}
+          } catch (e2: unknown) {
+            const errorMessage2 = e2 instanceof Error ? e2.message : String(e2);
+            logger.warn(`Failed to kill camera toggle process ${proc.pid}: ${errorMessage2}`);
+          }
         }
       }
     }
@@ -2802,10 +2882,13 @@ ipcMain.handle(
       if (proc.pid) {
         try {
           exec(`taskkill /PID ${proc.pid} /F /T`);
-        } catch (e) {
+        } catch (e: unknown) {
           try {
             proc.proc?.kill();
-          } catch (e2) {}
+          } catch (e2: unknown) {
+            const errorMessage2 = e2 instanceof Error ? e2.message : String(e2);
+            logger.warn(`Failed to kill camera process ${proc.pid}: ${errorMessage2}`);
+          }
         }
       }
       cameraProcesses.delete(deviceId);
@@ -2895,8 +2978,9 @@ ipcMain.handle("get-log-stats", async (): Promise<{ count: number; size: string 
     }
 
     return { count: files.length, size: sizeStr };
-  } catch (error) {
-    logger.error("Failed to get log stats:", error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("Failed to get log stats:", errorMessage);
     return { count: 0, size: "0 KB" };
   }
 });
@@ -2912,7 +2996,7 @@ ipcMain.handle("clear-logs", async (): Promise<{ success: boolean; count: number
   try {
     const files = readdirSync(logDir).filter((f) => f.endsWith(".log"));
     const now = Date.now();
-    const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+    const sevenDaysAgo = now - LOG_RETENTION_DAYS * 24 * 60 * 60 * 1000;
     let deletedCount = 0;
 
     for (const file of files) {
@@ -2928,9 +3012,10 @@ ipcMain.handle("clear-logs", async (): Promise<{ success: boolean; count: number
 
     logger.info(`Cleared ${deletedCount} old log files`);
     return { success: true, count: deletedCount };
-  } catch (error) {
-    logger.error("Failed to clear logs:", error);
-    return { success: false, count: 0, error: String(error) };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("Failed to clear logs:", errorMessage);
+    return { success: false, count: 0, error: errorMessage };
   }
 });
 
@@ -2999,14 +3084,7 @@ ipcMain.handle("get-scrcpy-path", async () => {
   return settings.server.scrcpyPath || SCRCPY_PATH;
 });
 
-// Helper function to save settings to file
-function saveSettingsToFile(): void {
-  const settingsPath = path.join(app.getPath("userData"), "settings.json");
-  writeFileSync(settingsPath, JSON.stringify({
-    ...settings,
-    logLevel: logger.getLevel()
-  }, null, 2));
-}
+
 
 // Get current adb path
 ipcMain.handle("get-adb-path", async () => {
@@ -3084,8 +3162,10 @@ ipcMain.on("set-tray-translations", (_event, translations) => {
       if (data.language && translations[data.language]) {
         lang = data.language;
       }
-    } catch (e) {
+    } catch (e: unknown) {
       // Use default
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      logger.warn("Failed to read language from settings file:", errorMessage);
     }
   }
   
@@ -3098,7 +3178,11 @@ ipcMain.on("set-tray-translations", (_event, translations) => {
         }
         updateTray(lang);
       })
-      .catch(() => updateTray(lang));
+      .catch((e: unknown) => {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        logger.warn("Failed to get language from localStorage:", errorMessage);
+        updateTray(lang);
+      });
   } else {
     updateTray(lang);
   }
@@ -3276,8 +3360,9 @@ app.on("will-quit", async (e) => {
     await cleanupAllProcesses();
     logger.info("Cleanup completed, letting app quit");
     // 不调用 app.quit()，让 Electron 自动退出
-  } catch (err) {
-    logger.error("Error during cleanup before quit", err);
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    logger.error("Error during cleanup before quit", errorMessage);
     // 即使清理失败也让应用退出
   }
 });

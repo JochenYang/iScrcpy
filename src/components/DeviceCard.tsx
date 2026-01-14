@@ -86,7 +86,7 @@ export default React.memo(function DeviceCard({
 }: DeviceCardProps) {
   const { t } = useTranslation();
   const { recordingDevices, isAudioEnabled } = useDeviceStore();
-  const isRecording = recordingDevices.has(device.id);
+  const isRecording = recordingDevices.includes(device.id);
   const audioEnabled = isAudioEnabled(device.id);
 
   const [isCameraActive, setIsCameraActive] = useState(false);

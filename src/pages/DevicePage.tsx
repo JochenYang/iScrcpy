@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { electronAPI } from "../utils/electron";
 import { showToast } from "../utils/toast";
@@ -143,7 +143,7 @@ export default function DevicePage() {
     setRefreshing(false);
   }, []);
 
-  const connectDevice = async (deviceId: string, _options?: { record?: boolean; recordAudio?: boolean; camera?: boolean }) => {
+  const connectDevice = useCallback(async (deviceId: string, _options?: { record?: boolean; recordAudio?: boolean; camera?: boolean }) => {
     const device = devices.find((d) => d.id === deviceId);
     const result = await electronAPI.connectDevice(deviceId);
     if (result.success) {
@@ -178,9 +178,9 @@ export default function DevicePage() {
           `: ${result.error || t("devices.toast.unknownError")}`
       );
     }
-  };
+  }, [devices, addMirroringDevice, setAudioEnabled, t, loadDevices]);
 
-  const disconnectDevice = async (deviceId: string) => {
+  const disconnectDevice = useCallback(async (deviceId: string) => {
     const result = await electronAPI.disconnectDevice(deviceId);
     if (result.success) {
       removeMirroringDevice(deviceId);
@@ -192,9 +192,9 @@ export default function DevicePage() {
       );
       await loadDevices({ silent: true });
     }
-  };
+  }, [devices, removeMirroringDevice, t, loadDevices]);
 
-  const handleRemoveDevice = (deviceId: string) => {
+  const handleRemoveDevice = useCallback((deviceId: string) => {
     // Remove from knownDevices and add to removedDevices
     const { knownDevices } = useDeviceStore.getState();
     const device = knownDevices.find(d => d.id === deviceId);
@@ -206,10 +206,10 @@ export default function DevicePage() {
       });
         showToast(t("devices.toast.deviceRemoved"));
     }
-  };
+  }, [t]);
 
   // Quick action handlers
-  const startRecord = async (deviceId: string) => {
+  const startRecord = useCallback(async (deviceId: string) => {
     const result = await electronAPI.startRecording(deviceId);
     if (result.success) {
       addRecordingDevice(deviceId);
@@ -217,9 +217,9 @@ export default function DevicePage() {
     } else {
       showToast(result.error || t("devices.toast.unknownError"));
     }
-  };
+  }, [addRecordingDevice, t]);
 
-  const stopRecord = async (deviceId: string) => {
+  const stopRecord = useCallback(async (deviceId: string) => {
     const result = await electronAPI.stopRecording(deviceId);
     if (result.success) {
       removeRecordingDevice(deviceId);
@@ -227,9 +227,9 @@ export default function DevicePage() {
     } else {
       showToast(result.error || t("devices.toast.unknownError"));
     }
-  };
+  }, [removeRecordingDevice, t]);
 
-  const toggleAudio = async (deviceId: string, enabled: boolean) => {
+  const toggleAudio = useCallback(async (deviceId: string, enabled: boolean) => {
     const result = await electronAPI.toggleAudio(deviceId, enabled);
     if (result.success) {
       setAudioEnabled(deviceId, enabled);
@@ -238,32 +238,32 @@ export default function DevicePage() {
     } else {
       showToast(result.error || t("devices.toast.unknownError"));
     }
-  };
+  }, [setAudioEnabled, t]);
 
   // Independent camera handlers
-  const startCamera = async (deviceId: string) => {
+  const startCamera = useCallback(async (deviceId: string) => {
     const result = await electronAPI.startCamera(deviceId);
     if (result.success) {
       showToast(t("devices.toast.cameraStarted"));
     } else {
       showToast(result.error || t("devices.toast.unknownError"));
     }
-  };
+  }, [t]);
 
-  const stopCamera = async (deviceId: string) => {
+  const stopCamera = useCallback(async (deviceId: string) => {
     const result = await electronAPI.stopCamera(deviceId);
     if (result.success) {
       showToast(t("devices.toast.cameraStopped"));
     }
-  };
+  }, [t]);
 
-  const openFileManager = (deviceId: string, deviceName: string) => {
+  const openFileManager = useCallback((deviceId: string, deviceName: string) => {
     setFileManagerDevice({ id: deviceId, name: deviceName });
-  };
+  }, []);
 
-  const closeFileManager = () => {
+  const closeFileManager = useCallback(() => {
     setFileManagerDevice(null);
-  };
+  }, []);
 
   const connectWifiDevice = async () => {
     if (!wifiIp.trim()) {
@@ -337,7 +337,7 @@ export default function DevicePage() {
 
   const connectAll = async () => {
     const disconnected = devices.filter(
-      (d) => !mirroringDevices.has(d.id) && d.status !== "unauthorized"
+      (d) => !mirroringDevices.includes(d.id) && d.status !== "unauthorized"
     );
     if (disconnected.length === 0) {
       showToast(t("devices.toast.noDevicesToConnect"));
@@ -355,10 +355,10 @@ export default function DevicePage() {
     loadDevices({ silent: false, forceRefresh: false }).then(() => {
       setIsInitializing(false);
     });
-    // Silent polling every 5 seconds to update device status
+    // Silent polling every 10 seconds to update device status (reduced from 5s to save CPU)
     const pollInterval = setInterval(() => {
       loadDevices({ silent: true, forceRefresh: true });
-    }, 5000);
+    }, 10000);
     return () => clearInterval(pollInterval);
   }, [loadDevices]);
 
@@ -378,7 +378,7 @@ export default function DevicePage() {
       // Check if this device was already removed from mirroringDevices
       // If so, it was handled by disconnectDevice and we should skip the toast
       const currentMirroringDevices = useDeviceStore.getState().mirroringDevices;
-      if (!currentMirroringDevices.has(deviceId)) {
+      if (!currentMirroringDevices.includes(deviceId)) {
         console.log(`Device ${deviceId} already removed from mirroringDevices, skipping toast`);
         return;
       }
@@ -452,43 +452,49 @@ export default function DevicePage() {
   }, []); // Empty dependency array - bind once on mount
 
   // Merge knownDevices and devices to get complete device list with latest status
-  const deviceStatusMap = new Map(devices.map(d => [d.id, d.status]));
+  // Use useMemo to avoid recalculating on every render
+  const { allDevices, usbDevices, wifiDevices } = useMemo(() => {
+    const deviceStatusMap = new Map(devices.map(d => [d.id, d.status]));
 
-  // Build all devices list: use knownDevices (includes offline devices) but update status from devices
-  const allDevicesMap = new Map();
+    // Build all devices list: use knownDevices (includes offline devices) but update status from devices
+    const allDevicesMap = new Map();
 
-  // First add all known devices
-  for (const device of knownDevices) {
-    const currentStatus = deviceStatusMap.get(device.id);
-    let finalStatus: string;
-    if (currentStatus !== undefined) {
-      // Device is currently detected by ADB, use real-time status
-      finalStatus = currentStatus;
-    } else if (device.type === "wifi") {
-      // WiFi device not detected: use cached status (may be temporarily offline in ADB)
-      finalStatus = device.status || "offline";
-    } else {
-      // USB device not detected: mark as offline
-      finalStatus = "offline";
+    // First add all known devices
+    for (const device of knownDevices) {
+      const currentStatus = deviceStatusMap.get(device.id);
+      let finalStatus: string;
+      if (currentStatus !== undefined) {
+        // Device is currently detected by ADB, use real-time status
+        finalStatus = currentStatus;
+      } else if (device.type === "wifi") {
+        // WiFi device not detected: use cached status (may be temporarily offline in ADB)
+        finalStatus = device.status || "offline";
+      } else {
+        // USB device not detected: mark as offline
+        finalStatus = "offline";
+      }
+      allDevicesMap.set(device.id, {
+        ...device,
+        status: finalStatus,
+        lastSeen: Date.now(),
+      });
     }
-    allDevicesMap.set(device.id, {
-      ...device,
-      status: finalStatus,
-      lastSeen: Date.now(),
-    });
-  }
-  
-  // Then add devices that are not in knownDevices yet
-  for (const device of devices) {
-    if (!allDevicesMap.has(device.id)) {
-      allDevicesMap.set(device.id, device);
+    
+    // Then add devices that are not in knownDevices yet
+    for (const device of devices) {
+      if (!allDevicesMap.has(device.id)) {
+        allDevicesMap.set(device.id, device);
+      }
     }
-  }
-  
-  const allDevices = Array.from(allDevicesMap.values());
-  
-  const usbDevices = allDevices.filter((d) => d.type === "usb");
-  const wifiDevices = allDevices.filter((d) => d.type === "wifi");
+    
+    const allDevicesList = Array.from(allDevicesMap.values());
+    
+    return {
+      allDevices: allDevicesList,
+      usbDevices: allDevicesList.filter((d) => d.type === "usb"),
+      wifiDevices: allDevicesList.filter((d) => d.type === "wifi"),
+    };
+  }, [devices, knownDevices]);
 
   return (
     <div className="content-wrapper">
@@ -532,7 +538,7 @@ export default function DevicePage() {
                 key={device.id}
                 device={device}
                 isConnected={device.status === "device" || device.status === "connected"}
-                isMirroring={mirroringDevices.has(device.id)}
+                isMirroring={mirroringDevices.includes(device.id)}
                 onConnect={connectDevice}
                 onDisconnect={disconnectDevice}
                 onEnableWifi={enableWifiMode}
@@ -595,7 +601,7 @@ export default function DevicePage() {
                 key={device.id}
                 device={device}
                 isConnected={device.status === "device" || device.status === "connected"}
-                isMirroring={mirroringDevices.has(device.id)}
+                isMirroring={mirroringDevices.includes(device.id)}
                 onConnect={connectDevice}
                 onDisconnect={disconnectDevice}
                 onStartRecord={startRecord}

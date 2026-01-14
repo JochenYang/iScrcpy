@@ -13,9 +13,9 @@ interface DeviceStore {
   devices: Device[];
   knownDevices: Device[];
   removedDevices: Device[];
-  mirroringDevices: Set<string>;
-  recordingDevices: Set<string>;
-  audioEnabledDevices: Set<string>;
+  mirroringDevices: string[];
+  recordingDevices: string[];
+  audioEnabledDevices: string[];
   updateKnownDevice: (device: Device) => void;
   removeKnownDevice: (deviceId: string) => void;
   addMirroringDevice: (deviceId: string) => void;
@@ -34,9 +34,9 @@ export const useDeviceStore = create<DeviceStore>()(
       devices: [],
       knownDevices: [],
       removedDevices: [],
-      mirroringDevices: new Set<string>(),
-      recordingDevices: new Set<string>(),
-      audioEnabledDevices: new Set<string>(),
+      mirroringDevices: [],
+      recordingDevices: [],
+      audioEnabledDevices: [],
 
       updateKnownDevice: (device) => {
         const knownDevices = get().knownDevices;
@@ -67,42 +67,40 @@ export const useDeviceStore = create<DeviceStore>()(
 
       addMirroringDevice: (deviceId) =>
         set((state) => ({
-          mirroringDevices: new Set([...state.mirroringDevices, deviceId]),
+          mirroringDevices: state.mirroringDevices.includes(deviceId)
+            ? state.mirroringDevices
+            : [...state.mirroringDevices, deviceId],
         })),
 
       removeMirroringDevice: (deviceId) =>
-        set((state) => {
-          const newSet = new Set(state.mirroringDevices);
-          newSet.delete(deviceId);
-          return { mirroringDevices: newSet };
-        }),
+        set((state) => ({
+          mirroringDevices: state.mirroringDevices.filter(id => id !== deviceId),
+        })),
 
       addRecordingDevice: (deviceId) =>
         set((state) => ({
-          recordingDevices: new Set([...state.recordingDevices, deviceId]),
+          recordingDevices: state.recordingDevices.includes(deviceId)
+            ? state.recordingDevices
+            : [...state.recordingDevices, deviceId],
         })),
 
       removeRecordingDevice: (deviceId) =>
-        set((state) => {
-          const newSet = new Set(state.recordingDevices);
-          newSet.delete(deviceId);
-          return { recordingDevices: newSet };
-        }),
+        set((state) => ({
+          recordingDevices: state.recordingDevices.filter(id => id !== deviceId),
+        })),
 
       setAudioEnabled: (deviceId, enabled) =>
-        set((state) => {
-          const newSet = new Set(state.audioEnabledDevices);
-          if (enabled) {
-            newSet.add(deviceId);
-          } else {
-            newSet.delete(deviceId);
-          }
-          return { audioEnabledDevices: newSet };
-        }),
+        set((state) => ({
+          audioEnabledDevices: enabled
+            ? state.audioEnabledDevices.includes(deviceId)
+              ? state.audioEnabledDevices
+              : [...state.audioEnabledDevices, deviceId]
+            : state.audioEnabledDevices.filter(id => id !== deviceId),
+        })),
 
-      isDeviceMirroring: (deviceId) => get().mirroringDevices.has(deviceId),
-      isDeviceRecording: (deviceId) => get().recordingDevices.has(deviceId),
-      isAudioEnabled: (deviceId) => get().audioEnabledDevices.has(deviceId),
+      isDeviceMirroring: (deviceId) => get().mirroringDevices.includes(deviceId),
+      isDeviceRecording: (deviceId) => get().recordingDevices.includes(deviceId),
+      isAudioEnabled: (deviceId) => get().audioEnabledDevices.includes(deviceId),
     }),
     {
       name: "device-storage",

@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-01-15
+
+### Fixed
+
+- Fixed several empty catch blocks across Electron main process for better error traceability
+- Fixed Set serialization issues in device storage affecting state persistence
+- Fixed TypeError in DeviceCard/DevicePage by migrating from Set.has() to Array.includes()
+- Fixed GitHub Actions build failure on macOS by disabling mandatory code signing requirements
+- Improved error handling by replacing `any` types with `unknown` and adding proper type checks
+
+### Changed
+
+- Converted synchronous file writes to asynchronous debounced writes to prevent blocking the main process
+- Optimized device polling interval (increased from 5s to 10s) to reduce CPU and network usage
+- Extracted hardcoded configuration values (polling intervals, log retention) into maintainable constants
+
+### Performance
+
+- Optimized React rendering in DevicePage using useMemo for derived device lists
+- Wrapped event handlers in useCallback to prevent unnecessary child component re-renders
+- Cached scrcpy command preview calculation using useMemo
+
 ## [1.1.10] - 2026-01-13
 
 ### Fixed
@@ -34,7 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added hardware encoder selection support for improved WiFi streaming performance
 - Users can now select from available device encoders via dropdown menu
-- Recommended hardware encoders (c2.qti.*, OMX.qcom.*) are marked with ★ indicator
+- Recommended hardware encoders (c2.qti._, OMX.qcom._) are marked with ★ indicator
 - Encoder info display shows current selected encoder name
 - Click-to-load approach (encoders load on dropdown click for better UX)
 - Added multi-language translations for encoder UI (7 languages)

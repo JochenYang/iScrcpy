@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { electronAPI } from "../utils/electron";
 import {
@@ -136,7 +136,8 @@ export default function DisplayPage() {
     }, 2000);
   };
 
-  const updateCommandPreview = () => {
+  // Use useMemo to cache command preview calculation
+  const commandPreview = useMemo(() => {
     const parts = ["scrcpy"];
     if (!settings.enableVideo) parts.push("--no-video");
     if (!settings.enableAudio) parts.push("--no-audio");
@@ -175,7 +176,7 @@ export default function DisplayPage() {
       parts.push(`--audio-codec=${encodingSettings.audioCodec}`);
     }
     return parts.join(" ");
-  };
+  }, [settings, encodingSettings]);
 
   // Check if a value is a preset option (0 = original)
   // scrcpy --max-size limits the longest edge, so for mobile portrait resolutions:
@@ -682,7 +683,7 @@ export default function DisplayPage() {
           <Settings2 size={16} />
           Command Preview
         </div>
-        <code>{updateCommandPreview()}</code>
+        <code>{commandPreview}</code>
       </div>
     </div>
   );
