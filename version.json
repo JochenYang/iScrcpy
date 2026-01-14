@@ -1,18 +1,18 @@
 {
-  "version": "1.1.10",
+  "version": "1.2.0",
   "releaseNotes": {
-    "en-US": "### Fixed\n\n- Fixed toast notifications showing previous language after switching app language\n- Fixed ADB processes not being killed on app quit (cleanup was skipped due to race condition)\n- Removed redundant isCleaningUp flag setting in quit-app handler",
-    "zh-CN": "### 修复\n\n- 修复切换应用语言后 toast 通知显示旧语言的问题\n- 修复退出应用时 ADB 进程未被终止的问题（由于竞态条件导致清理被跳过）\n- 移除 quit-app handler 中冗余的 isCleaningUp 标志设置",
-    "ja-JP": "### 修正\n\n- アプリ言語切り替え後に前の言語でト通知が表示される問題を修正\n- アプリ終了時に ADB プロセスが終了されない問題を修正（競合状態によりスキップされた）\n- quit-app ハンドラの冗長な isCleaningUp フラグ設定を削除",
-    "ko-KR": "### 수정\n\n- 앱 언어 전환 후 이전 언어로 토스트 알림이 표시되는 문제 수정\n- 앱 종료 시 ADB 프로세스가 종료되지 않는 문제 수정（경쟁 조건으로 인해 건너뛰어짐）\n- quit-app 핸더에서 중복되는 isCleaningUp 플래그 설정 제거",
-    "es-ES": "### Corregido\n\n- Corregida la notificacion toast que mostraba el idioma anterior despues de cambiar el idioma de la aplicacion\n- Corregido que los procesos ADB no se eliminaban al salir de la aplicacion（se omitio la limpieza debido a una condicion de carrera）\n- Eliminada la configuracion redundante del indicador isCleaningUp en el controlador quit-app",
-    "fr-FR": "### Correction\n\n- Correction de l'affichage de l'ancienne langue dans les notifications toast après changement de langue\n- Correction des processus ADB qui n'étaient pas terminés lors de la fermeture（nettoyage sauté en raison d'une condition de course）\n- Suppression du parametre isCleaningUp redondant dans le gestionnaire quit-app",
-    "tr-TR": "### Düzeltildi\n\n- Uygulama dili değiştirildikten sonra bildirimlerin önceki dili göstermesi sorunu düzeltildi\n- Uygulamadan çıkarken ADB işlemlerinin sonlandırılmaması sorunu düzeltildi（yarış koşulu nedeniyle temizleme atlandı）\n- quit-app işleyicisindeki gereksiz isCleaningUp bayrak ayarı kaldırıldı"
+    "en-US": "### Features & Improvements\n\n- Optimized React rendering in DevicePage/DisplayPage using useMemo/useCallback\n- Cached scrcpy command preview calculation using useMemo\n- Fixed 50+ instances of any types and empty catch blocks for better stability\n- Converted sync file writes to async debounced writes to prevent blocking main process\n- Fixed Set serialization issues in device storage affecting state persistence\n- Fixed GitHub Actions macOS build failure by disabling mandatory signing\n- Extracted hardcoded parameters (polling intervals, log retention) to maintainable constants",
+    "zh-CN": "### 功能与改进\n\n- 使用 useMemo/useCallback 优化了 DevicePage/DisplayPage 的渲染性能\n- 使用 useMemo 缓存了 scrcpy 命令预览计算\n- 修复了 50 多处 any 类型和空 catch 块，显著增强系统稳定性\n- 将同步文件写入改为异步防抖写入，防止主进程阻塞\n- 修复了设备存储中的 Set 序列化问题，确保状态持久化正常\n- 修复了 GitHub Actions 在 macOS 环境下的构建失败问题\n- 将硬编码参数（如轮询间隔、日志保留）提取为常量，提升可维护性",
+    "ja-JP": "### 機能と改善\n\n- useMemo/useCallback を使用して DevicePage/DisplayPage のレンダリングを最適化\n- scrcpy コマンドプレビューの計算を useMemo でキャッシュ\n- 50 以上の any 型と空の catch ブロックを修正し、安定性を向上\n- 同期ファイル書き込みを非同期デバウンス書き込みに変更し、メインプロセスのブロックを防止\n- デバイスストレージの Set シリアル化の問題を修正し、状態保持を正常化\n- GitHub Actions の macOS ビルド失敗の問題を修正\n- ポーリング間隔やログ保持などのハードコードされたパラメータを定数として抽出",
+    "ko-KR": "### 기능 및 개선 사항\n\n- useMemo/useCallback을 사용하여 DevicePage/DisplayPage 렌더링 성능 최적화\n- useMemo를 사용하여 scrcpy 명령 프리뷰 계산 캐싱\n- 50개 이상의 any 타입 및 빈 catch 블록 수정으로 시스템 안정성 강화\n- 동기 파일 쓰기를 비동기 디바운스 쓰기로 변경하여 메인 프로세스 차단 방지\n- 장치 저장소의 Set 직렬화 문제 수정으로 상태 지속성 보장\n- GitHub Actions의 macOS 빌드 실패 문제 수정\n- 폴링 간격, 로그 보관 등 하드코딩된 매개변수를 상수로 추출하여 유지관리성 향상",
+    "es-ES": "### Funciones y Mejoras\n\n- Optimización del renderizado de React en DevicePage/DisplayPage usando useMemo/useCallback\n- Cálculo de vista previa de comandos scrcpy en caché usando useMemo\n- Corregidas más de 50 instancias de tipos 'any' y bloques catch vacíos para mayor estabilidad\n- Escrituras de archivos síncronas convertidas a escrituras asíncronas con debounce para evitar bloqueos\n- Corregidos problemas de serialización de Set en el almacenamiento de dispositivos\n- Corregido el fallo de construcción de macOS en GitHub Actions\n- Parámetros codificados (como intervalos de sondeo, retención de registros) extraídos a constantes",
+    "fr-FR": "### Fonctionnalités et Améliorations\n\n- Optimisation du rendu React dans DevicePage/DisplayPage via useMemo/useCallback\n- Mise en cache du calcul de l'aperçu de la commande scrcpy avec useMemo\n- Correction de plus de 50 instances de types 'any' et de blocs catch vides pour la stabilité\n- Conversion des écritures de fichiers synchrones en écritures asynchrones avec debounce\n- Correction des problèmes de sérialisation de Set dans le stockage des appareils\n- Correction de l'échec de construction macOS sur GitHub Actions\n- Extraction des paramètres codés en dur (intervalles de sondage, rétention des logs) en constantes",
+    "tr-TR": "### Özellikler ve İyileştirmeler\n\n- useMemo/useCallback kullanarak DevicePage/DisplayPage'de React oluşturma optimizasyonu\n- scrcpy komut önizleme hesaplaması useMemo ile önbelleğe alındı\n- Stabilite için 50'den fazla 'any' türü ve boş catch bloğu düzeltildi\n- Senkron dosya yazma işlemleri asenkron debounced yazmaya dönüştürüldü\n- Cihaz depolamasındaki Set serileştirme sorunları düzeltildi\n- GitHub Actions macOS derleme hatası düzeltildi\n- Sabit kodlanmış parametreler (yoklama aralıkları, günlük saklama gibi) sabitlere aktarıldı"
   },
   "downloadUrl": {
-    "windows": "https://github.com/JochenYang/iScrcpy/releases/download/v1.1.10/iScrcpy-1.1.10-win-x64.exe",
-    "mac": "https://github.com/JochenYang/iScrcpy/releases/download/v1.1.10/iScrcpy-1.1.10-mac-x64.dmg",
-    "linux": "https://github.com/JochenYang/iScrcpy/releases/download/v1.1.10/iScrcpy-1.1.10-linux-x86_64.AppImage"
+    "windows": "https://github.com/JochenYang/iScrcpy/releases/download/v1.2.0/iScrcpy-1.2.0-win-x64.exe",
+    "mac": "https://github.com/JochenYang/iScrcpy/releases/download/v1.2.0/iScrcpy-1.2.0-mac-x64.dmg",
+    "linux": "https://github.com/JochenYang/iScrcpy/releases/download/v1.2.0/iScrcpy-1.2.0-linux-x86_64.AppImage"
   },
-  "publishedAt": "2026-01-13T10:00:00.000Z"
+  "publishedAt": "2026-01-15T01:00:00.000Z"
 }
