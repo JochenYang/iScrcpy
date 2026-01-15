@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-01-16
+
+### Fixed
+
+- Fixed custom settings (FPS, Bitrate, Resolution) not synchronizing immediately when switching to "Custom" mode in Display settings
+- Improved "Custom" option visibility in dropdown menus by adding explicit labels
+- Completed "Custom" label translations across all supported languages (ES, FR, JA, KO, TR)
+
 ## [1.2.1] - 2026-01-16
 
 ### Fixed

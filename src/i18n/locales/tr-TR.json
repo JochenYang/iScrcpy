@@ -255,7 +255,8 @@
     "save": "Kaydet",
     "delete": "Sil",
     "edit": "Düzenle",
-    "close": "Kapat"
+    "close": "Kapat",
+    "custom": "Özel"
   },
   "tray": {
     "showWindow": "Pencereyi göster",

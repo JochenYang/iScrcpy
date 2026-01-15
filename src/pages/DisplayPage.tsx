@@ -198,7 +198,8 @@ export default function DisplayPage() {
     const value = e.target.value;
     if (value === "custom") {
       setIsCustomMaxSize(true);
-      // Don't change maxSize yet, let user input custom value
+      // Immediately set maxSize to current custom value so it's correct even if user doesn't edit input
+      setSettings({ ...settings, maxSize: settings.customMaxSize });
     } else {
       setIsCustomMaxSize(false);
       setSettings({ ...settings, maxSize: parseInt(value) });
@@ -215,7 +216,8 @@ export default function DisplayPage() {
     const value = e.target.value;
     if (value === "custom") {
       setIsCustomBitrate(true);
-      // Don't change videoBitrate yet, let user input custom value
+      // Immediately set videoBitrate to current custom value
+      setSettings({ ...settings, videoBitrate: settings.customVideoBitrate });
     } else {
       setIsCustomBitrate(false);
       setSettings({ ...settings, videoBitrate: parseInt(value) });
@@ -226,7 +228,8 @@ export default function DisplayPage() {
     const value = e.target.value;
     if (value === "custom") {
       setIsCustomFps(true);
-      // Don't change frameRate yet, let user input custom value
+      // Immediately set frameRate to current custom value
+      setSettings({ ...settings, frameRate: settings.customFrameRate });
     } else {
       setIsCustomFps(false);
       setSettings({ ...settings, frameRate: parseInt(value) });
@@ -374,7 +377,7 @@ export default function DisplayPage() {
               <option value="8">8 Mbps</option>
               <option value="16">16 Mbps</option>
               <option value="32">32 Mbps</option>
-              <option value="custom">{t("display.videoBitrate")}...</option>
+              <option value="custom">{t("display.videoBitrate")} ({t("common.custom") || "Custom"}...)</option>
             </select>
             {isCustomBitrate && (
               <div className="custom-input-group">
@@ -400,7 +403,7 @@ export default function DisplayPage() {
               <option value="90">90 fps</option>
               <option value="120">120 fps</option>
               <option value="144">144 fps</option>
-              <option value="custom">{t("display.frameRate")}...</option>
+              <option value="custom">{t("display.frameRate")} ({t("common.custom") || "Custom"}...)</option>
             </select>
             {isCustomFps && (
               <div className="custom-input-group">

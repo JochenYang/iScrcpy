@@ -257,7 +257,8 @@
     "save": "저장",
     "delete": "삭제",
     "edit": "수정",
-    "close": "닫기"
+    "close": "닫기",
+    "custom": "사용자 지정"
   },
   "tray": {
     "showWindow": "창 표시",

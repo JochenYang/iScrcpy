@@ -255,7 +255,8 @@
     "save": "Enregistrer",
     "delete": "Supprimer",
     "edit": "Modifier",
-    "close": "Fermer"
+    "close": "Fermer",
+    "custom": "Personnalisé"
   },
   "tray": {
     "showWindow": "Afficher la fenêtre",

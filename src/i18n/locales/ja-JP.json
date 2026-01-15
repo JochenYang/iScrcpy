@@ -257,7 +257,8 @@
     "save": "保存",
     "delete": "削除",
     "edit": "編集",
-    "close": "閉じる"
+    "close": "閉じる",
+    "custom": "カスタム"
   },
   "tray": {
     "showWindow": "ウィンドウを表示",
