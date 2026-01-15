@@ -41,7 +41,9 @@ export interface DisplaySettings {
 // Encoding settings
 export interface EncodingSettings {
   videoCodec: string;
+  videoEncoder?: string;
   audioCodec: string;
+  audioEncoder?: string;
   bitrateMode: string;
 }
 

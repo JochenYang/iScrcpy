@@ -321,6 +321,7 @@ interface EncodingSettings {
   videoCodec: string;
   videoEncoder: string; // Hardware encoder name (e.g., "c2.qti.avc.encoder")
   audioCodec: string;
+  audioEncoder?: string;
   bitrateMode: string;
 }
 
@@ -1213,8 +1214,17 @@ ipcMain.handle(
       }
       args.push("--video-codec", codec);
     }
+
+    if (encoding.videoEncoder) {
+      args.push("--video-encoder", encoding.videoEncoder);
+    }
+
     if (encoding.audioCodec && encoding.audioCodec !== "opus") {
       args.push("--audio-codec", encoding.audioCodec);
+    }
+
+    if (encoding.audioEncoder) {
+      args.push("--audio-encoder", encoding.audioEncoder);
     }
 
     if (server.tunnelMode === "forward") args.push("--tunnel-forward");

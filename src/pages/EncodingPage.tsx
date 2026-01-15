@@ -20,7 +20,12 @@ export default function EncodingPage() {
   });
   const [saving, setSaving] = useState(false);
   const [deviceOptions, setDeviceOptions] = useState<
-    Array<{ label: string; value: string; isHardware: boolean; isRecommended: boolean }>
+    Array<{
+      label: string;
+      value: string;
+      isHardware: boolean;
+      isRecommended: boolean;
+    }>
   >([]);
   const [loadingEncoders, setLoadingEncoders] = useState(false);
   const [currentDeviceId, setCurrentDeviceId] = useState<string | null>(null);
@@ -36,7 +41,10 @@ export default function EncodingPage() {
 
   // Listen for device changes
   useEffect(() => {
-    const handleDeviceChange = (_event: any, data: { type: string; device: any }) => {
+    const handleDeviceChange = (
+      _event: any,
+      data: { type: string; device: any }
+    ) => {
       if (data.type === "connected") {
         setCurrentDeviceId(data.device.id);
       } else if (data.type === "disconnected") {
@@ -93,15 +101,43 @@ export default function EncodingPage() {
 
   // Get encoders when user clicks on the select dropdown
   const handleEncoderDropdownClick = useCallback(async () => {
-    if (!currentDeviceId || loadingEncoders || deviceOptions.length > 0) {
-      // Already loaded or no device
+    let targetDeviceId = currentDeviceId;
+
+    // Retry finding a device if we don't have one yet
+    if (!targetDeviceId) {
+      try {
+        const devicesResult = await electronAPI.adbDevices();
+        const devices = devicesResult.devices || [];
+        const connectedDevice = devices.find(
+          (d: any) => d.status === "connected" || d.status === "device"
+        );
+        if (connectedDevice) {
+          targetDeviceId = connectedDevice.id;
+          setCurrentDeviceId(targetDeviceId);
+        }
+      } catch (e) {
+        console.error("Failed to fetch devices for encoders:", e);
+      }
+    }
+
+    if (!targetDeviceId || loadingEncoders || deviceOptions.length > 0) {
+      // Still no device, or already loaded
+      if (!targetDeviceId && !loadingEncoders && deviceOptions.length === 0) {
+        setToast({
+          message: t("encoding.noDeviceConnected"),
+          visible: true,
+        });
+        setTimeout(() => {
+          setToast((prev) => ({ ...prev, visible: false }));
+        }, 2500);
+      }
       return;
     }
 
     setLoadingEncoders(true);
     try {
       const encoderResult = await electronAPI.getEncoders(
-        currentDeviceId,
+        targetDeviceId,
         settings.videoCodec
       );
 
@@ -138,7 +174,13 @@ export default function EncodingPage() {
       console.error("Failed to load encoders:", error);
     }
     setLoadingEncoders(false);
-  }, [currentDeviceId, settings.videoCodec, loadingEncoders, deviceOptions.length, t]);
+  }, [
+    currentDeviceId,
+    settings.videoCodec,
+    loadingEncoders,
+    deviceOptions.length,
+    t,
+  ]);
 
   // Get the display value for encoder select
   const getEncoderDisplayValue = () => {
@@ -151,7 +193,11 @@ export default function EncodingPage() {
 
   // When video codec changes, clear cached options
   const handleCodecChange = (newCodec: string) => {
-    setSettings((prev) => ({ ...prev, videoCodec: newCodec, videoEncoder: "" }));
+    setSettings((prev) => ({
+      ...prev,
+      videoCodec: newCodec,
+      videoEncoder: "",
+    }));
     setDeviceOptions([]);
   };
 
@@ -221,62 +267,77 @@ export default function EncodingPage() {
           <div className="form-group">
             <label>{t("encoding.videoEncoder")}</label>
 
-            {/* No device connected */}
-            {!currentDeviceId && !loadingEncoders && (
-              <p className="form-hint text-muted">{t("encoding.noDeviceConnected")}</p>
-            )}
-
             {/* Loading */}
             {loadingEncoders && (
               <p className="form-hint text-muted">{t("encoding.loading")}</p>
             )}
 
-            {/* Encoder select */}
-            {currentDeviceId && (
-              <div className="encoder-select-wrapper">
-                <select
-                  value={getEncoderDisplayValue()}
-                  onChange={(e) => handleEncoderChange(e.target.value)}
-                  onClick={handleEncoderDropdownClick}
-                  className="encoder-select"
-                  disabled={loadingEncoders}
-                >
-                  <option value="">{t("encoding.defaultEncoder")}</option>
-                  {/* Show saved encoder as hidden option if not in deviceOptions */}
-                  {settings.videoEncoder && !deviceOptions.some(o => o.value === getEncoderDisplayValue()) && (
-                    <option value={getEncoderDisplayValue()} style={{ display: "none" }}>
+            {/* Encoder select - Always visible to allow click-to-retry */}
+            <div className="encoder-select-wrapper">
+              <select
+                value={getEncoderDisplayValue()}
+                onChange={(e) => handleEncoderChange(e.target.value)}
+                onClick={handleEncoderDropdownClick}
+                className="encoder-select"
+                disabled={loadingEncoders}
+              >
+                {!currentDeviceId && !loadingEncoders && (
+                  <option value="" disabled>
+                    {t("encoding.noDeviceConnected")} - {t("encoding.clickToRetry") || "点击重试 / Click to retry"}
+                  </option>
+                )}
+
+                <option value="">{t("encoding.defaultEncoder")}</option>
+                {/* Show saved encoder as hidden option if not in deviceOptions */}
+                {settings.videoEncoder &&
+                  !deviceOptions.some(
+                    (o) => o.value === getEncoderDisplayValue()
+                  ) && (
+                    <option
+                      value={getEncoderDisplayValue()}
+                      style={{ display: "none" }}
+                    >
                       {getEncoderDisplayValue()}
                     </option>
                   )}
-                  {deviceOptions.map((option, index) => (
-                    <option key={index} value={option.value}>
-                      {option.value}
-                      {option.isRecommended && " ★"}
-                      {option.isHardware && !option.isRecommended && " (hw)"}
-                      {!option.isHardware && !option.isRecommended && " (sw)"}
-                    </option>
-                  ))}
-                </select>
-                {!deviceOptions.length && !loadingEncoders && currentDeviceId && (
-                  <ChevronDown
-                    size={16}
-                    className="encoder-dropdown-icon"
-                    style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}
-                  />
-                )}
-              </div>
-            )}
+                {deviceOptions.map((option, index) => (
+                  <option key={index} value={option.value}>
+                    {option.value}
+                    {option.isRecommended && " ★"}
+                    {option.isHardware && !option.isRecommended && " (hw)"}
+                    {!option.isHardware && !option.isRecommended && " (sw)"}
+                  </option>
+                ))}
+              </select>
+              {!deviceOptions.length && !loadingEncoders && (
+                <ChevronDown
+                  size={16}
+                  className="encoder-dropdown-icon"
+                  style={{
+                    position: "absolute",
+                    right: "12px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    pointerEvents: "none",
+                  }}
+                />
+              )}
+            </div>
 
             {/* Selected encoder info */}
             {settings.videoEncoder && (
               <div className="selected-encoder-info">
                 <Info size={14} />
-                <span>{t("encoding.usingEncoder")}: {settings.videoEncoder}</span>
+                <span>
+                  {t("encoding.usingEncoder")}: {settings.videoEncoder}
+                </span>
               </div>
             )}
 
             {/* Description */}
-            <p className="form-hint text-small">{t("encoding.videoEncoderDesc")}</p>
+            <p className="form-hint text-small">
+              {t("encoding.videoEncoderDesc")}
+            </p>
           </div>
 
           <div className="form-group">

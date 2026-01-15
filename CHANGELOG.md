@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-01-16
+
+### Fixed
+
+- Fixed scrcpy launch parameters missing `--video-encoder` and `--audio-encoder`, ensuring selected hardware encoders are actually used
+- Fixed video encoder list not showing in Encoding settings when no device is initially detected (added persistent dropdown with lazy loading)
+
 ## [1.2.0] - 2026-01-15
 
 ### Fixed

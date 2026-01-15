@@ -48,7 +48,9 @@ interface DisplaySettings {
 
 interface EncodingSettings {
   videoCodec: string;
+  videoEncoder?: string;
   audioCodec: string;
+  audioEncoder?: string;
   bitrateMode: string;
 }
 
@@ -172,8 +174,14 @@ export default function DisplayPage() {
     if (encodingSettings.videoCodec && encodingSettings.videoCodec !== "h264") {
       parts.push(`--video-codec=${encodingSettings.videoCodec}`);
     }
+    if (encodingSettings.videoEncoder) {
+      parts.push(`--video-encoder=${encodingSettings.videoEncoder}`);
+    }
     if (encodingSettings.audioCodec && encodingSettings.audioCodec !== "opus") {
       parts.push(`--audio-codec=${encodingSettings.audioCodec}`);
+    }
+    if (encodingSettings.audioEncoder) {
+      parts.push(`--audio-encoder=${encodingSettings.audioEncoder}`);
     }
     return parts.join(" ");
   }, [settings, encodingSettings]);
