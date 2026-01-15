@@ -1,18 +1,18 @@
 {
-  "version": "1.2.0",
+  "version": "1.2.2",
   "releaseNotes": {
-    "en-US": "### Features & Improvements\n\n- Optimized React rendering in DevicePage/DisplayPage using useMemo/useCallback\n- Cached scrcpy command preview calculation using useMemo\n- Fixed 50+ instances of any types and empty catch blocks for better stability\n- Converted sync file writes to async debounced writes to prevent blocking main process\n- Fixed Set serialization issues in device storage affecting state persistence\n- Fixed GitHub Actions macOS build failure by disabling mandatory signing\n- Extracted hardcoded parameters (polling intervals, log retention) to maintainable constants",
-    "zh-CN": "### 功能与改进\n\n- 使用 useMemo/useCallback 优化了 DevicePage/DisplayPage 的渲染性能\n- 使用 useMemo 缓存了 scrcpy 命令预览计算\n- 修复了 50 多处 any 类型和空 catch 块，显著增强系统稳定性\n- 将同步文件写入改为异步防抖写入，防止主进程阻塞\n- 修复了设备存储中的 Set 序列化问题，确保状态持久化正常\n- 修复了 GitHub Actions 在 macOS 环境下的构建失败问题\n- 将硬编码参数（如轮询间隔、日志保留）提取为常量，提升可维护性",
-    "ja-JP": "### 機能と改善\n\n- useMemo/useCallback を使用して DevicePage/DisplayPage のレンダリングを最適化\n- scrcpy コマンドプレビューの計算を useMemo でキャッシュ\n- 50 以上の any 型と空の catch ブロックを修正し、安定性を向上\n- 同期ファイル書き込みを非同期デバウンス書き込みに変更し、メインプロセスのブロックを防止\n- デバイスストレージの Set シリアル化の問題を修正し、状態保持を正常化\n- GitHub Actions の macOS ビルド失敗の問題を修正\n- ポーリング間隔やログ保持などのハードコードされたパラメータを定数として抽出",
-    "ko-KR": "### 기능 및 개선 사항\n\n- useMemo/useCallback을 사용하여 DevicePage/DisplayPage 렌더링 성능 최적화\n- useMemo를 사용하여 scrcpy 명령 프리뷰 계산 캐싱\n- 50개 이상의 any 타입 및 빈 catch 블록 수정으로 시스템 안정성 강화\n- 동기 파일 쓰기를 비동기 디바운스 쓰기로 변경하여 메인 프로세스 차단 방지\n- 장치 저장소의 Set 직렬화 문제 수정으로 상태 지속성 보장\n- GitHub Actions의 macOS 빌드 실패 문제 수정\n- 폴링 간격, 로그 보관 등 하드코딩된 매개변수를 상수로 추출하여 유지관리성 향상",
-    "es-ES": "### Funciones y Mejoras\n\n- Optimización del renderizado de React en DevicePage/DisplayPage usando useMemo/useCallback\n- Cálculo de vista previa de comandos scrcpy en caché usando useMemo\n- Corregidas más de 50 instancias de tipos 'any' y bloques catch vacíos para mayor estabilidad\n- Escrituras de archivos síncronas convertidas a escrituras asíncronas con debounce para evitar bloqueos\n- Corregidos problemas de serialización de Set en el almacenamiento de dispositivos\n- Corregido el fallo de construcción de macOS en GitHub Actions\n- Parámetros codificados (como intervalos de sondeo, retención de registros) extraídos a constantes",
-    "fr-FR": "### Fonctionnalités et Améliorations\n\n- Optimisation du rendu React dans DevicePage/DisplayPage via useMemo/useCallback\n- Mise en cache du calcul de l'aperçu de la commande scrcpy avec useMemo\n- Correction de plus de 50 instances de types 'any' et de blocs catch vides pour la stabilité\n- Conversion des écritures de fichiers synchrones en écritures asynchrones avec debounce\n- Correction des problèmes de sérialisation de Set dans le stockage des appareils\n- Correction de l'échec de construction macOS sur GitHub Actions\n- Extraction des paramètres codés en dur (intervalles de sondage, rétention des logs) en constantes",
-    "tr-TR": "### Özellikler ve İyileştirmeler\n\n- useMemo/useCallback kullanarak DevicePage/DisplayPage'de React oluşturma optimizasyonu\n- scrcpy komut önizleme hesaplaması useMemo ile önbelleğe alındı\n- Stabilite için 50'den fazla 'any' türü ve boş catch bloğu düzeltildi\n- Senkron dosya yazma işlemleri asenkron debounced yazmaya dönüştürüldü\n- Cihaz depolamasındaki Set serileştirme sorunları düzeltildi\n- GitHub Actions macOS derleme hatası düzeltildi\n- Sabit kodlanmış parametreler (yoklama aralıkları, günlük saklama gibi) sabitlere aktarıldı"
+    "en-US": "### Fixed\n\n- Fixed custom settings sync issue in Display page\n- Improved 'Custom' option visibility and multi-language support",
+    "zh-CN": "### 修复\n\n- 修复投屏设置页自定义参数不同步的问题\n- 优化“自定义”选项的可见性及多语言支持",
+    "ja-JP": "### 修正\n\n- ディスプレイ設定ページのカスタム設定同期問題を修正\n- 「カスタム」オプションの視認性と多言語サポートを向上",
+    "ko-KR": "### 수정\n\n- 디스플레이 설정 페이지의 사용자 지정 설정 동기화 문제 수정\n- '사용자 지정' 옵션 가시성 및 다국어 지원 개선",
+    "es-ES": "### Corregido\n\n- Corregido el problema de sincronización de la configuración personalizada en la página de visualización\n- Mejora de la visibilidad de la opción 'Personalizado' y del soporte multi-idioma",
+    "fr-FR": "### Correction\n\n- Correction du problème de synchronisation des paramètres personnalisés dans la page d'affichage\n- Amélioration de la visibilité de l'option 'Personnalisé' et du support multilingue",
+    "tr-TR": "### Düzeltildi\n\n- Ekran ayarları sayfasındaki özel ayar senkronizasyonu sorunu düzeltildi\n- 'Özel' seçeneğinin görünürlüğü ve çok dilli destek iyileştirildi"
   },
   "downloadUrl": {
-    "windows": "https://github.com/JochenYang/iScrcpy/releases/download/v1.2.0/iScrcpy-1.2.0-win-x64.exe",
-    "mac": "https://github.com/JochenYang/iScrcpy/releases/download/v1.2.0/iScrcpy-1.2.0-mac-x64.dmg",
-    "linux": "https://github.com/JochenYang/iScrcpy/releases/download/v1.2.0/iScrcpy-1.2.0-linux-x86_64.AppImage"
+    "windows": "https://github.com/JochenYang/iScrcpy/releases/download/v1.2.2/iScrcpy-1.2.2-win-x64.exe",
+    "mac": "https://github.com/JochenYang/iScrcpy/releases/download/v1.2.2/iScrcpy-1.2.2-mac-x64.dmg",
+    "linux": "https://github.com/JochenYang/iScrcpy/releases/download/v1.2.2/iScrcpy-1.2.2-linux-x86_64.AppImage"
   },
-  "publishedAt": "2026-01-15T01:00:00.000Z"
+  "publishedAt": "2026-01-16T11:00:00.000Z"
 }
