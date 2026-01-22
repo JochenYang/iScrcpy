@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.3] - 2026-01-23
+
+### Fixed
+
+- Fixed device connection status not updating when device disconnects (WiFi/USB)
+- Fixed stale "connected" status persisting after device disconnection
+- Device status now updates immediately when device tracker detects disconnect event
+- Fixed device status not updating on visibility change (tab switch)
+- Fixed ADB daemon failure not clearing connected devices state
+
+### Changed
+
+- Optimized startup: device status restored from history immediately, no initial ADB poll
+- Device connection state now determined by ADB only when status actually changes
+- WiFi devices now mark as offline after 5 seconds of disconnection timeout
+- Postinstall script changed from `electron-vite postinstall` to `electron-vite build`
+
 ## [1.2.2] - 2026-01-16
 
 ### Fixed

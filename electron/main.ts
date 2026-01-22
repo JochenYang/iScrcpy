@@ -723,7 +723,9 @@ function parseDeviceList(output: string): DeviceInfo[] {
           id,
           name,
           type,
-          status: connectedDevices.has(id) ? "connected" : status,
+          // Only show as "connected" if ADB reports "device" AND device is in connectedDevices
+          // This prevents stale "connected" status when device actually disconnected
+          status: connectedDevices.has(id) && status === "device" ? "connected" : status,
         });
       }
     }

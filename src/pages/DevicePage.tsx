@@ -73,7 +73,7 @@ export default function DevicePage() {
           });
 
           // Update known devices: USB devices mark as offline if not detected
-          // WiFi devices keep their status (may be temporarily undetected by ADB)
+          // WiFi devices keep their status but update if disconnected for too long
           const updatedKnown = known.map(knownDevice => {
             const current = currentDeviceMap.get(knownDevice.id);
             if (current) {
@@ -85,10 +85,15 @@ export default function DevicePage() {
                 lastSeen: now,
               };
             }
-            // Device not in ADB list
-            // USB: disconnection is immediate, mark as offline
-            // WiFi: keep original status (ADB may temporarily not detect it)
+            // Device not in ADB list - mark all as offline when ADB fails
             if (knownDevice.type === "wifi") {
+              // If device was previously connected, mark as offline after timeout
+              if (knownDevice.status === "connected" || knownDevice.status === "connecting") {
+                const disconnectTime = knownDevice.lastSeen ? now - knownDevice.lastSeen : 0;
+                if (disconnectTime > 5000) {
+                  return { ...knownDevice, status: "offline", lastSeen: now };
+                }
+              }
               return knownDevice;
             }
             return { ...knownDevice, status: "offline", lastSeen: now };
@@ -128,6 +133,29 @@ export default function DevicePage() {
 
           // Success, exit the retry loop
           break;
+        } else {
+          // ADB command failed OR returned empty device list
+          // Both cases mean devices are not available
+          if (!result.devices || result.devices.length === 0) {
+            // ADB succeeded but no devices found - mark all known devices as offline
+            console.warn("ADB returned empty device list, marking all devices as offline");
+            const known = useDeviceStore.getState().knownDevices;
+            const now = Date.now();
+            const updatedKnown = known.map(knownDevice => ({
+              ...knownDevice,
+              status: "offline",
+              lastSeen: now,
+            }));
+            useDeviceStore.setState({
+              devices: [],
+              knownDevices: updatedKnown,
+            });
+          }
+          retryCount++;
+          if (retryCount < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 500 * Math.pow(2, retryCount - 1)));
+            continue;
+          }
         }
       } catch (error) {
         console.error("Failed to load devices:", error);
@@ -138,6 +166,22 @@ export default function DevicePage() {
           continue;
         }
       }
+    }
+
+    // When ADB fails after all retries, mark all known devices as offline
+    const lastResult = await electronAPI.adbDevices().catch(() => ({ success: false, devices: [] as DeviceInfo[] }));
+    if (!lastResult.success || !lastResult.devices?.length) {
+      const known = useDeviceStore.getState().knownDevices;
+      const now = Date.now();
+      const updatedKnown = known.map(knownDevice => ({
+        ...knownDevice,
+        status: "offline",
+        lastSeen: now,
+      }));
+      useDeviceStore.setState({
+        devices: [],
+        knownDevices: updatedKnown,
+      });
     }
 
     setRefreshing(false);
@@ -350,11 +394,13 @@ export default function DevicePage() {
   };
 
   useEffect(() => {
-    // Initial load - show loading state immediately, load devices in background
+    // Initial load - show loading state immediately
     setIsInitializing(true);
-    loadDevices({ silent: false, forceRefresh: false }).then(() => {
+    // Don't call loadDevices here, deviceTracker will add devices via device-change event
+    // Just set initializing to false after a short delay to allow device-change to be handled
+    setTimeout(() => {
       setIsInitializing(false);
-    });
+    }, 1000);
     // Silent polling every 10 seconds to update device status (reduced from 5s to save CPU)
     const pollInterval = setInterval(() => {
       loadDevices({ silent: true, forceRefresh: true });
@@ -408,15 +454,35 @@ export default function DevicePage() {
     const handleDeviceChange = (_event: any, data: { type: string; device: any }) => {
       console.log(`Device change: ${data.type}`, data.device);
       if (data.type === "remove") {
-        // Device disconnected - don't mark as offline immediately
-        // Only mark as offline when adb devices confirms it's truly disconnected
-        // This prevents false offline status when device tracker reports "offline" first
-        console.log(`Device ${data.device.id} disconnected, will verify with adb devices...`);
-        // Trigger a refresh to verify actual status
-        loadDevices({ silent: true, forceRefresh: true });
+        // Device disconnected - immediately update status to offline
+        // No need to wait for ADB, device tracker already confirmed disconnection
+        const { knownDevices, devices } = useDeviceStore.getState();
+        const deviceId = data.device.id;
+
+        // Update knownDevices
+        const updatedKnown = knownDevices.map(d =>
+          d.id === deviceId ? { ...d, status: "offline", lastSeen: Date.now() } : d
+        );
+
+        // Update devices
+        const updatedDevices = devices.map(d =>
+          d.id === deviceId ? { ...d, status: "offline", lastSeen: Date.now() } : d
+        );
+
+        useDeviceStore.setState({ knownDevices: updatedKnown, devices: updatedDevices });
+        console.log(`Device ${deviceId} marked as offline`);
       } else if (data.type === "add") {
-        // Device connected - refresh device list
-        loadDevices({ silent: true });
+        // Device connected - just update devices list with the new device info
+        // Don't call loadDevices here, it would override with ADB result
+        // Let the periodic polling update the status if needed
+        const { devices } = useDeviceStore.getState();
+        const device = data.device;
+
+        // Add to devices if not exists
+        if (!devices.find(d => d.id === device.id)) {
+          const updatedDevices = [...devices, { ...device, lastSeen: Date.now() }];
+          useDeviceStore.setState({ devices: updatedDevices });
+        }
       }
     };
 
@@ -450,6 +516,19 @@ export default function DevicePage() {
       }
     };
   }, []); // Empty dependency array - bind once on mount
+
+  // Refresh device status when page becomes visible (e.g., after switching tabs)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // Immediately refresh device status when page becomes visible
+        loadDevices({ silent: true, forceRefresh: true });
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [loadDevices]);
 
   // Merge knownDevices and devices to get complete device list with latest status
   // Use useMemo to avoid recalculating on every render

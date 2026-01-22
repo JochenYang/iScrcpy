@@ -1,6 +1,6 @@
 {
   "name": "iscrcpy",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Android screen mirroring tool powered by scrcpy",
   "main": "out/main/main.cjs",
   "type": "module",
@@ -12,7 +12,7 @@
     "dist:mac": "npm run build && electron-builder --mac",
     "dist:linux": "npm run build && electron-builder --linux",
     "dist:all": "npm run build && electron-builder -mwl",
-    "postinstall": "electron-vite postinstall",
+    "postinstall": "electron-vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "generate-icons": "node scripts/convert-icon.mjs"
   },
