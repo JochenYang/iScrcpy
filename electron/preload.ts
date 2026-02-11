@@ -1,5 +1,57 @@
-import { contextBridge, ipcRenderer } from "electron";
+import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
 import type { ElectronAPI } from "../src/types/electron";
+
+// Type for IPC listener callbacks
+type IpcCallback = (event: IpcRendererEvent, ...args: any[]) => void;
+
+// Listener management map - tracks callbacks per event to enable precise removal
+// This prevents removeAllListeners from accidentally removing other components' listeners
+const listenerMap = new Map<string, Set<IpcCallback>>();
+
+/**
+ * Registers a listener and returns an unsubscribe function for precise cleanup
+ * @param eventName - The IPC event name to listen for
+ * @param callback - The callback function to execute when event fires
+ * @returns Unsubscribe function to remove only this specific listener
+ */
+function createListener(
+  eventName: string,
+  callback: (...args: any[]) => void
+): () => void {
+  // Wrap callback to maintain reference for later removal
+  const wrappedCallback = (...args: any[]) => callback(...args);
+
+  // Initialize Set for this event if not exists
+  if (!listenerMap.has(eventName)) {
+    listenerMap.set(eventName, new Set());
+  }
+
+  // Store wrapped callback for precise removal
+  listenerMap.get(eventName)!.add(wrappedCallback);
+
+  // Register with IPC
+  ipcRenderer.on(eventName, wrappedCallback);
+
+  // Return unsubscribe function
+  return () => {
+    listenerMap.get(eventName)?.delete(wrappedCallback);
+    ipcRenderer.removeListener(eventName, wrappedCallback);
+  };
+}
+
+/**
+ * Removes a specific listener by event name
+ * @param eventName - The IPC event name
+ */
+function removeListener(eventName: string): void {
+  const callbacks = listenerMap.get(eventName);
+  if (callbacks) {
+    callbacks.forEach((callback) => {
+      ipcRenderer.removeListener(eventName, callback);
+    });
+    callbacks.clear();
+  }
+}
 
 // File dialog options type (for local use)
 type FileDialogOptions = {
@@ -56,34 +108,34 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // Listen for scrcpy exit events
   onScrcpyExit: (callback: (deviceId: string) => void) => {
-    ipcRenderer.on("scrcpy-exit", (_, deviceId) => callback(deviceId));
+    return createListener("scrcpy-exit", (_, deviceId) => callback(deviceId));
   },
   removeScrcpyExitListener: () => {
-    ipcRenderer.removeAllListeners("scrcpy-exit");
+    removeListener("scrcpy-exit");
   },
 
   // Listen for scrcpy started events
   onScrcpyStarted: (callback: (deviceId: string) => void) => {
-    ipcRenderer.on("scrcpy-started", (_, deviceId) => callback(deviceId));
+    return createListener("scrcpy-started", (_, deviceId) => callback(deviceId));
   },
   removeScrcpyStartedListener: () => {
-    ipcRenderer.removeAllListeners("scrcpy-started");
+    removeListener("scrcpy-started");
   },
 
   // Listen for camera exit events
   onCameraExit: (callback: (deviceId: string) => void) => {
-    ipcRenderer.on("camera-exit", (_, deviceId) => callback(deviceId));
+    return createListener("camera-exit", (_, deviceId) => callback(deviceId));
   },
   removeCameraExitListener: () => {
-    ipcRenderer.removeAllListeners("camera-exit");
+    removeListener("camera-exit");
   },
 
   // Listen for device change events
   onDeviceChange: (callback: (event: any, data: { type: string; device: any }) => void) => {
-    ipcRenderer.on("device-change", (_, data) => callback(null, data));
+    return createListener("device-change", (data) => callback(null, data));
   },
   removeDeviceChangeListener: () => {
-    ipcRenderer.removeAllListeners("device-change");
+    removeListener("device-change");
   },
 
   // Device history
@@ -122,10 +174,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // Close confirmation
   onShowCloseConfirm: (callback: () => void) => {
-    ipcRenderer.on("show-close-confirm", () => callback());
+    return createListener("show-close-confirm", () => callback());
   },
   removeCloseConfirmListener: () => {
-    ipcRenderer.removeAllListeners("show-close-confirm");
+    removeListener("show-close-confirm");
   },
   sendCloseConfirmResult: (result: { minimizeToTray: boolean }) => {
     ipcRenderer.send("close-confirm-result", result);
@@ -134,10 +186,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // Quit animation
   onQuitAnimation: (callback: () => void) => {
-    ipcRenderer.on("quit-animation", () => callback());
+    return createListener("quit-animation", () => callback());
   },
   removeQuitAnimationListener: () => {
-    ipcRenderer.removeAllListeners("quit-animation");
+    removeListener("quit-animation");
   },
 
   // File operations
@@ -176,10 +228,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // Download progress
   onDownloadProgress: (callback: (event: Electron.IpcRendererEvent, progress: number) => void) => {
-    ipcRenderer.on("download-progress", callback);
+    return createListener("download-progress", callback);
   },
   removeDownloadProgressListener: () => {
-    ipcRenderer.removeAllListeners("download-progress");
+    removeListener("download-progress");
   },
 
   // Language change notification for tray

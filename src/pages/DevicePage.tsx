@@ -30,12 +30,21 @@ export default function DevicePage() {
   const knownDevicesRef = useRef(knownDevices);
   knownDevicesRef.current = knownDevices;
 
+  // Concurrency control: prevent multiple simultaneous loadDevices calls
+  const isLoadingDevicesRef = useRef(false);
+
   type LoadDevicesOptions = {
     silent?: boolean;
     forceRefresh?: boolean;
   };
 
   const loadDevices = useCallback(async (options: LoadDevicesOptions = {}) => {
+    // Bail out if already loading to prevent race conditions
+    if (isLoadingDevicesRef.current) {
+      return;
+    }
+    isLoadingDevicesRef.current = true;
+
     const silent = options.silent ?? false;
     const forceRefresh = options.forceRefresh ?? false;
     if (!silent) {
@@ -121,13 +130,26 @@ export default function DevicePage() {
           // Auto-reconnect WiFi devices that were connected but not currently detected
           // Only when force refresh is enabled (e.g., manual refresh)
           if (forceRefresh) {
-            const wifiDevicesNeedingReconnect = updatedKnown.filter(d =>
-              d.type === "wifi" &&
-              !currentDevices.some(curr => curr.id === d.id)
-            );
+            const wifiDevicesNeedingReconnect = updatedKnown.filter(d => {
+              // Only reconnect WiFi devices that are not currently connected
+              if (d.type !== "wifi") return false;
+              if (currentDevices.some(curr => curr.id === d.id)) return false;
 
+              // Only reconnect devices that were previously connected or connecting
+              const wasConnected = d.status === "connected" || d.status === "connecting";
+              if (!wasConnected) return false;
+
+              // Only reconnect if disconnected for more than 10 seconds
+              // This prevents immediate reconnection during network instability
+              const disconnectDuration = now - (d.lastSeen || 0);
+              return disconnectDuration > 10000;
+            });
+
+            // Delay reconnection by 2 seconds to avoid triggering during network instability
             for (const device of wifiDevicesNeedingReconnect) {
-              electronAPI.connectWifi(device.id);
+              setTimeout(() => {
+                electronAPI.connectWifi(device.id);
+              }, 2000);
             }
           }
 
@@ -185,6 +207,8 @@ export default function DevicePage() {
     }
 
     setRefreshing(false);
+    // Reset loading flag to allow future calls
+    isLoadingDevicesRef.current = false;
   }, []);
 
   const connectDevice = useCallback(async (deviceId: string, _options?: { record?: boolean; recordAudio?: boolean; camera?: boolean }) => {

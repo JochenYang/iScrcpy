@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.4] - 2026-02-11
+
+### Fixed
+
+- Fixed race condition in device loading when rapidly refreshing device list
+- Added concurrency control to prevent state overwrite from simultaneous loadDevice calls
+- Fixed IPC listener cleanup using removeAllListeners which could accidentally remove other component listeners
+- Improved listener management with listenerMap for precise cleanup
+- Fixed WiFi device auto-reconnect timing issue - now waits 10 seconds after disconnect before attempting reconnect
+- Added 2-second delay before WiFi reconnect to prevent triggering during network instability
+- Fixed TypeScript type error in preload.ts listener callback type
+
+### Changed
+
+- Device auto-reconnect now only triggers on manual refresh, not immediately after disconnect
+- WiFi devices must be previously connected before attempting reconnect
+
 ## [1.2.3] - 2026-01-23
 
 ### Fixed
