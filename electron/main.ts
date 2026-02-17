@@ -102,25 +102,30 @@ function startAdbServer(): Promise<void> {
 
   return new Promise((resolve) => {
     const adbPath = getAdbPath();
-    // Use PowerShell to properly handle the command
-    exec(`"${adbPath}" start-server`, { encoding: "utf8", timeout: 10000 }, (error, stdout, stderr) => {
-      if (error) {
-        logger.warn("ADB start failed:", error.message);
-        // Retry once
-        setTimeout(() => {
-          exec(`"${adbPath}" start-server`, { encoding: "utf8", timeout: 10000 }, (retryError, _stdout, _stderr) => {
-            if (retryError) {
-              logger.warn("ADB retry start failed:", retryError.message);
-            } else {
-              logger.info("ADB server started (retry)");
-            }
-          });
-        }, 1000);
-      } else {
-        logger.debug("ADB server started");
-      }
-      resolve();
-    });
+    const tryStart = () => {
+      exec(`"${adbPath}" start-server`, { encoding: "utf8", timeout: 10000 }, (error, _stdout, _stderr) => {
+        if (error) {
+          logger.warn("ADB start failed:", error.message);
+          // Retry once more
+          setTimeout(() => {
+            exec(`"${adbPath}" start-server`, { encoding: "utf8", timeout: 10000 }, (retryError, _retryStdout, _retryStderr) => {
+              if (retryError) {
+                logger.warn("ADB retry start failed:", retryError.message);
+                // Even if retry fails, resolve to continue - tracker will handle ADB not ready
+                resolve();
+              } else {
+                logger.info("ADB server started (retry)");
+                resolve();
+              }
+            });
+          }, 1000);
+        } else {
+          logger.debug("ADB server started");
+          resolve();
+        }
+      });
+    };
+    tryStart();
   });
 }
 
@@ -365,6 +370,8 @@ const deviceProcesses = new Map<string, { pid: number; proc: any }>();
 const cameraProcesses = new Map<string, { pid: number; proc: any }>();
 const connectedDevices = new Set<string>();
 const connectedDevicesInfo = new Map<string, { name: string }>();
+// Track devices that have been notified to frontend to prevent duplicate notifications
+const notifiedDevices = new Set<string>();
 let isQuittingForUpdate = false;
 let isCleaningUp = false;  // Prevent double cleanup
 let adbClient: any = null;
@@ -534,6 +541,30 @@ function cleanupOldInstaller(): void {
   tryDelete();
 }
 
+/**
+ * Notify frontend about device connection status change
+ * @param deviceId - Device ID
+ * @param deviceName - Device display name
+ * @param deviceType - Device type: "usb" or "wifi"
+ */
+function notifyDeviceConnected(
+  deviceId: string,
+  deviceName: string,
+  deviceType: "usb" | "wifi"
+): void {
+  if (mainWindow) {
+    mainWindow.webContents.send("device-change", {
+      type: "add",
+      device: {
+        id: deviceId,
+        name: deviceName,
+        type: deviceType,
+        status: deviceType === "wifi" ? "connected" : "device",
+      },
+    });
+  }
+}
+
 // Initialize device tracker for real-time device monitoring
 async function initDeviceTracker(): Promise<void> {
   try {
@@ -550,7 +581,18 @@ async function initDeviceTracker(): Promise<void> {
     deviceTracker.on("add", (device: any) => {
       logger.info(`Device connected: ${device.id} (${device.type})`);
       if (mainWindow) {
-        mainWindow.webContents.send("device-change", { type: "add", device });
+        // Format device data with proper status for frontend
+        const isWifi = device.id.includes(":");
+        const deviceName = connectedDevicesInfo.get(device.id)?.name || device.id;
+        mainWindow.webContents.send("device-change", {
+          type: "add",
+          device: {
+            id: device.id,
+            name: deviceName,
+            type: device.type || (isWifi ? "wifi" : "usb"),
+            status: isWifi ? "connected" : "device",
+          },
+        });
       }
     });
 
@@ -559,10 +601,22 @@ async function initDeviceTracker(): Promise<void> {
       // Update connectedDevices and persistent state
       connectedDevices.delete(device.id);
       connectedDevicesInfo.delete(device.id);
+      // Remove from notifiedDevices to allow re-notification on reconnect
+      notifiedDevices.delete(device.id);
       // Update persisted connection state
       updateDeviceConnectionState(device.id, false);
       if (mainWindow) {
-        mainWindow.webContents.send("device-change", { type: "remove", device });
+        // Format device data with proper status for frontend
+        const isWifi = device.id.includes(":");
+        mainWindow.webContents.send("device-change", {
+          type: "remove",
+          device: {
+            id: device.id,
+            name: device.id,
+            type: device.type || (isWifi ? "wifi" : "usb"),
+            status: "offline",
+          },
+        });
       }
     });
 
@@ -576,6 +630,9 @@ async function initDeviceTracker(): Promise<void> {
     });
 
     logger.info("Device tracker initialized");
+
+    // Sync connected devices after tracker is ready
+    syncConnectedDevicesAfterTrackerReady();
   } catch (e: unknown) {
     const errorMessage = e instanceof Error ? e.message : String(e);
     logger.warn("Failed to init device tracker:", errorMessage);
@@ -585,6 +642,56 @@ async function initDeviceTracker(): Promise<void> {
       initDeviceTracker();
     }, 2000);
   }
+}
+
+/**
+ * Sync connected devices after tracker is ready
+ * This ensures all currently connected devices are notified to frontend
+ */
+function syncConnectedDevicesAfterTrackerReady(): void {
+  if (!mainWindow) {
+    return;
+  }
+
+  // Get all devices from ADB to sync current state
+  exec(
+    `"${getAdbPath()}" devices -l`,
+    { encoding: "utf8" },
+    (error, stdout) => {
+      if (error || !stdout) {
+        logger.warn("Failed to get device list for sync:", error?.message);
+        return;
+      }
+
+      const lines = stdout.split("\n").filter((line) => line.trim());
+      let syncedCount = 0;
+
+      for (const line of lines) {
+        const parts = line.split(/\s+/);
+        if (parts.length >= 2) {
+          const deviceId = parts[0];
+          const status = parts[1];
+
+          // Only sync devices that are actually connected and NOT already notified
+          // This ensures we only notify frontend when there's an actual state change
+          if (
+            (status === "device" || status === "authorized") &&
+            !notifiedDevices.has(deviceId)
+          ) {
+            const isWifi = deviceId.includes(":");
+            const deviceType = isWifi ? "wifi" : "usb";
+            const deviceName = connectedDevicesInfo.get(deviceId)?.name || deviceId;
+
+            notifyDeviceConnected(deviceId, deviceName, deviceType);
+            notifiedDevices.add(deviceId);
+            syncedCount++;
+          }
+        }
+      }
+
+      logger.info(`Synced ${syncedCount} connected devices after tracker ready`);
+    }
+  );
 }
 
 // Stop device tracker
@@ -823,37 +930,42 @@ function createWindow(): void {
     // This ensures devices show their last known state immediately
     for (const device of settings.deviceHistory) {
       if (device.isConnected && mainWindow) {
+        const isWifi = device.id.includes(":");
+        // WiFi devices should have status "connected", USB devices use "device"
+        const status = isWifi ? "connected" : "device";
         mainWindow.webContents.send("device-change", {
           type: "add",
           device: {
             id: device.id,
             name: device.name,
-            type: device.id.includes(":") ? "wifi" : "usb",
-            status: "device",
+            type: isWifi ? "wifi" : "usb",
+            status,
           },
         });
+        // Track notified devices to prevent duplicate notifications
+        notifiedDevices.add(device.id);
         // Ensure connectedDevices set is populated
         connectedDevices.add(device.id);
         connectedDevicesInfo.set(device.id, { name: device.name });
       }
     }
 
-    // Start ADB server in background (non-blocking)
-    // Initialize device tracker immediately - it will retry if ADB is not ready yet
-    // This parallel approach reduces startup time
-    startAdbServer();
+    // Start ADB server and wait for it to be ready before initializing tracker
+    // This ensures tracker has valid ADB connection from the start
+    logger.info("Starting ADB server and scheduling auto-connect...");
+    startAdbServer().then(() => {
+      logger.info("ADB server ready, initializing tracker...");
+      // ADB is ready, now initialize tracker
+      setImmediate(() => {
+        initDeviceTracker();
+      });
 
-    // Initialize tracker immediately, it handles ADB not ready gracefully
-    // Use setImmediate to ensure window is fully shown first
-    setImmediate(() => {
-      initDeviceTracker();
+      // Auto-connect to saved devices after tracker is ready
+      setTimeout(() => {
+        logger.info("Calling autoConnectSavedDevices...");
+        autoConnectSavedDevices();
+      }, 500);
     });
-
-    // Auto-connect to saved devices after a shorter delay
-    // Tracker will be ready by then for most cases
-    setTimeout(() => {
-      autoConnectSavedDevices();
-    }, 300);
   });
 
   // Intercept window close to show confirmation dialog
@@ -1103,6 +1215,9 @@ async function connectWifiDevice(
               const deviceName = err ? deviceId : modelOutput.trim() || deviceId;
               connectedDevicesInfo.set(deviceId, { name: deviceName });
               logger.info(`Successfully connected to ${deviceId}, name: ${deviceName}`);
+
+              // Notify frontend about successful connection
+              notifyDeviceConnected(deviceId, deviceName, "wifi");
             }
           );
 
@@ -1359,8 +1474,8 @@ ipcMain.handle(
         existingDevice.lastConnected = Date.now();
         existingDevice.isConnected = true;
       } else {
-        // Add to history with autoConnect=false and isConnected=true
-        addDeviceToHistory(deviceId, "Unknown Device", ip, port, false, true);
+        // Add to history with autoConnect=true and isConnected=true
+        addDeviceToHistory(deviceId, "Unknown Device", ip, port, true, true);
       }
       // Update persistent connection state
       updateDeviceConnectionState(deviceId, true);
@@ -1835,7 +1950,7 @@ async function addDeviceToHistory(
   name: string,
   ip: string,
   port: number = 5555,
-  autoConnect: boolean = false,
+  autoConnect: boolean = true,
   isConnected: boolean = false
 ): Promise<void> {
   // Remove existing entry with same device ID
@@ -1951,14 +2066,37 @@ ipcMain.handle(
 
 // Auto-connect to saved devices on startup
 async function autoConnectSavedDevices(): Promise<void> {
-  const autoConnectDevices = settings.deviceHistory.filter(
-    (d) => d.autoConnect
+  logger.info("autoConnectSavedDevices called, checking devices...");
+
+  // Log all devices in history for debugging
+  logger.info(`deviceHistory has ${settings.deviceHistory.length} devices`);
+  for (const d of settings.deviceHistory) {
+    logger.info(`  - ${d.id}: autoConnect=${d.autoConnect}, isConnected=${d.isConnected}`);
+  }
+
+  // Connect to devices that were previously connected (isConnected=true)
+  // This ensures devices saved before autoConnect flag was added still auto-connect
+  const previouslyConnectedDevices = settings.deviceHistory.filter(
+    (d) => d.isConnected
   );
 
-  for (const device of autoConnectDevices) {
+  logger.info(`Found ${previouslyConnectedDevices.length} devices with isConnected=true`);
+
+  if (previouslyConnectedDevices.length === 0) {
+    logger.info("No previously connected devices, skipping...");
+    return;
+  }
+
+  for (const device of previouslyConnectedDevices) {
     if (mainWindow) {
       logger.info(`Auto-connecting to saved device: ${device.id}`);
-      await connectWifiDevice(device.id);
+      const result = await connectWifiDevice(device.id);
+      if (result.success) {
+        // Already notified in connectWifiDevice
+        logger.info(`Auto-connected to ${device.id}`);
+      } else {
+        logger.warn(`Failed to auto-connect to ${device.id}: ${result.error}`);
+      }
     }
   }
 }

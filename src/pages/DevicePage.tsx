@@ -81,8 +81,9 @@ export default function DevicePage() {
             return { ...device, lastSeen: now };
           });
 
-          // Update known devices: USB devices mark as offline if not detected
-          // WiFi devices keep their status but update if disconnected for too long
+          // Update known devices: USB devices keep last known state if not detected
+          // Only mark as offline when tracker confirms device is removed (via device-change remove event)
+          // This prevents false offline status during ADB polling
           const updatedKnown = known.map(knownDevice => {
             const current = currentDeviceMap.get(knownDevice.id);
             if (current) {
@@ -94,18 +95,10 @@ export default function DevicePage() {
                 lastSeen: now,
               };
             }
-            // Device not in ADB list - mark all as offline when ADB fails
-            if (knownDevice.type === "wifi") {
-              // If device was previously connected, mark as offline after timeout
-              if (knownDevice.status === "connected" || knownDevice.status === "connecting") {
-                const disconnectTime = knownDevice.lastSeen ? now - knownDevice.lastSeen : 0;
-                if (disconnectTime > 5000) {
-                  return { ...knownDevice, status: "offline", lastSeen: now };
-                }
-              }
-              return knownDevice;
-            }
-            return { ...knownDevice, status: "offline", lastSeen: now };
+            // Device not in ADB list - keep last known status
+            // Only update lastSeen timestamp, do NOT change status to offline
+            // Status should only change to offline when we receive device-change remove event
+            return knownDevice;
           });
 
           // Add new devices that are not in knownDevices and not removed
@@ -496,17 +489,35 @@ export default function DevicePage() {
         useDeviceStore.setState({ knownDevices: updatedKnown, devices: updatedDevices });
         console.log(`Device ${deviceId} marked as offline`);
       } else if (data.type === "add") {
-        // Device connected - just update devices list with the new device info
-        // Don't call loadDevices here, it would override with ADB result
-        // Let the periodic polling update the status if needed
-        const { devices } = useDeviceStore.getState();
+        // Device connected - update both devices list and knownDevices
+        // This ensures consistency between the two state sources
+        const { devices, knownDevices } = useDeviceStore.getState();
         const device = data.device;
 
+        // Check if device exists in devices
+        const existingInDevices = devices.find(d => d.id === device.id);
+        // Check if device exists in knownDevices
+        const existingInKnown = knownDevices.find(d => d.id === device.id);
+
+        let updatedDevices = devices;
+        let updatedKnown = knownDevices;
+
         // Add to devices if not exists
-        if (!devices.find(d => d.id === device.id)) {
-          const updatedDevices = [...devices, { ...device, lastSeen: Date.now() }];
-          useDeviceStore.setState({ devices: updatedDevices });
+        if (!existingInDevices) {
+          updatedDevices = [...devices, { ...device, lastSeen: Date.now() }];
         }
+
+        // Add to knownDevices if not exists (for frontend refresh consistency)
+        if (!existingInKnown) {
+          updatedKnown = [...knownDevices, { ...device, lastSeen: Date.now() }];
+        } else {
+          // Update existing known device status to connected
+          updatedKnown = knownDevices.map(d =>
+            d.id === device.id ? { ...d, status: "connected", lastSeen: Date.now() } : d
+          );
+        }
+
+        useDeviceStore.setState({ devices: updatedDevices, knownDevices: updatedKnown });
       }
     };
 

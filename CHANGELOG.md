@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.5] - 2026-02-17
+
+### Fixed
+
+- Fixed device status flickering to offline during app startup - now only updates when state actually changes
+- Fixed device status not updating after auto-connect - now properly notifies frontend on successful connection
+- Fixed device status becoming offline on page refresh - frontend now preserves last known state
+- Fixed tracker add/remove events sending incomplete device data - now includes proper name, type, and status fields
+- Fixed auto-connect not working for previously connected devices - now connects devices with isConnected=true
+
+### Changed
+
+- Device state synchronization: only notifies frontend when there's an actual state change (no intermediate states)
+- Auto-connect now targets previously connected devices (isConnected=true) instead of just autoConnect=true
+- Improved startup sequence: ADB server starts first, then tracker initializes, then auto-connect runs
+- Added notifiedDevices set to prevent duplicate notifications to frontend
+
 ## [1.2.4] - 2026-02-11
 
 ### Fixed

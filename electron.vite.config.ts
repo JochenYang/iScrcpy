@@ -2,6 +2,9 @@ import { defineConfig, externalizeDepsPlugin } from "electron-vite";
 import react from "@vitejs/plugin-react";
 import { resolve } from "path";
 
+// Get port from environment or use default 5173
+const port = parseInt(process.env.PORT || "5173", 10);
+
 export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin()],
@@ -35,6 +38,9 @@ export default defineConfig({
   },
   renderer: {
     root: ".",
+    server: {
+      port,
+    },
     build: {
       // @ts-expect-error - electron-vite types are incomplete
       rollupOptions: {
