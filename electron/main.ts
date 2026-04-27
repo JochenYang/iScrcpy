@@ -399,8 +399,15 @@ async function terminateProcess(pid: number, proc?: ChildProcess): Promise<boole
         logger.debug(`Force killed PID ${pid}`);
       }
     } else {
-      exec(`pkill -9 -P ${pid}`, () => {});
-      proc?.kill("SIGKILL");
+      // macOS/Linux: use process.kill for reliable signal sending
+      try {
+        process.kill(pid, "SIGKILL");
+        logger.debug(`SIGKILL sent to PID ${pid}`);
+      } catch {
+        // Fallback to pkill if process.kill fails
+        exec(`pkill -9 -P ${pid}`, () => {});
+        logger.debug(`pkill fallback used for PID ${pid}`);
+      }
     }
     return true;
   } catch (e: unknown) {
@@ -412,12 +419,21 @@ async function terminateProcess(pid: number, proc?: ChildProcess): Promise<boole
 
 // Check if a process is still running
 function isProcessRunning(pid: number): boolean {
+  if (!pid) return false;
+  
   try {
     if (process.platform === "win32") {
       const result = execSync(`tasklist /FI "PID eq ${pid}" /FO CSV`, { encoding: "utf8" });
       return result.includes(String(pid));
+    } else {
+      // macOS/Linux: use kill -0 to check if process exists (doesn't actually send signal)
+      try {
+        process.kill(pid, 0);
+        return true;
+      } catch {
+        return false;
+      }
     }
-    return true;
   } catch {
     return false;
   }
@@ -603,8 +619,11 @@ async function initDeviceTracker(): Promise<void> {
       connectedDevicesInfo.delete(device.id);
       // Remove from notifiedDevices to allow re-notification on reconnect
       notifiedDevices.delete(device.id);
-      // Update persisted connection state
-      updateDeviceConnectionState(device.id, false);
+      // Update persisted connection state (async, don't await to avoid blocking)
+      updateDeviceConnectionState(device.id, false).catch((e: unknown) => {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        logger.warn(`Failed to update connection state for ${device.id}:`, errorMessage);
+      });
       if (mainWindow) {
         // Format device data with proper status for frontend
         const isWifi = device.id.includes(":");
@@ -3301,9 +3320,7 @@ ipcMain.on("set-tray-translations", (_event, translations) => {
   
   // After receiving translations, trigger tray update
   // Try to get current language from settings
-  const settingsPath = app.isPackaged
-    ? path.join(process.resourcesPath, "settings.json")
-    : path.join(process.cwd(), "settings.json");
+  const settingsPath = path.join(app.getPath("userData"), "settings.json");
   
   let lang = "en-US";
   if (existsSync(settingsPath)) {

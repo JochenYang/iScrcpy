@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.6] - 2026-04-27
+
+### Fixed
+
+- Fixed macOS/Linux process termination not working properly - now uses process.kill() instead of ineffective pkill command
+- Fixed isProcessRunning always returning true on non-Windows platforms - now properly checks process existence using kill -0
+- Fixed tray translation language path incorrectly pointing to resourcesPath - now correctly uses app.getPath("userData")
+- Fixed device connection state update missing error handling - now properly catches and logs async errors
+- Removed dead code calling non-existent IPC handler in preload.ts
+
+### Changed
+
+- Updated .gitignore to exclude session and workspace-specific files
+- Fixed .vscode typo in .gitignore
+
 ## [1.2.5] - 2026-02-17
 
 ### Fixed

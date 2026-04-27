@@ -241,10 +241,4 @@ contextBridge.exposeInMainWorld("electronAPI", {
   setTrayTranslations: (translations: Record<string, { showWindow: string; quit: string; tooltip: string }>) => {
     ipcRenderer.send("set-tray-translations", translations);
   },
-  // Provide translations when main process requests
-  getTrayTranslations: () => {
-    // This will be called from main process via invoke
-    // We need to use ipcRenderer.invoke to handle the request
-    return ipcRenderer.invoke("get-tray-translations-from-renderer");
-  },
 });

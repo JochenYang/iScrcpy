@@ -33,3 +33,19 @@ settings.json
 temp/
 tmp/
 doc/
+repo
+
+# Session files (auto-generated, not needed in repo)
+sessions/
+statuses/
+views.json
+
+# Events (runtime logs)
+events.jsonl
+
+# Claude plugin cache
+.claude-plugin/
+
+# Local config (workspace-specific)
+config.json
+labels/
