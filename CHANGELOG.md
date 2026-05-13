@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.7] - 2026-05-13
+
+### Changed
+
+- Upgraded scrcpy from 3.3.4 to 4.0 (SDL3, FFmpeg 8.1.1, ADB 37.0.0)
+- Enabled `--record-audio` support for recording with audio
+
+### Added
+
+- Added audio recording support (`--record-audio`)
+
 ## [1.2.6] - 2026-04-27
 
 ### Fixed

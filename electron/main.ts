@@ -1319,8 +1319,7 @@ ipcMain.handle(
     if (display.recordTimeLimit > 0) {
       args.push("--time-limit", String(display.recordTimeLimit));
     }
-    // Skip --record-audio as it's not supported in scrcpy 3.3.4
-    // if (display.recordAudio) args.push("--record-audio");
+    if (display.recordAudio) args.push("--record-audio");
 
     // Camera options
     if (display.camera) {

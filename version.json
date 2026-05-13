@@ -1,18 +1,18 @@
 {
-  "version": "1.2.6",
+  "version": "1.2.7",
   "releaseNotes": {
-    "en-US": "### Fixed\n\n- Fixed macOS/Linux process termination not working properly\n- Fixed isProcessRunning always returning true on non-Windows platforms\n- Fixed tray translation language path incorrectly pointing to resourcesPath\n- Fixed device connection state update missing error handling\n- Removed dead code calling non-existent IPC handler",
-    "zh-CN": "### 修复\n\n- 修复 macOS/Linux 平台进程终止失败的问题\n- 修复 isProcessRunning 在非 Windows 平台永远返回 true 的问题\n- 修复托盘翻译语言路径错误地指向 resourcesPath 的问题\n- 修复设备连接状态更新缺少错误处理的问题\n- 移除了调用不存在 IPC handler 的死代码",
-    "ja-JP": "### 修正\n\n- macOS/Linux のプロセス終了が正常に機能しない問題を修正\n- isProcessRunning が非 Windows プラットフォームで常に true を返す問題を修正\n- トレイ翻訳の言語パスが resourcesPath を誤って指していた問題を修正\n- デバイス接続状態更新時のエラー処理が欠落していた問題を修正\n- 存在しない IPC ハンドラを呼び出すデッドコードを削除",
-    "ko-KR": "### 수정\n\n- macOS/Linux 프로세스 종료가 올바르게 작동하지 않는 문제 수정\n- isProcessRunning이 비 Windows 플랫폼에서 항상 true를 반환하는 문제 수정\n- 트레이 번역 언어 경로가 resourcesPath를 잘못 가리키는 문제 수정\n- 장치 연결 상태 업데이트의 오류 처리가 누락된 문제 수정\n- 존재하지 않는 IPC 핸들러를 호출하는 데드 코드 제거",
-    "es-ES": "### Corregido\n\n- Corregido el problema de que la terminación de procesos en macOS/Linux no funcionaba correctamente\n- Corregido el problema de que isProcessRunning siempre devolvía true en plataformas no Windows\n- Corregido el problema de que la ruta de idioma de traducción de la bandeja apuntaba incorrectamente a resourcesPath\n- Corregido el problema de que faltaba el manejo de errores en la actualización del estado de conexión del dispositivo\n- Eliminado código muerto que llamaba a un controlador IPC inexistente",
-    "fr-FR": "### Correction\n\n- Correction du problème de terminaison de processus macOS/Linux qui ne fonctionnait pas correctement\n- Correction du problème de isProcessRunning renvoyant toujours true sur les plateformes non Windows\n- Correction du problème de chemin de langue de traduction de barre système pointant incorrectement vers resourcesPath\n- Correction du problème de gestion d'erreur manquante lors de la mise à jour de l'état de connexion de l'appareil\n- Suppression du code mort appelant un gestionnaire IPC non existant",
-    "tr-TR": "### Düzeltildi\n\n- macOS/Linux'ta proses sonlandırmanın düzgün çalışmama sorunu düzeltildi\n- isProcessRunning'in Windows olmayan platformlarda her zaman true döndürme sorunu düzeltildi\n- Tepsi çeviri dil yolunun yanlışlıkla resourcesPath'e işaret etme sorunu düzeltildi\n- Cihaz bağlantı durumu güncellemesinde hata işleme eksikliği sorunu düzeltildi\n- Var olmayan IPC işleyicisini çağıran ölü kod kaldırıldı"
+    "en-US": "### Changed\n\n- Upgraded scrcpy from 3.3.4 to 4.0 (SDL3, FFmpeg 8.1.1, ADB 37.0.0)\n- Enabled --record-audio support for recording with audio\n\n### Added\n\n- Added audio recording support (--record-audio)",
+    "zh-CN": "### 变更\n\n- 升级 scrcpy 从 3.3.4 到 4.0（SDL3、FFmpeg 8.1.1、ADB 37.0.0）\n- 启用 --record-audio 参数，录制时支持同时录制音频\n\n### 新增\n\n- 新增录制时同时录制音频的功能",
+    "ja-JP": "### 変更\n\n- scrcpy を 3.3.4 から 4.0 にアップグレード（SDL3、FFmpeg 8.1.1、ADB 37.0.0）\n- --record-audio を有効化し、録音付きで録画可能に\n\n### 追加\n\n- 音声録音機能を追加（--record-audio）",
+    "ko-KR": "### 변경\n\n- scrcpy를 3.3.4에서 4.0으로 업그레이드（SDL3, FFmpeg 8.1.1, ADB 37.0.0）\n- --record-audio 지원 활성화, 녹화 시 오디오 녹음 가능\n\n### 추가\n\n- 오디오 녹음 지원 추가（--record-audio）",
+    "es-ES": "### Cambiado\n\n- Actualizado scrcpy de 3.3.4 a 4.0 (SDL3, FFmpeg 8.1.1, ADB 37.0.0)\n- Habilitado --record-audio para grabar con audio\n\n### Añadido\n\n- Soporte de grabación de audio (--record-audio)",
+    "fr-FR": "### Modifié\n\n- Mise à jour de scrcpy de 3.3.4 à 4.0 (SDL3, FFmpeg 8.1.1, ADB 37.0.0)\n- Activation de --record-audio pour l'enregistrement avec audio\n\n### Ajouté\n\n- Prise en charge de l'enregistrement audio (--record-audio)",
+    "tr-TR": "### Değişti\n\n- scrcpy 3.3.4'ten 4.0'a yükseltildi (SDL3, FFmpeg 8.1.1, ADB 37.0.0)\n- --record-audio desteği etkinleştirildi, kayıt sırasında ses kaydı mümkün\n\n### Eklendi\n\n- Ses kaydı desteği eklendi (--record-audio)"
   },
   "downloadUrl": {
-    "windows": "https://github.com/JochenYang/iScrcpy/releases/download/v1.2.6/iScrcpy-1.2.6-win-x64.exe",
-    "mac": "https://github.com/JochenYang/iScrcpy/releases/download/v1.2.6/iScrcpy-1.2.6-mac-x64.dmg",
-    "linux": "https://github.com/JochenYang/iScrcpy/releases/download/v1.2.6/iScrcpy-1.2.6-linux-x86_64.AppImage"
+    "windows": "https://github.com/JochenYang/iScrcpy/releases/download/v1.2.7/iScrcpy-1.2.7-win-x64.exe",
+    "mac": "https://github.com/JochenYang/iScrcpy/releases/download/v1.2.7/iScrcpy-1.2.7-mac-x64.dmg",
+    "linux": "https://github.com/JochenYang/iScrcpy/releases/download/v1.2.7/iScrcpy-1.2.7-linux-x86_64.AppImage"
   },
-  "publishedAt": "2026-04-27T12:00:00.000Z"
+  "publishedAt": "2026-05-13T12:00:00.000Z"
 }

@@ -163,8 +163,7 @@ export default function DisplayPage() {
     if (settings.recordTimeLimit > 0) {
       parts.push(`--time-limit=${settings.recordTimeLimit}`);
     }
-    // Note: --record-audio requires scrcpy 1.17+ with audio support
-    // if (settings.recordAudio) parts.push("--record-audio");
+    if (settings.recordAudio) parts.push("--record-audio");
     if (settings.camera) {
       if (settings.cameraId) parts.push(`--camera-id=${settings.cameraId}`);
       parts.push(`--camera-size=${settings.cameraSize}`);
