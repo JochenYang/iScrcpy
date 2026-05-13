@@ -1,0 +1,18 @@
+{
+  "version": "1.2.7",
+  "releaseNotes": {
+    "en-US": "### Changed\n\n- Upgraded scrcpy from 3.3.4 to 4.0 (SDL3, FFmpeg 8.1.1, ADB 37.0.0)\n- Enabled --record-audio support for recording with audio\n\n### Added\n\n- Added audio recording support (--record-audio)",
+    "zh-CN": "### 变更\n\n- 升级 scrcpy 从 3.3.4 到 4.0（SDL3、FFmpeg 8.1.1、ADB 37.0.0）\n- 启用 --record-audio 参数，录制时支持同时录制音频\n\n### 新增\n\n- 新增录制时同时录制音频的功能",
+    "ja-JP": "### 変更\n\n- scrcpy を 3.3.4 から 4.0 にアップグレード（SDL3、FFmpeg 8.1.1、ADB 37.0.0）\n- --record-audio を有効化し、録音付きで録画可能に\n\n### 追加\n\n- 音声録音機能を追加（--record-audio）",
+    "ko-KR": "### 변경\n\n- scrcpy를 3.3.4에서 4.0으로 업그레이드（SDL3, FFmpeg 8.1.1, ADB 37.0.0）\n- --record-audio 지원 활성화, 녹화 시 오디오 녹음 가능\n\n### 추가\n\n- 오디오 녹음 지원 추가（--record-audio）",
+    "es-ES": "### Cambiado\n\n- Actualizado scrcpy de 3.3.4 a 4.0 (SDL3, FFmpeg 8.1.1, ADB 37.0.0)\n- Habilitado --record-audio para grabar con audio\n\n### Añadido\n\n- Soporte de grabación de audio (--record-audio)",
+    "fr-FR": "### Modifié\n\n- Mise à jour de scrcpy de 3.3.4 à 4.0 (SDL3, FFmpeg 8.1.1, ADB 37.0.0)\n- Activation de --record-audio pour l'enregistrement avec audio\n\n### Ajouté\n\n- Prise en charge de l'enregistrement audio (--record-audio)",
+    "tr-TR": "### Değişti\n\n- scrcpy 3.3.4'ten 4.0'a yükseltildi (SDL3, FFmpeg 8.1.1, ADB 37.0.0)\n- --record-audio desteği etkinleştirildi, kayıt sırasında ses kaydı mümkün\n\n### Eklendi\n\n- Ses kaydı desteği eklendi (--record-audio)"
+  },
+  "downloadUrl": {
+    "windows": "https://github.com/JochenYang/iScrcpy/releases/download/v1.2.7/iScrcpy-1.2.7-win-x64.exe",
+    "mac": "https://github.com/JochenYang/iScrcpy/releases/download/v1.2.7/iScrcpy-1.2.7-mac-x64.dmg",
+    "linux": "https://github.com/JochenYang/iScrcpy/releases/download/v1.2.7/iScrcpy-1.2.7-linux-x86_64.AppImage"
+  },
+  "publishedAt": "2026-05-13T12:00:00.000Z"
+}
