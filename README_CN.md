@@ -35,7 +35,7 @@
 
 - **React 18** - UI 框架
 - **Vite 5** - 构建工具
-- **Electron 28** - 桌面运行时
+- **Electron 39** - 桌面运行时
 - **TypeScript** - 类型安全
 - **i18next** - 国际化
 - **Zustand** - 状态管理
@@ -89,7 +89,7 @@ iScrcpy/
 │   │   ├── scrcpy.exe      # scrcpy 可执行文件
 │   │   ├── scrcpy-server   # scrcpy server jar
 │   │   ├── adb.exe         # ADB 可执行文件
-│   │   ├── SDL2.dll        # SDL2 库
+│   │   ├── SDL3.dll        # SDL3 库
 │   │   └── *.dll           # 所需 DLL（avcodec, avformat 等）
 │   ├── mac/                # macOS 二进制
 │   │   ├── scrcpy
@@ -220,6 +220,7 @@ npm run build
 | `--window-borderless` | 无边框窗口模式 |
 | `--disable-screensaver` | 禁止屏幕保护 |
 | `--record=<file>` | 录制屏幕到文件 |
+| `--record-audio` | 录制时同时录制音频 |
 | `--time-limit=<s>` | 录制时间限制（秒） |
 | `--tunnel-forward` | 使用正向隧道模式 |
 | `--no-cleanup` | 退出时不清理服务器 |

@@ -35,7 +35,7 @@
 
 - **React 18** - Framework d'interface utilisateur
 - **Vite 5** - Outil de construction
-- **Electron 28** - Runtime de bureau
+- **Electron 39** - Runtime de bureau
 - **TypeScript** - Sécurité des types
 - **i18next** - Internationalisation
 - **Zustand** - Gestion d'état
@@ -89,7 +89,7 @@ iScrcpy/
 │   │   ├── scrcpy.exe      # Exécutable scrcpy
 │   │   ├── scrcpy-server   # Serveur scrcpy jar
 │   │   ├── adb.exe         # Exécutable ADB
-│   │   ├── SDL2.dll        # Bibliothèque SDL2
+│   │   ├── SDL3.dll        # Bibliothèque SDL3
 │   │   └── *.dll           # DLL requises (avcodec, avformat, etc.)
 │   ├── mac/                # Binaires macOS
 │   │   ├── scrcpy
@@ -220,6 +220,7 @@ Cela créera un installeur `.exe` dans le dossier `dist-win/`.
 | `--window-borderless` | Mode fenêtre sans bordures |
 | `--disable-screensaver` | Désactiver l'économiseur d'écran |
 | `--record=<file>` | Enregistrer l'écran dans un fichier |
+| `--record-audio` | Enregistrer l'audio avec la vidéo |
 | `--time-limit=<s>` | Limite de temps d'enregistrement (secondes) |
 | `--tunnel-forward` | Utiliser le mode tunnel vers l'avant |
 | `--no-cleanup` | Ne pas nettoyer le serveur à la sortie |

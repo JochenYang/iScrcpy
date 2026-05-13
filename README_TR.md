@@ -35,7 +35,7 @@
 
 - **React 18** - Arayüz çerçevesi
 - **Vite 5** - Derleme aracı
-- **Electron 28** - Masaüstü çalışma zamanı
+- **Electron 39** - Masaüstü çalışma zamanı
 - **TypeScript** - Tip güvenliği
 - **i18next** - Uluslararasılaştırma
 - **Zustand** - Durum yönetimi
@@ -89,7 +89,7 @@ iScrcpy/
 │   │   ├── scrcpy.exe      # scrcpy çalıştırılabilir
 │   │   ├── scrcpy-server   # scrcpy sunucu jar
 │   │   ├── adb.exe         # ADB çalıştırılabilir
-│   │   ├── SDL2.dll        # SDL2 kütüphanesi
+│   │   ├── SDL3.dll        # SDL3 kütüphanesi
 │   │   └── *.dll           # Gerekli DLL'ler (avcodec, avformat, vb.)
 │   ├── mac/                # macOS ikili dosyaları
 │   │   ├── scrcpy
@@ -220,6 +220,7 @@ Bu, `dist-win/` klasöründe bir `.exe` yükleyici oluşturacaktır.
 | `--window-borderless` | Kenarsız pencere modu |
 | `--disable-screensaver` | Ekran koruyucuyu devre dışı bırak |
 | `--record=<file>` | Ekranı dosyaya kaydet |
+| `--record-audio` | Video ile birlikte sesi kaydet |
 | `--time-limit=<s>` | Kayıt zaman sınırı (saniye) |
 | `--tunnel-forward` | İleri tünel modu kullan |
 | `--no-cleanup` | Çıkışta sunucuyu temizleme |

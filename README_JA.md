@@ -35,7 +35,7 @@
 
 - **React 18** - UI フレームワーク
 - **Vite 5** - ビルドツール
-- **Electron 28** - デスクトップランタイム
+- **Electron 39** - デスクトップランタイム
 - **TypeScript** - 型安全
 - **i18next** - 国際化
 - **Zustand** - 状態管理
@@ -89,7 +89,7 @@ iScrcpy/
 │   │   ├── scrcpy.exe      # scrcpy 実行ファイル
 │   │   ├── scrcpy-server   # scrcpy server jar
 │   │   ├── adb.exe         # ADB 実行ファイル
-│   │   ├── SDL2.dll        # SDL2 ライブラリ
+│   │   ├── SDL3.dll        # SDL3 ライブラリ
 │   │   └── *.dll           # 必要な DLL（avcodec, avformat など）
 │   ├── mac/                # macOS バイナリ
 │   │   ├── scrcpy
@@ -220,6 +220,7 @@ npm run build
 | `--window-borderless` | ボーダレスウィンドウモード |
 | `--disable-screensaver` | スクリーンセーバーを無効化 |
 | `--record=<file>` | 画面をファイルに録画 |
+| `--record-audio` | ビデオと同時に音声を録画 |
 | `--time-limit=<s>` | 録画時間制限（秒） |
 | `--tunnel-forward` | フォワードトンネルモードを使用 |
 | `--no-cleanup` | 終了時にサーバーをクリーンアップしない |

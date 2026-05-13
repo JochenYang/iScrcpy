@@ -35,7 +35,7 @@
 
 - **React 18** - UI framework
 - **Vite 5** - Build tool
-- **Electron 28** - Desktop runtime
+- **Electron 39** - Desktop runtime
 - **TypeScript** - Type safety
 - **i18next** - Internationalization
 - **Zustand** - State management
@@ -89,7 +89,7 @@ iScrcpy/
 │   │   ├── scrcpy.exe      # scrcpy executable
 │   │   ├── scrcpy-server   # scrcpy server jar
 │   │   ├── adb.exe         # ADB executable
-│   │   ├── SDL2.dll        # SDL2 library
+│   │   ├── SDL3.dll        # SDL3 library
 │   │   └── *.dll           # Required DLLs (avcodec, avformat, etc.)
 │   ├── mac/                # macOS binaries
 │   │   ├── scrcpy
@@ -220,6 +220,7 @@ This will create an `.exe` installer in the `dist-win/` folder.
 | `--window-borderless`       | Borderless window mode             |
 | `--disable-screensaver`     | Disable screensaver                |
 | `--record=<file>`           | Record screen to file              |
+| `--record-audio`            | Record audio along with video      |
 | `--time-limit=<s>`          | Recording time limit in seconds    |
 | `--tunnel-forward`          | Use forward tunnel mode            |
 | `--no-cleanup`              | Don't cleanup server on exit       |
