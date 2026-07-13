@@ -159,6 +159,8 @@
     "bitrateModeDesc": "비트레이트 제어 모드 선택",
     "vbr": "가변 비트레이트 (VBR)",
     "cbr": "고정 비트레이트 (CBR)",
+    "ignoreVideoEncoderConstraints": "비디오 인코더 제한 무시",
+    "ignoreVideoEncoderConstraintsDesc": "인코더 기능 검사 건너뛰기. 화면이 예상보다 작게 표시되면 활성화하세요.",
     "save": "설정 저장",
     "saved": "설정이 저장되었습니다"
   },

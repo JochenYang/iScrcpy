@@ -157,6 +157,8 @@
     "bitrateModeDesc": "Sélectionner le mode de contrôle du débit",
     "vbr": "Débit Variable (VBR)",
     "cbr": "Débit Constant (CBR)",
+    "ignoreVideoEncoderConstraints": "Ignorer les contraintes de l'encodeur vidéo",
+    "ignoreVideoEncoderConstraintsDesc": "Ignorer les vérifications de capacité de l'encodeur. Utile si scrcpy s'affiche à une résolution inférieure à celle demandée.",
     "save": "Enregistrer les Paramètres",
     "saved": "Paramètres enregistrés"
   },

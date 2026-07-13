@@ -211,9 +211,10 @@ Bu, `dist-win/` klasöründe bir `.exe` yükleyici oluşturacaktır.
 | `--max-size=<n>` | Maksimum video boyutu |
 | `--video-bit-rate=<n>` | Video bit hızı (Mbps) |
 | `--max-fps=<n>` | Maksimum kare hızı |
-| `--video-codec=<c>` | Video codec (h264, h265, av1) |
+| `--video-codec=<c>` | Video codec (h264, h265, av1, vp8, vp9) |
 | `--audio-codec=<c>` | Audio codec (opus, aac) |
 | `--video-encoder=<name>` | Belirli video kodlayıcı adı |
+| `--ignore-video-encoder-constraints` | Kodlayıcı yetenek kontrollerini atla |
 | `--always-on-top` | Pencereyi her zaman üstte tut |
 | `--fullscreen` / `-f` | Tam ekranda başlat |
 | `--stay-awake` | Ekranı açık tut |

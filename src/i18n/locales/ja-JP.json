@@ -159,6 +159,8 @@
     "bitrateModeDesc": "ビットレート制御モードを選択",
     "vbr": "可変ビットレート (VBR)",
     "cbr": "固定ビットレート (CBR)",
+    "ignoreVideoEncoderConstraints": "ビデオエンコーダー制約を無視",
+    "ignoreVideoEncoderConstraintsDesc": "エンコーダー機能チェックをスキップ。投映像が予想より小さい場合に有効。",
     "save": "設定を保存",
     "saved": "設定を保存しました"
   },

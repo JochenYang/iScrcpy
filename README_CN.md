@@ -211,9 +211,10 @@ npm run build
 | `--max-size=<n>` | 最大视频尺寸 |
 | `--video-bit-rate=<n>` | 视频比特率 (Mbps) |
 | `--max-fps=<n>` | 最大帧率 |
-| `--video-codec=<c>` | 视频编码器 (h264, h265, av1) |
+| `--video-codec=<c>` | 视频编码器 (h264, h265, av1, vp8, vp9) |
 | `--audio-codec=<c>` | 音频编码器 (opus, aac) |
 | `--video-encoder=<name>` | 指定视频编码器名称 |
+| `--ignore-video-encoder-constraints` | 忽略编码器能力限制检查 |
 | `--always-on-top` | 窗口置顶 |
 | `--fullscreen` / `-f` | 全屏启动 |
 | `--stay-awake` | 保持屏幕常亮 |

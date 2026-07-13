@@ -52,6 +52,7 @@ interface EncodingSettings {
   audioCodec: string;
   audioEncoder?: string;
   bitrateMode: string;
+  ignoreVideoEncoderConstraints?: boolean;
 }
 
 export default function DisplayPage() {

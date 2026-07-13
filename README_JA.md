@@ -211,9 +211,10 @@ npm run build
 | `--max-size=<n>` | 最大ビデオサイズ |
 | `--video-bit-rate=<n>` | ビデオビットレート (Mbps) |
 | `--max-fps=<n>` | 最大フレームレート |
-| `--video-codec=<c>` | ビデオコーデック (h264, h265, av1) |
+| `--video-codec=<c>` | ビデオコーデック (h264, h265, av1, vp8, vp9) |
 | `--audio-codec=<c>` | オーディオコーデック (opus, aac) |
 | `--video-encoder=<name>` | 特定のビデオエンコーダー名 |
+| `--ignore-video-encoder-constraints` | エンコーダー機能チェックを無視 |
 | `--always-on-top` | ウィンドウを最前面に保持 |
 | `--fullscreen` / `-f` | 全画面で開始 |
 | `--stay-awake` | 画面をオンのままにする |

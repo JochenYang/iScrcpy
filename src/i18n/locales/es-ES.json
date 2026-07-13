@@ -157,6 +157,8 @@
     "bitrateModeDesc": "Seleccionar modo de control de tasa de bits",
     "vbr": "Tasa de Bits Variable (VBR)",
     "cbr": "Tasa de Bits Constante (CBR)",
+    "ignoreVideoEncoderConstraints": "Ignorar restricciones del codificador de video",
+    "ignoreVideoEncoderConstraintsDesc": "Omitir comprobaciones de capacidad del codificador. Útil si scrcpy muestra a una resolución menor que la solicitada.",
     "save": "Guardar Configuración",
     "saved": "Configuración guardada"
   },

@@ -161,6 +161,8 @@
     "bitrateModeDesc": "Select bitrate control mode",
     "vbr": "Variable Bitrate (VBR)",
     "cbr": "Constant Bitrate (CBR)",
+    "ignoreVideoEncoderConstraints": "Ignore Video Encoder Constraints",
+    "ignoreVideoEncoderConstraintsDesc": "Skip encoder capability checks. Useful if scrcpy displays at a lower resolution than requested.",
     "save": "Save Settings",
     "saved": "Settings saved"
   },

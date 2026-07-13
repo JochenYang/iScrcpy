@@ -328,6 +328,7 @@ interface EncodingSettings {
   audioCodec: string;
   audioEncoder?: string;
   bitrateMode: string;
+  ignoreVideoEncoderConstraints?: boolean; // scrcpy v4.1+: skip encoder capability checks
 }
 
 interface ServerSettings {
@@ -759,6 +760,7 @@ const settings: Settings = {
     videoEncoder: "", // Empty means use default (will auto-select if needed)
     audioCodec: "opus",
     bitrateMode: "vbr",
+    ignoreVideoEncoderConstraints: false,
   },
   server: {
     tunnelMode: "reverse",
@@ -1330,28 +1332,32 @@ ipcMain.handle(
     }
 
     // Only add codec options if explicitly different from default
-    // scrcpy supports: h264 (default), h265, av1
+    // scrcpy supports: h264 (default), h265, av1, vp8, vp9 (vp8/vp9 since v4.1)
     if (
       encoding.videoCodec &&
       encoding.videoCodec !== "h264" &&
       encoding.videoCodec !== "h264 (default)"
     ) {
-      // Normalize codec name (scrcpy expects h264, h265 or av1)
+      // Normalize codec name (scrcpy expects h264, h265, av1, vp8 or vp9)
       let codec = encoding.videoCodec;
-      // Handle various naming conventions
-      if (
-        codec.toLowerCase().includes("h265") ||
-        codec.toLowerCase().includes("hevc")
-      ) {
+      const lower = codec.toLowerCase();
+      if (lower.includes("h265") || lower.includes("hevc")) {
         codec = "h265";
-      } else if (codec.toLowerCase().includes("av1")) {
+      } else if (lower.includes("av1")) {
         codec = "av1";
+      } else if (lower.includes("vp9")) {
+        codec = "vp9";
+      } else if (lower.includes("vp8")) {
+        codec = "vp8";
       }
       args.push("--video-codec", codec);
     }
 
     if (encoding.videoEncoder) {
       args.push("--video-encoder", encoding.videoEncoder);
+    }
+    if (encoding.ignoreVideoEncoderConstraints) {
+      args.push("--ignore-video-encoder-constraints");
     }
 
     if (encoding.audioCodec && encoding.audioCodec !== "opus") {
@@ -2212,6 +2218,9 @@ ipcMain.handle(
     if (encoding.videoEncoder) {
       args.push("--video-encoder", encoding.videoEncoder);
     }
+    if (encoding.ignoreVideoEncoderConstraints) {
+      args.push("--ignore-video-encoder-constraints");
+    }
     if (encoding.audioCodec && encoding.audioCodec !== "opus") {
       args.push("--audio-codec", encoding.audioCodec);
     }
@@ -2591,6 +2600,9 @@ ipcMain.handle(
     if (encoding.videoEncoder) {
       args.push("--video-encoder", encoding.videoEncoder);
     }
+    if (encoding.ignoreVideoEncoderConstraints) {
+      args.push("--ignore-video-encoder-constraints");
+    }
     if (encoding.audioCodec && encoding.audioCodec !== "opus") {
       args.push("--audio-codec", encoding.audioCodec);
     }
@@ -2753,6 +2765,9 @@ ipcMain.handle(
     if (encoding.videoEncoder) {
       args.push("--video-encoder", encoding.videoEncoder);
     }
+    if (encoding.ignoreVideoEncoderConstraints) {
+      args.push("--ignore-video-encoder-constraints");
+    }
     if (encoding.audioCodec && encoding.audioCodec !== "opus") {
       args.push("--audio-codec", encoding.audioCodec);
     }
@@ -2904,6 +2919,9 @@ ipcMain.handle(
     // Add video encoder if selected (hardware encoder for better performance)
     if (encoding.videoEncoder) {
       args.push("--video-encoder", encoding.videoEncoder);
+    }
+    if (encoding.ignoreVideoEncoderConstraints) {
+      args.push("--ignore-video-encoder-constraints");
     }
     if (encoding.audioCodec && encoding.audioCodec !== "opus") {
       args.push("--audio-codec", encoding.audioCodec);

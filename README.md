@@ -211,9 +211,10 @@ This will create an `.exe` installer in the `dist-win/` folder.
 | `--max-size=<n>`            | Max video size                     |
 | `--video-bit-rate=<n>`      | Video bitrate in Mbps              |
 | `--max-fps=<n>`             | Maximum frame rate                 |
-| `--video-codec=<c>`         | Video codec (h264, h265, av1)      |
+| `--video-codec=<c>`         | Video codec (h264, h265, av1, vp8, vp9) |
 | `--audio-codec=<c>`         | Audio codec (opus, aac)            |
 | `--video-encoder=<name>`    | Specific video encoder name        |
+| `--ignore-video-encoder-constraints` | Ignore encoder capability checks   |
 | `--always-on-top`           | Keep window on top                 |
 | `--fullscreen` / `-f`       | Start in fullscreen                |
 | `--stay-awake`              | Keep screen on                     |

@@ -157,6 +157,8 @@
     "bitrateModeDesc": "Bit hızı kontrol modunu seç",
     "vbr": "Değişken Bit Hızı (VBR)",
     "cbr": "Sabit Bit Hızı (CBR)",
+    "ignoreVideoEncoderConstraints": "Video Kodlayıcı Kısıtlamalarını Yoksay",
+    "ignoreVideoEncoderConstraintsDesc": "Kodlayıcı yetenek kontrollerini atla. scrcpy istenenden düşük çözünürlükte görüntülüyorsa yararlıdır.",
     "save": "Ayarları Kaydet",
     "saved": "Ayarlar kaydedildi"
   },

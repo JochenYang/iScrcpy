@@ -211,9 +211,10 @@ npm run build
 | `--max-size=<n>` | 최대 비디오 크기 |
 | `--video-bit-rate=<n>` | 비디오 비트레이트 (Mbps) |
 | `--max-fps=<n>` | 최대 프레임레이트 |
-| `--video-codec=<c>` | 비디오 코덱 (h264, h265, av1) |
+| `--video-codec=<c>` | 비디오 코덱 (h264, h265, av1, vp8, vp9) |
 | `--audio-codec=<c>` | 오디오 코덱 (opus, aac) |
 | `--video-encoder=<name>` | 특정 비디오 인코더 이름 |
+| `--ignore-video-encoder-constraints` | 인코더 기능 검사 무시 |
 | `--always-on-top` | 창을 항상 위에 유지 |
 | `--fullscreen` / `-f` | 전체 화면으로 시작 |
 | `--stay-awake` | 화면을 켜진 상태로 유지 |

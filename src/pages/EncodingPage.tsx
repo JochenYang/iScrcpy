@@ -8,6 +8,7 @@ interface EncodingSettings {
   videoEncoder: string;
   audioCodec: string;
   bitrateMode: string;
+  ignoreVideoEncoderConstraints: boolean;
 }
 
 export default function EncodingPage() {
@@ -17,6 +18,7 @@ export default function EncodingPage() {
     videoEncoder: "",
     audioCodec: "opus",
     bitrateMode: "vbr",
+    ignoreVideoEncoderConstraints: false,
   });
   const [saving, setSaving] = useState(false);
   const [deviceOptions, setDeviceOptions] = useState<
@@ -95,6 +97,7 @@ export default function EncodingPage() {
         videoEncoder,
         audioCodec: encoding.audioCodec || "opus",
         bitrateMode: encoding.bitrateMode || "vbr",
+        ignoreVideoEncoderConstraints: encoding.ignoreVideoEncoderConstraints ?? false,
       });
     }
   };
@@ -260,6 +263,8 @@ export default function EncodingPage() {
               <option value="h264">H.264 (AVC)</option>
               <option value="h265">H.265 (HEVC)</option>
               <option value="av1">AV1</option>
+              <option value="vp8">VP8</option>
+              <option value="vp9">VP9</option>
             </select>
           </div>
 
@@ -352,6 +357,28 @@ export default function EncodingPage() {
               <option value="cbr">{t("encoding.cbr")}</option>
             </select>
           </div>
+
+          <label className="toggle-item">
+            <div className="toggle-item-left">
+              <span>{t("encoding.ignoreVideoEncoderConstraints")}</span>
+            </div>
+            <div className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={settings.ignoreVideoEncoderConstraints}
+                onChange={(e) =>
+                  setSettings({
+                    ...settings,
+                    ignoreVideoEncoderConstraints: e.target.checked,
+                  })
+                }
+              />
+              <span className="toggle-slider" />
+            </div>
+          </label>
+          <p className="form-hint text-small">
+            {t("encoding.ignoreVideoEncoderConstraintsDesc")}
+          </p>
         </div>
       </div>
 

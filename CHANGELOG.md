@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.8] - 2026-07-13
+
+### Changed
+
+- Upgraded scrcpy from 4.0 to 4.1 (FFmpeg 8.1.2, SDL 3.4.12, libusb 1.0.30)
+
+### Added
+
+- Added `--ignore-video-encoder-constraints` toggle in encoding settings (scrcpy v4.1)
+- Added VP8 and VP9 video codec support in encoding settings
+
 ## [1.2.7] - 2026-05-13
 
 ### Changed
