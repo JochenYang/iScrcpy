@@ -1,18 +1,18 @@
 {
-  "version": "1.2.7",
+  "version": "1.2.8",
   "releaseNotes": {
-    "en-US": "### Changed\n\n- Upgraded scrcpy from 3.3.4 to 4.0 (SDL3, FFmpeg 8.1.1, ADB 37.0.0)\n- Enabled --record-audio support for recording with audio\n\n### Added\n\n- Added audio recording support (--record-audio)",
-    "zh-CN": "### 变更\n\n- 升级 scrcpy 从 3.3.4 到 4.0（SDL3、FFmpeg 8.1.1、ADB 37.0.0）\n- 启用 --record-audio 参数，录制时支持同时录制音频\n\n### 新增\n\n- 新增录制时同时录制音频的功能",
-    "ja-JP": "### 変更\n\n- scrcpy を 3.3.4 から 4.0 にアップグレード（SDL3、FFmpeg 8.1.1、ADB 37.0.0）\n- --record-audio を有効化し、録音付きで録画可能に\n\n### 追加\n\n- 音声録音機能を追加（--record-audio）",
-    "ko-KR": "### 변경\n\n- scrcpy를 3.3.4에서 4.0으로 업그레이드（SDL3, FFmpeg 8.1.1, ADB 37.0.0）\n- --record-audio 지원 활성화, 녹화 시 오디오 녹음 가능\n\n### 추가\n\n- 오디오 녹음 지원 추가（--record-audio）",
-    "es-ES": "### Cambiado\n\n- Actualizado scrcpy de 3.3.4 a 4.0 (SDL3, FFmpeg 8.1.1, ADB 37.0.0)\n- Habilitado --record-audio para grabar con audio\n\n### Añadido\n\n- Soporte de grabación de audio (--record-audio)",
-    "fr-FR": "### Modifié\n\n- Mise à jour de scrcpy de 3.3.4 à 4.0 (SDL3, FFmpeg 8.1.1, ADB 37.0.0)\n- Activation de --record-audio pour l'enregistrement avec audio\n\n### Ajouté\n\n- Prise en charge de l'enregistrement audio (--record-audio)",
-    "tr-TR": "### Değişti\n\n- scrcpy 3.3.4'ten 4.0'a yükseltildi (SDL3, FFmpeg 8.1.1, ADB 37.0.0)\n- --record-audio desteği etkinleştirildi, kayıt sırasında ses kaydı mümkün\n\n### Eklendi\n\n- Ses kaydı desteği eklendi (--record-audio)"
+    "en-US": "### Changed\n\n- Upgraded scrcpy from 4.0 to 4.1 (FFmpeg 8.1.2, SDL 3.4.12, libusb 1.0.30)\n\n### Added\n\n- Added `--ignore-video-encoder-constraints` toggle in encoding settings (scrcpy v4.1)\n- Added VP8 and VP9 video codec support in encoding settings",
+    "zh-CN": "### 变更\n\n- 升级 scrcpy 从 4.0 到 4.1（FFmpeg 8.1.2、SDL 3.4.12、libusb 1.0.30）\n\n### 新增\n\n- 编码设置页新增 \"忽略视频编码器限制\" 开关（scrcpy v4.1）\n- 编码设置页新增 VP8 和 VP9 视频编码支持",
+    "ja-JP": "### 変更\n\n- scrcpy を 4.0 から 4.1 にアップグレード（FFmpeg 8.1.2、SDL 3.4.12、libusb 1.0.30）\n\n### 追加\n\n- エンコーディング設定に「ビデオエンコーダー制約を無視」トグルを追加（scrcpy v4.1）\n- エンコーディング設定に VP8 と VP9 ビデオコーデック対応を追加",
+    "ko-KR": "### 변경\n\n- scrcpy를 4.0에서 4.1로 업그레이드（FFmpeg 8.1.2, SDL 3.4.12, libusb 1.0.30）\n\n### 추가\n\n- 인코딩 설정에 \"비디오 인코더 제한 무시\" 토글 추가（scrcpy v4.1）\n- 인코딩 설정에 VP8 및 VP9 비디오 코덱 지원 추가",
+    "es-ES": "### Cambiado\n\n- Actualizado scrcpy de 4.0 a 4.1 (FFmpeg 8.1.2, SDL 3.4.12, libusb 1.0.30)\n\n### Añadido\n\n- Añadido interruptor \"Ignorar restricciones del codificador de video\" en configuración de codificación (scrcpy v4.1)\n- Añadido soporte para los códecs de video VP8 y VP9 en configuración de codificación",
+    "fr-FR": "### Modifié\n\n- Mise à jour de scrcpy de 4.0 à 4.1 (FFmpeg 8.1.2, SDL 3.4.12, libusb 1.0.30)\n\n### Ajouté\n\n- Ajout du commutateur \"Ignorer les contraintes de l'encodeur vidéo\" dans les paramètres d'encodage (scrcpy v4.1)\n- Ajout de la prise en charge des codecs vidéo VP8 et VP9 dans les paramètres d'encodage",
+    "tr-TR": "### Değişti\n\n- scrcpy 4.0'dan 4.1'e yükseltildi (FFmpeg 8.1.2, SDL 3.4.12, libusb 1.0.30)\n\n### Eklendi\n\n- Kodlama ayarlarına \"Video Kodlayıcı Kısıtlamalarını Yoksay\" anahtarı eklendi (scrcpy v4.1)\n- Kodlama ayarlarına VP8 ve VP9 video codec desteği eklendi"
   },
   "downloadUrl": {
-    "windows": "https://github.com/JochenYang/iScrcpy/releases/download/v1.2.7/iScrcpy-1.2.7-win-x64.exe",
-    "mac": "https://github.com/JochenYang/iScrcpy/releases/download/v1.2.7/iScrcpy-1.2.7-mac-x64.dmg",
-    "linux": "https://github.com/JochenYang/iScrcpy/releases/download/v1.2.7/iScrcpy-1.2.7-linux-x86_64.AppImage"
+    "windows": "https://github.com/JochenYang/iScrcpy/releases/download/v1.2.8/iScrcpy-1.2.8-win-x64.exe",
+    "mac": "https://github.com/JochenYang/iScrcpy/releases/download/v1.2.8/iScrcpy-1.2.8-mac-x64.dmg",
+    "linux": "https://github.com/JochenYang/iScrcpy/releases/download/v1.2.8/iScrcpy-1.2.8-linux-x86_64.AppImage"
   },
-  "publishedAt": "2026-05-13T12:00:00.000Z"
+  "publishedAt": "2026-07-13T12:00:00.000Z"
 }
