@@ -1,5 +1,7 @@
 {
-  "app": { "name": "iScrcpy" },
+  "app": {
+    "name": "iScrcpy"
+  },
   "sidebar": {
     "devices": "Dispositivos",
     "display": "Pantalla",
@@ -155,6 +157,7 @@
     "audioCodecDesc": "Seleccionar formato de codificación de audio",
     "bitrateMode": "Modo de Tasa de Bits",
     "bitrateModeDesc": "Seleccionar modo de control de tasa de bits",
+    "bitrateModeUnsupported": "No compatible con scrcpy 4.x incluido (sin opción CLI CBR/VBR). Se conserva solo por compatibilidad y no afecta al inicio.",
     "vbr": "Tasa de Bits Variable (VBR)",
     "cbr": "Tasa de Bits Constante (CBR)",
     "ignoreVideoEncoderConstraints": "Ignorar restricciones del codificador de video",

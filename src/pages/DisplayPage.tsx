@@ -164,8 +164,9 @@ export default function DisplayPage() {
     if (settings.recordTimeLimit > 0) {
       parts.push(`--time-limit=${settings.recordTimeLimit}`);
     }
-    if (settings.recordAudio) parts.push("--record-audio");
+    // scrcpy 4.x: no --record-audio; audio in recordings follows enableAudio / stream
     if (settings.camera) {
+      parts.push("--video-source=camera");
       if (settings.cameraId) parts.push(`--camera-id=${settings.cameraId}`);
       parts.push(`--camera-size=${settings.cameraSize}`);
       if (settings.cameraFps !== 30) parts.push(`--camera-fps=${settings.cameraFps}`);
@@ -532,9 +533,15 @@ export default function DisplayPage() {
               <input
                 type="checkbox"
                 checked={settings.recordAudio}
-                onChange={(e) =>
-                  setSettings({ ...settings, recordAudio: e.target.checked })
-                }
+                onChange={(e) => {
+                  const on = e.target.checked;
+                  // scrcpy 4.x has no --record-audio; keep audio stream on when user wants audio in recording
+                  setSettings({
+                    ...settings,
+                    recordAudio: on,
+                    enableAudio: on ? true : settings.enableAudio,
+                  });
+                }}
               />
               <span className="toggle-slider" />
             </div>

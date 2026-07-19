@@ -6,6 +6,15 @@ import { logger } from "./logger";
 import { Adb } from "@devicefarmer/adbkit";
 import prettyBytes from "pretty-bytes";
 import { download } from "electron-dl";
+import { buildScrcpyArgs } from "./scrcpyArgs";
+import {
+  beginIntentionalRestart,
+  clearSessionOverrides,
+  endIntentionalRestart,
+  forceRecordForArgs,
+  onProcessExitMaybeClearSession,
+  type DeviceSessionOverrides,
+} from "./sessionOverrides";
 
 // Constants for timeout values
 const PROCESS_CHECK_INTERVAL = 2000;
@@ -373,14 +382,48 @@ const connectedDevices = new Set<string>();
 const connectedDevicesInfo = new Map<string, { name: string }>();
 // Track devices that have been notified to frontend to prevent duplicate notifications
 const notifiedDevices = new Set<string>();
+/** Per-device session overrides (record/audio/camera) survive audio/camera restarts. */
+const deviceSessionOverrides = new Map<string, DeviceSessionOverrides>();
+/** While set, process-exit handlers must not clear deviceSessionOverrides (intentional restart). */
+const preserveSessionOnExit = new Set<string>();
 let isQuittingForUpdate = false;
 let isCleaningUp = false;  // Prevent double cleanup
 let adbClient: any = null;
 let deviceTracker: any = null;
 
-// Unified process termination function to reduce code duplication
+// Unified process termination — only place that may call platform taskkill/pkill.
 async function terminateProcess(pid: number, proc?: ChildProcess): Promise<boolean> {
   if (!pid) return false;
+
+  // Prefer graceful quit via scrcpy stdin when available
+  if (proc) {
+    const procAny = proc as {
+      stdin?: { write: (data: string) => void; destroyed: boolean };
+      kill?: (signal?: string) => boolean;
+    };
+    if (procAny.stdin && !procAny.stdin.destroyed) {
+      try {
+        procAny.stdin.write("q\n");
+        await new Promise((resolve) => setTimeout(resolve, GRACEFUL_SHUTDOWN_WAIT));
+        if (!isProcessRunning(pid)) {
+          logger.debug(`Process ${pid} exited after stdin quit`);
+          return true;
+        }
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        logger.debug(`stdin quit failed for PID ${pid}: ${errorMessage}`);
+      }
+    }
+    try {
+      procAny.kill?.("SIGINT");
+      await new Promise((resolve) => setTimeout(resolve, FORCE_KILL_WAIT));
+      if (!isProcessRunning(pid)) {
+        return true;
+      }
+    } catch {
+      // continue to platform kill
+    }
+  }
 
   try {
     if (process.platform === "win32") {
@@ -393,19 +436,32 @@ async function terminateProcess(pid: number, proc?: ChildProcess): Promise<boole
           });
         });
         logger.debug(`Graceful termination sent to PID ${pid}`);
-        return true;
+        await new Promise((resolve) => setTimeout(resolve, FORCE_KILL_WAIT));
+        if (!isProcessRunning(pid)) {
+          return true;
+        }
       } catch {
         // Fall back to force kill
-        exec(`taskkill /PID ${pid} /F /T`);
+      }
+      try {
+        await new Promise<void>((resolve) => {
+          exec(`taskkill /PID ${pid} /F /T`, { encoding: "utf8" }, () => resolve());
+        });
         logger.debug(`Force killed PID ${pid}`);
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        logger.debug(`Force taskkill failed for ${pid}: ${errorMessage}`);
       }
     } else {
-      // macOS/Linux: use process.kill for reliable signal sending
+      // macOS/Linux: SIGTERM then SIGKILL
       try {
-        process.kill(pid, "SIGKILL");
-        logger.debug(`SIGKILL sent to PID ${pid}`);
+        process.kill(pid, "SIGTERM");
+        await new Promise((resolve) => setTimeout(resolve, GRACEFUL_SHUTDOWN_WAIT));
+        if (isProcessRunning(pid)) {
+          process.kill(pid, "SIGKILL");
+        }
+        logger.debug(`Signals sent to PID ${pid}`);
       } catch {
-        // Fallback to pkill if process.kill fails
         exec(`pkill -9 -P ${pid}`, () => {});
         logger.debug(`pkill fallback used for PID ${pid}`);
       }
@@ -415,6 +471,36 @@ async function terminateProcess(pid: number, proc?: ChildProcess): Promise<boole
     const errorMessage = e instanceof Error ? e.message : String(e);
     logger.warn(`Failed to terminate process ${pid}`, errorMessage);
     return false;
+  }
+}
+
+/**
+ * Stop a tracked scrcpy/camera process entry via terminateProcess only.
+ * forRestart: detach exit listeners and delete map entry before kill so close/interval
+ * handlers cannot race-clear session overrides during intentional restart.
+ */
+async function stopTrackedProcess(
+  map: Map<string, { pid: number; proc: any }>,
+  deviceId: string,
+  options: { forRestart?: boolean } = {}
+): Promise<void> {
+  const entry = map.get(deviceId);
+  if (!entry) return;
+
+  if (options.forRestart && entry.proc) {
+    try {
+      entry.proc.removeAllListeners?.("close");
+      entry.proc.removeAllListeners?.("error");
+    } catch {
+      // ignore
+    }
+  }
+
+  // Remove from map first so process-monitor intervals bail without notifyScrcpyExit
+  map.delete(deviceId);
+
+  if (!TEST_MODE && entry.pid) {
+    await terminateProcess(entry.pid, entry.proc);
   }
 }
 
@@ -1274,6 +1360,9 @@ ipcMain.handle(
       `Connecting to device: ${deviceId} (${isWifi ? "WiFi" : "USB"})`
     );
 
+    // Fresh connect: drop any stale session record/audio/camera overrides
+    clearSessionOverrides(deviceSessionOverrides, deviceId);
+
     // If WIFI device, connect first
     if (isWifi) {
       const connResult = await connectWifiDevice(deviceId);
@@ -1282,94 +1371,17 @@ ipcMain.handle(
       }
     }
 
-    // Build scrcpy args
-    const args = ["-s", deviceId];
+    // Build scrcpy args via shared pure builder (no --record-audio; camera needs video-source)
     const { display, encoding, server } = settings;
-
-    // Only add numeric values, skip "custom" or invalid values
-    if (typeof display.maxSize === "number" && display.maxSize > 0) {
-      args.push("--max-size", String(display.maxSize));
-    }
-    if (typeof display.videoBitrate === "number" && display.videoBitrate > 0) {
-      args.push("--video-bit-rate", `${display.videoBitrate}M`);
-    }
-    if (typeof display.frameRate === "number" && display.frameRate > 0) {
-      args.push("--max-fps", String(display.frameRate));
-    }
-    // Add video-buffer parameter for smoother video playback, reducing stutter
-    // Default buffer is 50ms, can be adjusted based on network/device performance
-    if (typeof display.buffer === "number" && display.buffer > 0) {
-      args.push("--video-buffer", String(display.buffer));
-    }
-    if (display.alwaysOnTop) args.push("--always-on-top");
-    if (display.fullscreen) args.push("--fullscreen");
-    if (display.stayAwake) args.push("--stay-awake");
-    if (display.windowBorderless) args.push("--window-borderless");
-    if (display.disableScreensaver) args.push("--disable-screensaver");
-
-    // Video and audio toggle (disable if set to false)
-    if (!display.enableVideo) args.push("--no-video");
-    if (!display.enableAudio) args.push("--no-audio");
-
-    // Recording options
-    // Note: --record-audio requires scrcpy version 1.17+ with audio support compiled in
-    if (display.record) {
-      args.push("--record");
-      args.push(resolveRecordPath(display.recordPath, deviceId));
-    }
-    // Time limit for recording (0 = unlimited)
-    if (display.recordTimeLimit > 0) {
-      args.push("--time-limit", String(display.recordTimeLimit));
-    }
-    if (display.recordAudio) args.push("--record-audio");
-
-    // Camera options
-    if (display.camera) {
-      if (display.cameraId) args.push("--camera-id", display.cameraId);
-      args.push("--camera-size", display.cameraSize);
-      if (display.cameraFps !== 30)
-        args.push("--camera-fps", String(display.cameraFps));
-    }
-
-    // Only add codec options if explicitly different from default
-    // scrcpy supports: h264 (default), h265, av1, vp8, vp9 (vp8/vp9 since v4.1)
-    if (
-      encoding.videoCodec &&
-      encoding.videoCodec !== "h264" &&
-      encoding.videoCodec !== "h264 (default)"
-    ) {
-      // Normalize codec name (scrcpy expects h264, h265, av1, vp8 or vp9)
-      let codec = encoding.videoCodec;
-      const lower = codec.toLowerCase();
-      if (lower.includes("h265") || lower.includes("hevc")) {
-        codec = "h265";
-      } else if (lower.includes("av1")) {
-        codec = "av1";
-      } else if (lower.includes("vp9")) {
-        codec = "vp9";
-      } else if (lower.includes("vp8")) {
-        codec = "vp8";
-      }
-      args.push("--video-codec", codec);
-    }
-
-    if (encoding.videoEncoder) {
-      args.push("--video-encoder", encoding.videoEncoder);
-    }
-    if (encoding.ignoreVideoEncoderConstraints) {
-      args.push("--ignore-video-encoder-constraints");
-    }
-
-    if (encoding.audioCodec && encoding.audioCodec !== "opus") {
-      args.push("--audio-codec", encoding.audioCodec);
-    }
-
-    if (encoding.audioEncoder) {
-      args.push("--audio-encoder", encoding.audioEncoder);
-    }
-
-    if (server.tunnelMode === "forward") args.push("--tunnel-forward");
-    if (server.cleanup === false) args.push("--no-cleanup");
+    const args = buildScrcpyArgs({
+      deviceId,
+      display,
+      encoding,
+      server,
+      resolvedRecordPath: display.record
+        ? resolveRecordPath(display.recordPath, deviceId)
+        : undefined,
+    });
 
     logger.info(`Starting scrcpy with args:`, { args });
 
@@ -1428,6 +1440,12 @@ ipcMain.handle(
       clearInterval(checkInterval);
       deviceProcesses.delete(deviceId);
       connectedDevices.delete(deviceId);
+      // Intentional restart preserves session; natural close clears it
+      onProcessExitMaybeClearSession(
+        preserveSessionOnExit,
+        deviceSessionOverrides,
+        deviceId
+      );
       if (mainWindow) {
         mainWindow.webContents.send("scrcpy-exit", deviceId);
       }
@@ -1455,8 +1473,7 @@ ipcMain.handle(
       notifyScrcpyExit();
     });
 
-    // Check if scrcpy is still running periodically
-    // Using registered interval for proper cleanup
+    // Check if scrcpy is still running periodically (cross-platform isProcessRunning)
     const checkInterval = registerInterval(() => {
       const procInfo = deviceProcesses.get(deviceId);
       if (!procInfo) {
@@ -1466,17 +1483,12 @@ ipcMain.handle(
       }
 
       try {
-        // Check if process is still running using Windows tasklist
-        exec(`tasklist /FI "PID eq ${procInfo.pid}" /FO CSV`, (err, stdout) => {
-          if (err || !stdout.includes(String(procInfo.pid))) {
-            // Process no longer exists, notify exit
-            clearInterval(checkInterval);
-            activeIntervals.delete(checkInterval);
-            notifyScrcpyExit();
-          }
-        });
+        if (!isProcessRunning(procInfo.pid)) {
+          clearInterval(checkInterval);
+          activeIntervals.delete(checkInterval);
+          notifyScrcpyExit();
+        }
       } catch (e: unknown) {
-        // Error checking, assume process is dead
         const errorMessage = e instanceof Error ? e.message : String(e);
         logger.warn(`Error checking process status for ${deviceId}:`, errorMessage);
         clearInterval(checkInterval);
@@ -1888,21 +1900,9 @@ ipcMain.handle(
   async (_, deviceId: string): Promise<{ success: boolean }> => {
     logger.info(`Stopping scrcpy for device: ${deviceId}`);
 
-    // Kill scrcpy process - this only stops screen mirroring
-    const proc = deviceProcesses.get(deviceId);
-    if (proc && !TEST_MODE) {
-      if (proc.pid) {
-        // Use unified terminate function
-        terminateProcess(proc.pid, proc.proc)
-          .then(() => logger.debug(`Killed scrcpy process for ${deviceId}`))
-          .catch((e: unknown) => {
-            const errorMessage = e instanceof Error ? e.message : String(e);
-            logger.warn(`Failed to kill scrcpy process for ${deviceId}`, errorMessage);
-          });
-      }
-    }
-    deviceProcesses.delete(deviceId);
+    await stopTrackedProcess(deviceProcesses, deviceId);
     connectedDevices.delete(deviceId);
+    clearSessionOverrides(deviceSessionOverrides, deviceId);
 
     // 通知渲染进程更新状态
     if (mainWindow) {
@@ -2127,106 +2127,66 @@ async function autoConnectSavedDevices(): Promise<void> {
 
 // Quick action handlers
 
-// Start recording
-ipcMain.handle(
-  "start-recording",
-  async (
-    _,
-    deviceId: string
-  ): Promise<{ success: boolean; error?: string }> => {
-    logger.info(`Starting recording for device: ${deviceId}`);
+/**
+ * Restart mirroring for a device with optional session overrides.
+ * Does NOT mutate persistent auto-record (settings.display.record).
+ *
+ * Order (required):
+ * 1. beginIntentionalRestart — merge patch + preserve flag BEFORE kill
+ * 2. stopTrackedProcess({ forRestart: true }) — detach handlers, no session wipe
+ * 3. spawn + register exit handlers that use onProcessExitMaybeClearSession
+ * 4. endIntentionalRestart
+ */
+async function restartScrcpySession(
+  deviceId: string,
+  overrides: {
+    forceRecord?: boolean;
+    enableAudio?: boolean;
+    forceCamera?: boolean;
+  } = {}
+): Promise<{ success: boolean; error?: string }> {
+  // 1) Merge session BEFORE any kill (process close must not wipe the Map first)
+  const session = beginIntentionalRestart(
+    preserveSessionOnExit,
+    deviceSessionOverrides,
+    deviceId,
+    overrides
+  );
+  const forceRecord = forceRecordForArgs(session);
 
-    // Stop current scrcpy process quickly
-    const proc = deviceProcesses.get(deviceId);
-    if (proc && !TEST_MODE) {
-      if (proc.pid) {
-        logger.info(`Stopping scrcpy process PID: ${proc.pid}`);
-        // Send stdin quit first
-        const procAny = proc.proc as {
-          stdin?: { write: (data: string) => void; destroyed: boolean };
-        };
-        if (procAny.stdin && !procAny.stdin.destroyed) {
-          try {
-            procAny.stdin.write("q\n");
-          } catch (e: unknown) {
-            const errorMessage = e instanceof Error ? e.message : String(e);
-            logger.debug(`Failed to write quit command to stdin: ${errorMessage}`);
-          }
-        }
-        // Try taskkill
-        try {
-          execSync(`taskkill /PID ${proc.pid}`, { encoding: "utf8" });
-        } catch (e: unknown) {
-          const errorMessage = e instanceof Error ? e.message : String(e);
-          logger.debug(`Taskkill command failed (process may have already exited): ${errorMessage}`);
-        }
-        // Quick wait
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        // Force kill if still running
-        try {
-          execSync(`tasklist /FI "PID eq ${proc.pid}"`, { encoding: "utf8" });
-          exec(`taskkill /PID ${proc.pid} /F /T`);
-        } catch (e: unknown) {
-          const errorMessage = e instanceof Error ? e.message : String(e);
-          logger.debug(`Process ${proc.pid} already terminated: ${errorMessage}`);
-        }
-      }
-    }
-    deviceProcesses.delete(deviceId);
+  try {
+    // 2) Kill old process without clearing session overrides
+    await stopTrackedProcess(deviceProcesses, deviceId, { forRestart: true });
 
-    // Update settings to enable recording
-    settings.display.record = true;
-
-    // Restart scrcpy with recording
     const isWifi = deviceId.includes(":");
     if (isWifi) {
-      logger.info(`Device is WiFi, connecting first...`);
       const connResult = await connectWifiDevice(deviceId);
       if (!connResult.success) {
-        logger.error(`Failed to connect to WiFi device: ${connResult.error}`);
         return { success: false, error: connResult.error };
       }
     }
 
-    const args = ["-s", deviceId];
     const { display, encoding, server } = settings;
+    const willRecord =
+      forceRecord === true || (forceRecord !== false && display.record);
+    const recordPath = willRecord
+      ? resolveRecordPath(display.recordPath, deviceId)
+      : undefined;
 
-    if (display.maxSize && typeof display.maxSize === "number")
-      args.push("--max-size", String(display.maxSize));
-    if (display.videoBitrate && typeof display.videoBitrate === "number")
-      args.push("--video-bit-rate", `${display.videoBitrate}M`);
-    if (display.frameRate && typeof display.frameRate === "number")
-      args.push("--max-fps", String(display.frameRate));
-    if (display.alwaysOnTop) args.push("--always-on-top");
-    if (display.fullscreen) args.push("--fullscreen");
-    if (display.stayAwake) args.push("--stay-awake");
-    if (!display.enableVideo) args.push("--no-video");
-    if (!display.enableAudio) args.push("--no-audio");
+    const args = buildScrcpyArgs({
+      deviceId,
+      display,
+      encoding,
+      server,
+      resolvedRecordPath: recordPath,
+      forceRecord,
+      enableAudio: session.enableAudio,
+      forceCamera: session.forceCamera,
+    });
 
-    // Recording options
-    args.push("--record");
-    const recordPath = resolveRecordPath(display.recordPath, deviceId);
-    args.push(recordPath);
-    logger.info(`Recording path: ${recordPath}`);
-    // Note: --record-audio requires scrcpy 1.17+ with audio support
-    if (display.recordAudio) args.push("--record-audio");
-
-    if (encoding.videoCodec && encoding.videoCodec !== "h264") {
-      args.push("--video-codec", encoding.videoCodec);
-    }
-    // Add video encoder if selected (hardware encoder for better performance)
-    if (encoding.videoEncoder) {
-      args.push("--video-encoder", encoding.videoEncoder);
-    }
-    if (encoding.ignoreVideoEncoderConstraints) {
-      args.push("--ignore-video-encoder-constraints");
-    }
-    if (encoding.audioCodec && encoding.audioCodec !== "opus") {
-      args.push("--audio-codec", encoding.audioCodec);
-    }
-
-    if (server.tunnelMode === "forward") args.push("--tunnel-forward");
-    if (server.cleanup === false) args.push("--no-cleanup");
+    logger.info(`Restart scrcpy session args: ${args.join(" ")}`, {
+      session,
+    });
 
     if (TEST_MODE) {
       connectedDevices.add(deviceId);
@@ -2235,13 +2195,7 @@ ipcMain.handle(
 
     const currentScrcpyPath = getScrcpyPath();
     const currentAdbPath = getAdbPath();
-    logger.info(
-      `Scrcpy path: ${currentScrcpyPath}, ADB path: ${currentAdbPath}`
-    );
-    logger.info(`Scrcpy args: ${args.join(" ")}`);
-
     if (!existsSync(currentScrcpyPath)) {
-      logger.error(`Scrcpy not found at: ${currentScrcpyPath}`);
       return {
         success: false,
         error: `Scrcpy not found at: ${currentScrcpyPath}`,
@@ -2255,92 +2209,66 @@ ipcMain.handle(
     });
 
     const scrcpyPid = newProc.pid;
-    logger.info(`Scrcpy process spawned with PID: ${scrcpyPid}`);
-
     if (!scrcpyPid) {
-      logger.error(`Failed to get PID for recording scrcpy process`);
       return { success: false, error: "Failed to start scrcpy process" };
     }
 
     deviceProcesses.set(deviceId, { pid: scrcpyPid, proc: newProc });
     connectedDevices.add(deviceId);
 
-    // Capture stdout/stderr for debugging
     newProc.stdout?.on("data", (data: Buffer) => {
       logger.debug(`[SCRCPY STDOUT ${deviceId}]: ${data.toString().trim()}`);
     });
     newProc.stderr?.on("data", (data: Buffer) => {
-      const msg = data.toString().trim();
-      logger.debug(`[SCRCPY STDERR ${deviceId}]: ${msg}`);
-      // Log FFmpeg warnings that might indicate recording issues
-      if (msg.includes("Warning") || msg.includes("Error")) {
-        logger.warn(`[SCRCPY ${deviceId}]: ${msg}`);
-      }
-      // Check for recording started message
-      if (msg.includes("Recording started")) {
-        logger.info(`[SCRCPY ${deviceId}] Recording started successfully`);
-      }
+      logger.debug(`[SCRCPY STDERR ${deviceId}]: ${data.toString().trim()}`);
     });
 
-    // Notify renderer that scrcpy has started (for recording)
     if (mainWindow) {
       mainWindow.webContents.send("scrcpy-started", deviceId);
     }
 
-    const notifyScrcpyExit = (code: any) => {
+    const notifyScrcpyExit = (code: unknown) => {
       logger.info(`Scrcpy exited for ${deviceId} with code: ${code}`);
       deviceProcesses.delete(deviceId);
       connectedDevices.delete(deviceId);
+      onProcessExitMaybeClearSession(
+        preserveSessionOnExit,
+        deviceSessionOverrides,
+        deviceId
+      );
       if (mainWindow) {
         mainWindow.webContents.send("scrcpy-exit", deviceId);
       }
     };
 
-    newProc.on("error", (err: any) => {
+    newProc.on("error", (err: unknown) => {
       logger.error(`Scrcpy error for ${deviceId}:`, err);
       notifyScrcpyExit(1);
     });
-    newProc.on("close", (code: any) => {
-      logger.info(`Scrcpy close for ${deviceId}: code ${code}`);
+    newProc.on("close", (code: unknown) => {
       notifyScrcpyExit(code);
     });
 
     return { success: true };
+  } finally {
+    // 4) Future natural exits may clear session again
+    endIntentionalRestart(preserveSessionOnExit, deviceId);
+  }
+}
+
+// Start session recording (does not change global auto-record preference)
+ipcMain.handle(
+  "start-recording",
+  async (
+    _,
+    deviceId: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    logger.info(`Starting session recording for device: ${deviceId}`);
+    const recordPath = resolveRecordPath(settings.display.recordPath, deviceId);
+    logger.info(`Session recording path: ${recordPath}`);
+    return restartScrcpySession(deviceId, { forceRecord: true });
   }
 );
-
-// Helper function to send CTRL+C to a process group on Windows
-// This is more reliable than taskkill for gracefully stopping scrcpy
-async function sendCtrlC(pid: number): Promise<boolean> {
-  return new Promise((resolve) => {
-    try {
-      // On Windows, we create a process group and send CTRL+C to it
-      // This requires CREATE_NEW_PROCESS_GROUP flag when spawning
-      // Since we didn't use that flag, we'll try an alternative approach
-
-      // Try using taskkill with /T (terminate tree) first without /F (force)
-      // This tries to gracefully terminate the process
-      exec(
-        `taskkill /PID ${pid} /T`,
-        { encoding: "utf8" },
-        (err, stdout, stderr) => {
-          if (err) {
-            // If graceful termination fails, try force kill
-            logger.debug(`Graceful taskkill failed, trying force kill`);
-            resolve(false);
-          } else {
-            logger.debug(`Graceful taskkill sent to PID ${pid}`);
-            resolve(true);
-          }
-        }
-      );
-    } catch (e: unknown) {
-      const errorMessage = e instanceof Error ? e.message : String(e);
-      logger.debug(`Failed to send CTRL+C to PID ${pid}: ${errorMessage}`);
-      resolve(false);
-    }
-  });
-}
 
 // Helper function to repair corrupted MP4 recording files
 async function repairRecordingFile(filePath: string): Promise<boolean> {
@@ -2483,206 +2411,39 @@ async function repairRecordingFile(filePath: string): Promise<boolean> {
   });
 }
 
-// Stop recording - optimized version with fast file handling
+// Stop session recording — does not clear global auto-record preference
 ipcMain.handle(
   "stop-recording",
   async (
     _,
     deviceId: string
   ): Promise<{ success: boolean; error?: string }> => {
-    logger.info(`Stopping recording for device: ${deviceId}`);
-
-    // Stop current scrcpy process
-    const proc = deviceProcesses.get(deviceId);
+    logger.info(`Stopping session recording for device: ${deviceId}`);
     const recordPath = resolveRecordPath(settings.display.recordPath, deviceId);
-    let recordingSaved = false;
 
-    if (proc && !TEST_MODE) {
-      if (proc.pid) {
-        logger.info(`Stopping recording scrcpy process PID: ${proc.pid}`);
-
-        // Try to send quit command via stdin
-        const procAny = proc.proc as {
-          stdin?: { write: (data: string) => void; destroyed: boolean };
-        };
-        if (procAny.stdin && !procAny.stdin.destroyed) {
-          try {
-            procAny.stdin.write("q\n");
-            logger.info(`Sent 'q' command to scrcpy stdin`);
-          } catch (e: unknown) {
-            const errorMessage = e instanceof Error ? e.message : String(e);
-            logger.debug(`Failed to write to stdin: ${errorMessage}`);
-          }
-        }
-
-        // Wait briefly for graceful shutdown
-        await new Promise((resolve) => setTimeout(resolve, GRACEFUL_SHUTDOWN_WAIT));
-
-        // Check if process exited gracefully
-        try {
-          execSync(`tasklist /FI "PID eq ${proc.pid}"`, { encoding: "utf8" });
-          // Process still running, try taskkill
-          logger.info(`Process still running, sending taskkill`);
-          try {
-            execSync(`taskkill /PID ${proc.pid}`, { encoding: "utf8" });
-            await new Promise((resolve) => setTimeout(resolve, FORCE_KILL_WAIT));
-          } catch (e: unknown) {
-            const errorMessage = e instanceof Error ? e.message : String(e);
-            logger.debug(`Taskkill failed: ${errorMessage}`);
-          }
-        } catch (e: unknown) {
-          const errorMessage = e instanceof Error ? e.message : String(e);
-          logger.info(`Process exited gracefully: ${errorMessage}`);
-          recordingSaved = true;
-        }
-
-        // Force kill if still running
-        if (!recordingSaved) {
-          try {
-            execSync(`tasklist /FI "PID eq ${proc.pid}"`, { encoding: "utf8" });
-            logger.warn(`Force killing PID: ${proc.pid}`);
-            exec(`taskkill /PID ${proc.pid} /F /T`);
-            await new Promise((resolve) => setTimeout(resolve, FORCE_KILL_DELAY));
-          } catch (e: unknown) {
-            const errorMessage = e instanceof Error ? e.message : String(e);
-            recordingSaved = true;
-            logger.info(`Process terminated: ${errorMessage}`);
-          }
-        }
-
-        // Quick file check - only repair if file is clearly corrupted
-        if (existsSync(recordPath)) {
-          const stats = statSync(recordPath);
-          const fileSize = stats.size;
-          logger.info(`Recording file: ${fileSize} bytes`);
-
-          // Only repair very small files (<5KB = definitely corrupted)
-          if (fileSize < 5000) {
-            logger.info(`File too small, attempting repair`);
-            await repairRecordingFile(recordPath);
-          } else {
-            logger.info(`Recording saved successfully`);
-          }
-        }
-      }
-    }
-    deviceProcesses.delete(deviceId);
+    await stopTrackedProcess(deviceProcesses, deviceId);
     connectedDevices.delete(deviceId);
 
-    // Update settings to disable recording
-    settings.display.record = false;
-
-    // Restart scrcpy without recording to continue mirroring
-    const isWifi = deviceId.includes(":");
-    if (isWifi) {
-      await connectWifiDevice(deviceId);
-    }
-
-    const args = ["-s", deviceId];
-    const { display, encoding, server } = settings;
-
-    if (display.maxSize && typeof display.maxSize === "number")
-      args.push("--max-size", String(display.maxSize));
-    if (display.videoBitrate && typeof display.videoBitrate === "number")
-      args.push("--video-bit-rate", `${display.videoBitrate}M`);
-    if (display.frameRate && typeof display.frameRate === "number")
-      args.push("--max-fps", String(display.frameRate));
-    if (display.alwaysOnTop) args.push("--always-on-top");
-    if (display.fullscreen) args.push("--fullscreen");
-    if (display.stayAwake) args.push("--stay-awake");
-    if (!display.enableVideo) args.push("--no-video");
-    if (!display.enableAudio) args.push("--no-audio");
-
-    if (encoding.videoCodec && encoding.videoCodec !== "h264") {
-      args.push("--video-codec", encoding.videoCodec);
-    }
-    // Add video encoder if selected (hardware encoder for better performance)
-    if (encoding.videoEncoder) {
-      args.push("--video-encoder", encoding.videoEncoder);
-    }
-    if (encoding.ignoreVideoEncoderConstraints) {
-      args.push("--ignore-video-encoder-constraints");
-    }
-    if (encoding.audioCodec && encoding.audioCodec !== "opus") {
-      args.push("--audio-codec", encoding.audioCodec);
-    }
-
-    if (server.tunnelMode === "forward") args.push("--tunnel-forward");
-    if (server.cleanup === false) args.push("--no-cleanup");
-
-    if (TEST_MODE) {
-      return { success: true };
-    }
-
-    const currentScrcpyPath = getScrcpyPath();
-    const currentAdbPath = getAdbPath();
-    logger.info(`Stop recording - Scrcpy path: ${currentScrcpyPath}`);
-    logger.info(`Stop recording - Args: ${args.join(" ")}`);
-
-    if (!existsSync(currentScrcpyPath)) {
-      return {
-        success: false,
-        error: `Scrcpy not found at: ${currentScrcpyPath}`,
-      };
-    }
-
-    const newProc = spawn(currentScrcpyPath, args, {
-      env: { ...process.env, ADB: currentAdbPath },
-      detached: false,
-      stdio: "pipe",
-    });
-
-    const scrcpyPid = newProc.pid;
-    logger.info(`Stop recording - Scrcpy restarted with PID: ${scrcpyPid}`);
-
-    if (!scrcpyPid) {
-      logger.error(`Failed to get PID for restart recording scrcpy process`);
-      return { success: false, error: "Failed to start scrcpy process" };
-    }
-
-    deviceProcesses.set(deviceId, { pid: scrcpyPid, proc: newProc });
-    connectedDevices.add(deviceId);
-
-    // Capture stdout/stderr for debugging
-    newProc.stdout?.on("data", (data: Buffer) => {
-      logger.debug(`[SCRCPY STDOUT ${deviceId}]: ${data.toString().trim()}`);
-    });
-    newProc.stderr?.on("data", (data: Buffer) => {
-      const msg = data.toString().trim();
-      logger.debug(`[SCRCPY STDERR ${deviceId}]: ${msg}`);
-      if (msg.includes("Recording complete")) {
-        logger.info(`[SCRCPY ${deviceId}] Recording completed successfully`);
+    // Best-effort repair of tiny/corrupt files (optional; needs system ffmpeg)
+    if (!TEST_MODE && existsSync(recordPath)) {
+      try {
+        const fileSize = statSync(recordPath).size;
+        logger.info(`Recording file: ${fileSize} bytes`);
+        if (fileSize < 5000) {
+          await repairRecordingFile(recordPath);
+        }
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        logger.debug(`Recording file check failed: ${errorMessage}`);
       }
-    });
-
-    // Notify renderer that scrcpy has restarted
-    if (mainWindow) {
-      mainWindow.webContents.send("scrcpy-started", deviceId);
     }
 
-    const notifyScrcpyExit = (code: any) => {
-      logger.info(`Scrcpy exited for ${deviceId} with code: ${code}`);
-      deviceProcesses.delete(deviceId);
-      connectedDevices.delete(deviceId);
-      if (mainWindow) {
-        mainWindow.webContents.send("scrcpy-exit", deviceId);
-      }
-    };
-
-    newProc.on("error", (err: any) => {
-      logger.error(`Scrcpy error for ${deviceId}:`, err);
-      notifyScrcpyExit(1);
-    });
-    newProc.on("close", (code: any) => {
-      logger.info(`Scrcpy close for ${deviceId}: code ${code}`);
-      notifyScrcpyExit(code);
-    });
-
-    return { success: true };
+    // Resume mirror without session record; keep display.record (auto-record) unchanged
+    return restartScrcpySession(deviceId, { forceRecord: false });
   }
 );
 
-// Toggle audio
+// Toggle audio for current session (does not persist enableAudio preference)
 ipcMain.handle(
   "toggle-audio",
   async (
@@ -2691,163 +2452,12 @@ ipcMain.handle(
     enabled: boolean
   ): Promise<{ success: boolean; error?: string }> => {
     logger.info(`Toggling audio for device ${deviceId} to: ${enabled}`);
-
-    // For audio toggle, we need to restart scrcpy
-    const proc = deviceProcesses.get(deviceId);
-    if (proc && !TEST_MODE) {
-      if (proc.pid) {
-        logger.info(`Killing existing scrcpy process PID: ${proc.pid}`);
-        // Method 1: Try Node.js SIGINT first
-        try {
-          proc.proc?.kill("SIGINT");
-          logger.info(`Sent SIGINT to PID ${proc.pid}`);
-          await new Promise((resolve) => setTimeout(resolve, 2000));
-        } catch (e: unknown) {
-          const errorMessage = e instanceof Error ? e.message : String(e);
-          logger.debug(`SIGINT failed, trying taskkill: ${errorMessage}`);
-          // Method 2: Try graceful taskkill
-          try {
-            execSync(`taskkill /PID ${proc.pid} /T`, { encoding: "utf8" });
-            await new Promise((resolve) => setTimeout(resolve, 1500));
-          } catch (e2: unknown) {
-            // Method 3: Force kill
-            try {
-              exec(`taskkill /PID ${proc.pid} /F /T`);
-            } catch (e3: unknown) {
-              const errorMessage3 = e3 instanceof Error ? e3.message : String(e3);
-              logger.warn(`Failed to force kill scrcpy process ${proc.pid}: ${errorMessage3}`);
-            }
-          }
-        }
-      }
-    }
-    deviceProcesses.delete(deviceId);
-
-    // Update settings
-    settings.display.enableAudio = enabled;
-
-    // Restart scrcpy
-    const isWifi = deviceId.includes(":");
-    if (isWifi) {
-      await connectWifiDevice(deviceId);
-    }
-
-    const args = ["-s", deviceId];
-    const { display, encoding, server } = settings;
-
-    if (display.maxSize && typeof display.maxSize === "number")
-      args.push("--max-size", String(display.maxSize));
-    if (display.videoBitrate && typeof display.videoBitrate === "number")
-      args.push("--video-bit-rate", `${display.videoBitrate}M`);
-    if (display.frameRate && typeof display.frameRate === "number")
-      args.push("--max-fps", String(display.frameRate));
-    if (display.alwaysOnTop) args.push("--always-on-top");
-    if (display.fullscreen) args.push("--fullscreen");
-    if (display.stayAwake) args.push("--stay-awake");
-    if (display.windowBorderless) args.push("--window-borderless");
-    if (display.disableScreensaver) args.push("--disable-screensaver");
-    if (!display.enableVideo) args.push("--no-video");
-    if (!display.enableAudio) args.push("--no-audio");
-
-    if (display.record) {
-      args.push("--record");
-      args.push(resolveRecordPath(display.recordPath, deviceId));
-    }
-    if (display.recordTimeLimit > 0) {
-      args.push("--time-limit", String(display.recordTimeLimit));
-    }
-    if (display.recordAudio) args.push("--record-audio");
-
-    if (encoding.videoCodec && encoding.videoCodec !== "h264") {
-      args.push("--video-codec", encoding.videoCodec);
-    }
-    // Add video encoder if selected (hardware encoder for better performance)
-    if (encoding.videoEncoder) {
-      args.push("--video-encoder", encoding.videoEncoder);
-    }
-    if (encoding.ignoreVideoEncoderConstraints) {
-      args.push("--ignore-video-encoder-constraints");
-    }
-    if (encoding.audioCodec && encoding.audioCodec !== "opus") {
-      args.push("--audio-codec", encoding.audioCodec);
-    }
-
-    if (server.tunnelMode === "forward") args.push("--tunnel-forward");
-    if (server.cleanup === false) args.push("--no-cleanup");
-
-    if (TEST_MODE) {
-      connectedDevices.add(deviceId);
-      return { success: true };
-    }
-
-    const currentScrcpyPath = getScrcpyPath();
-    const currentAdbPath = getAdbPath();
-    logger.info(
-      `Audio toggle - Scrcpy path: ${currentScrcpyPath}, ADB path: ${currentAdbPath}`
-    );
-    logger.info(`Audio toggle - Args: ${args.join(" ")}`);
-
-    if (!existsSync(currentScrcpyPath)) {
-      logger.error(`Scrcpy not found at: ${currentScrcpyPath}`);
-      return {
-        success: false,
-        error: `Scrcpy not found at: ${currentScrcpyPath}`,
-      };
-    }
-
-    const newProc = spawn(currentScrcpyPath, args, {
-      env: { ...process.env, ADB: currentAdbPath },
-      detached: false,
-      stdio: "pipe",
-    });
-
-    const scrcpyPid = newProc.pid;
-    logger.info(`Audio toggle - Scrcpy process spawned with PID: ${scrcpyPid}`);
-
-    if (!scrcpyPid) {
-      logger.error(`Failed to get PID for audio toggle scrcpy process`);
-      return { success: false, error: "Failed to start scrcpy process" };
-    }
-
-    deviceProcesses.set(deviceId, { pid: scrcpyPid, proc: newProc });
-    connectedDevices.add(deviceId);
-
-    // Capture stdout/stderr for debugging
-    newProc.stdout?.on("data", (data: Buffer) => {
-      logger.debug(`[SCRCPY STDOUT ${deviceId}]: ${data.toString().trim()}`);
-    });
-    newProc.stderr?.on("data", (data: Buffer) => {
-      logger.debug(`[SCRCPY STDERR ${deviceId}]: ${data.toString().trim()}`);
-    });
-
-    // Notify renderer that scrcpy has started (for audio toggle)
-    if (mainWindow) {
-      mainWindow.webContents.send("scrcpy-started", deviceId);
-    }
-
-    const notifyScrcpyExit = (code: any) => {
-      logger.info(`Scrcpy exited for ${deviceId} with code: ${code}`);
-      deviceProcesses.delete(deviceId);
-      connectedDevices.delete(deviceId);
-      if (mainWindow) {
-        mainWindow.webContents.send("scrcpy-exit", deviceId);
-      }
-    };
-
-    newProc.on("error", (err: any) => {
-      logger.error(`Scrcpy error for ${deviceId}:`, err);
-      notifyScrcpyExit(1);
-    });
-    newProc.on("close", (code: any) => {
-      logger.info(`Scrcpy close for ${deviceId}: code ${code}`);
-      notifyScrcpyExit(code);
-    });
-
-    return { success: true };
+    // Session-only audio; do not write settings.display.enableAudio
+    return restartScrcpySession(deviceId, { enableAudio: enabled });
   }
 );
 
-// Toggle camera
+// Toggle camera source on the main mirror session (session override; persists camera pref for next connect if needed)
 ipcMain.handle(
   "toggle-camera",
   async (
@@ -2856,121 +2466,9 @@ ipcMain.handle(
     enabled: boolean
   ): Promise<{ success: boolean; error?: string }> => {
     logger.info(`Toggling camera for device ${deviceId} to: ${enabled}`);
-
-    // Stop current scrcpy process
-    const proc = deviceProcesses.get(deviceId);
-    if (proc && !TEST_MODE) {
-      if (proc.pid) {
-        try {
-          exec(`taskkill /PID ${proc.pid} /F /T`);
-        } catch (e: unknown) {
-          try {
-            proc.proc?.kill();
-          } catch (e2: unknown) {
-            const errorMessage2 = e2 instanceof Error ? e2.message : String(e2);
-            logger.warn(`Failed to kill camera toggle process ${proc.pid}: ${errorMessage2}`);
-          }
-        }
-      }
-    }
-    deviceProcesses.delete(deviceId);
-
-    // Update settings
+    // Persist preference for future connects (display setting), restart with forceCamera
     settings.display.camera = enabled;
-
-    // Restart scrcpy
-    const isWifi = deviceId.includes(":");
-    if (isWifi) {
-      await connectWifiDevice(deviceId);
-    }
-
-    const args = ["-s", deviceId];
-    const { display, encoding, server } = settings;
-
-    if (display.maxSize && typeof display.maxSize === "number")
-      args.push("--max-size", String(display.maxSize));
-    if (display.videoBitrate && typeof display.videoBitrate === "number")
-      args.push("--video-bit-rate", `${display.videoBitrate}M`);
-    if (display.frameRate && typeof display.frameRate === "number")
-      args.push("--max-fps", String(display.frameRate));
-    if (display.alwaysOnTop) args.push("--always-on-top");
-    if (display.fullscreen) args.push("--fullscreen");
-    if (display.stayAwake) args.push("--stay-awake");
-    if (!display.enableVideo) args.push("--no-video");
-    if (!display.enableAudio) args.push("--no-audio");
-
-    if (display.record) {
-      args.push("--record");
-      args.push(resolveRecordPath(display.recordPath, deviceId));
-    }
-    if (display.recordAudio) args.push("--record-audio");
-
-    // Camera options
-    if (display.camera) {
-      if (display.cameraId) args.push("--camera-id", display.cameraId);
-      args.push("--camera-size", display.cameraSize);
-      if (display.cameraFps !== 30)
-        args.push("--camera-fps", String(display.cameraFps));
-    }
-
-    if (encoding.videoCodec && encoding.videoCodec !== "h264") {
-      args.push("--video-codec", encoding.videoCodec);
-    }
-    // Add video encoder if selected (hardware encoder for better performance)
-    if (encoding.videoEncoder) {
-      args.push("--video-encoder", encoding.videoEncoder);
-    }
-    if (encoding.ignoreVideoEncoderConstraints) {
-      args.push("--ignore-video-encoder-constraints");
-    }
-    if (encoding.audioCodec && encoding.audioCodec !== "opus") {
-      args.push("--audio-codec", encoding.audioCodec);
-    }
-
-    if (server.tunnelMode === "forward") args.push("--tunnel-forward");
-    if (server.cleanup === false) args.push("--no-cleanup");
-
-    if (TEST_MODE) {
-      connectedDevices.add(deviceId);
-      return { success: true };
-    }
-
-    const currentScrcpyPath = getScrcpyPath();
-    const currentAdbPath = getAdbPath();
-    if (!existsSync(currentScrcpyPath)) {
-      return {
-        success: false,
-        error: `Scrcpy not found at: ${currentScrcpyPath}`,
-      };
-    }
-
-    const newProc = spawn(currentScrcpyPath, args, {
-      env: { ...process.env, ADB: currentAdbPath },
-      detached: false,
-      stdio: "pipe",
-    });
-
-    const scrcpyPid = newProc.pid;
-    if (!scrcpyPid) {
-      logger.error(`Failed to get PID for camera toggle scrcpy process`);
-      return { success: false, error: "Failed to start scrcpy process" };
-    }
-
-    deviceProcesses.set(deviceId, { pid: scrcpyPid, proc: newProc });
-    connectedDevices.add(deviceId);
-
-    const notifyScrcpyExit = () => {
-      deviceProcesses.delete(deviceId);
-      connectedDevices.delete(deviceId);
-      if (mainWindow) {
-        mainWindow.webContents.send("scrcpy-exit", deviceId);
-      }
-    };
-
-    newProc.on("error", notifyScrcpyExit);
-    newProc.on("close", notifyScrcpyExit);
-
-    return { success: true };
+    return restartScrcpySession(deviceId, { forceCamera: enabled });
   }
 );
 
@@ -2993,25 +2491,15 @@ ipcMain.handle(
       }
     }
 
-    const { display, server } = settings;
+    const { display, encoding, server } = settings;
 
-    // Build camera args - use video-source=camera
-    const args = ["-s", deviceId, "--video-source=camera"];
-
-    // Camera options
-    if (display.cameraId) {
-      args.push("--camera-id", display.cameraId);
-    } else {
-      // Auto-select first camera
-      args.push("--camera-facing=back");
-    }
-    args.push("--camera-size", display.cameraSize);
-    if (display.cameraFps !== 30) {
-      args.push("--camera-fps", String(display.cameraFps));
-    }
-
-    if (server.tunnelMode === "forward") args.push("--tunnel-forward");
-    if (server.cleanup === false) args.push("--no-cleanup");
+    const args = buildScrcpyArgs({
+      deviceId,
+      display,
+      encoding,
+      server,
+      cameraOnly: true,
+    });
 
     const currentScrcpyPath = getScrcpyPath();
     const currentAdbPath = getAdbPath();
@@ -3024,6 +2512,10 @@ ipcMain.handle(
     }
 
     logger.info(`Starting camera with args: ${args.join(" ")}`);
+
+    if (TEST_MODE) {
+      return { success: true };
+    }
 
     const newProc = spawn(currentScrcpyPath, args, {
       env: { ...process.env, ADB: currentAdbPath },
@@ -3062,23 +2554,7 @@ ipcMain.handle(
   "stop-camera",
   async (_, deviceId: string): Promise<{ success: boolean }> => {
     logger.info(`Stopping camera for device: ${deviceId}`);
-
-    const proc = cameraProcesses.get(deviceId);
-    if (proc) {
-      if (proc.pid) {
-        try {
-          exec(`taskkill /PID ${proc.pid} /F /T`);
-        } catch (e: unknown) {
-          try {
-            proc.proc?.kill();
-          } catch (e2: unknown) {
-            const errorMessage2 = e2 instanceof Error ? e2.message : String(e2);
-            logger.warn(`Failed to kill camera process ${proc.pid}: ${errorMessage2}`);
-          }
-        }
-      }
-      cameraProcesses.delete(deviceId);
-    }
+    await stopTrackedProcess(cameraProcesses, deviceId);
 
     if (mainWindow) {
       mainWindow.webContents.send("camera-exit", deviceId);

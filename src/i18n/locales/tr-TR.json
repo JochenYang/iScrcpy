@@ -1,5 +1,7 @@
 {
-  "app": { "name": "iScrcpy" },
+  "app": {
+    "name": "iScrcpy"
+  },
   "sidebar": {
     "devices": "Cihazlar",
     "display": "Ekran",
@@ -155,6 +157,7 @@
     "audioCodecDesc": "Ses kodlama formatını seç",
     "bitrateMode": "Bit Hızı Modu",
     "bitrateModeDesc": "Bit hızı kontrol modunu seç",
+    "bitrateModeUnsupported": "Dahili scrcpy 4.x tarafından desteklenmiyor (CBR/VBR CLI seçeneği yok). Yalnızca uyumluluk için tutulur; başlatmayı etkilemez.",
     "vbr": "Değişken Bit Hızı (VBR)",
     "cbr": "Sabit Bit Hızı (CBR)",
     "ignoreVideoEncoderConstraints": "Video Kodlayıcı Kısıtlamalarını Yoksay",

@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.9] - 2026-07-19
+
+### Fixed
+
+- Removed obsolete `--record-audio` flag (invalid on scrcpy 4.x; caused launch failures when record audio was enabled)
+- Added required `--video-source=camera` for all camera-intent mirror paths
+- Fixed device list refresh that could mark all known devices offline after a successful ADB poll
+- Session recording no longer mutates the global auto-record display setting
+- Session record/audio/camera overrides now survive intentional scrcpy restarts (merge before kill; preserve on exit)
+- Quick-action process stop/kill routed through shared cross-platform terminate helpers
+- Camera button active state synced via store and `camera-exit` events
+- Encoding bitrate mode (VBR/CBR) UI marked unsupported (no scrcpy 4.x CLI mapping); localized strings for all languages
+
+### Added
+
+- Shared pure `buildScrcpyArgs` module with unit tests (`npm run test:args`)
+- Per-device session override helpers (`sessionOverrides`) with restart-order tests
+- Project `AGENTS.md` (contributor rules for scrcpy args, settings vs session, process lifecycle)
+
 ## [1.2.8] - 2026-07-13
 
 ### Changed

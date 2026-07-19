@@ -159,6 +159,7 @@
     "audioCodecDesc": "Select audio encoding format",
     "bitrateMode": "Bitrate Mode",
     "bitrateModeDesc": "Select bitrate control mode",
+    "bitrateModeUnsupported": "Not supported by bundled scrcpy 4.x (no CBR/VBR CLI flag). Kept for compatibility only and does not affect launches.",
     "vbr": "Variable Bitrate (VBR)",
     "cbr": "Constant Bitrate (CBR)",
     "ignoreVideoEncoderConstraints": "Ignore Video Encoder Constraints",

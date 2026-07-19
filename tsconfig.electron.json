@@ -14,5 +14,5 @@
     "moduleResolution": "node"
   },
   "include": ["electron/**/*"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "electron/**/*.test.ts", "electron/**/*.test.tsx"]
 }

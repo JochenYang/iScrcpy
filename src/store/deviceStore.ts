@@ -16,6 +16,7 @@ interface DeviceStore {
   mirroringDevices: string[];
   recordingDevices: string[];
   audioEnabledDevices: string[];
+  cameraDevices: string[];
   updateKnownDevice: (device: Device) => void;
   removeKnownDevice: (deviceId: string) => void;
   addMirroringDevice: (deviceId: string) => void;
@@ -23,9 +24,12 @@ interface DeviceStore {
   addRecordingDevice: (deviceId: string) => void;
   removeRecordingDevice: (deviceId: string) => void;
   setAudioEnabled: (deviceId: string, enabled: boolean) => void;
+  addCameraDevice: (deviceId: string) => void;
+  removeCameraDevice: (deviceId: string) => void;
   isDeviceMirroring: (deviceId: string) => boolean;
   isDeviceRecording: (deviceId: string) => boolean;
   isAudioEnabled: (deviceId: string) => boolean;
+  isCameraActive: (deviceId: string) => boolean;
 }
 
 export const useDeviceStore = create<DeviceStore>()(
@@ -37,6 +41,7 @@ export const useDeviceStore = create<DeviceStore>()(
       mirroringDevices: [],
       recordingDevices: [],
       audioEnabledDevices: [],
+      cameraDevices: [],
 
       updateKnownDevice: (device) => {
         const knownDevices = get().knownDevices;
@@ -98,9 +103,22 @@ export const useDeviceStore = create<DeviceStore>()(
             : state.audioEnabledDevices.filter(id => id !== deviceId),
         })),
 
+      addCameraDevice: (deviceId) =>
+        set((state) => ({
+          cameraDevices: state.cameraDevices.includes(deviceId)
+            ? state.cameraDevices
+            : [...state.cameraDevices, deviceId],
+        })),
+
+      removeCameraDevice: (deviceId) =>
+        set((state) => ({
+          cameraDevices: state.cameraDevices.filter(id => id !== deviceId),
+        })),
+
       isDeviceMirroring: (deviceId) => get().mirroringDevices.includes(deviceId),
       isDeviceRecording: (deviceId) => get().recordingDevices.includes(deviceId),
       isAudioEnabled: (deviceId) => get().audioEnabledDevices.includes(deviceId),
+      isCameraActive: (deviceId) => get().cameraDevices.includes(deviceId),
     }),
     {
       name: "device-storage",

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import {
   Smartphone,
@@ -47,6 +47,7 @@ function arePropsEqual(
   nextProps: DeviceCardProps
 ): boolean {
   // Only re-render when device props or connection status actually changes
+  // Note: recording/audio/camera active state comes from zustand inside the component.
   if (prevProps.device.id !== nextProps.device.id) return false;
   if (prevProps.device.name !== nextProps.device.name) return false;
   if (prevProps.device.type !== nextProps.device.type) return false;
@@ -85,11 +86,10 @@ export default React.memo(function DeviceCard({
   onRemove,
 }: DeviceCardProps) {
   const { t } = useTranslation();
-  const { recordingDevices, isAudioEnabled } = useDeviceStore();
+  const { recordingDevices, isAudioEnabled, isCameraActive: isCameraActiveFn } = useDeviceStore();
   const isRecording = recordingDevices.includes(device.id);
   const audioEnabled = isAudioEnabled(device.id);
-
-  const [isCameraActive, setIsCameraActive] = useState(false);
+  const isCameraActive = isCameraActiveFn(device.id);
 
   // Status logic:
   // - Mirroring: "Mirroring" (regardless of ADB connection)
@@ -122,12 +122,10 @@ export default React.memo(function DeviceCard({
 
   const handleCameraToggle = () => {
     if (isCameraActive) {
-      setIsCameraActive(false);
       if (onStopCamera) {
         onStopCamera(device.id);
       }
     } else {
-      setIsCameraActive(true);
       if (onStartCamera) {
         onStartCamera(device.id);
       }

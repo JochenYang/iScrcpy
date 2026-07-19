@@ -349,13 +349,16 @@ export default function EncodingPage() {
             <label>{t("encoding.bitrateMode")}</label>
             <select
               value={settings.bitrateMode}
-              onChange={(e) =>
-                setSettings({ ...settings, bitrateMode: e.target.value })
-              }
+              disabled
+              title={t("encoding.bitrateModeUnsupported")}
+              aria-disabled="true"
             >
               <option value="vbr">{t("encoding.vbr")}</option>
               <option value="cbr">{t("encoding.cbr")}</option>
             </select>
+            <p className="form-hint text-small text-muted">
+              {t("encoding.bitrateModeUnsupported")}
+            </p>
           </div>
 
           <label className="toggle-item">

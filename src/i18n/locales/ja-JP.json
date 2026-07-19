@@ -157,6 +157,7 @@
     "audioCodecDesc": "オーディオエンコード形式を選択",
     "bitrateMode": "ビットレートモード",
     "bitrateModeDesc": "ビットレート制御モードを選択",
+    "bitrateModeUnsupported": "同梱の scrcpy 4.x には CBR/VBR 用の CLI オプションがありません。互換性のため項目のみ残しており、起動パラメータには影響しません。",
     "vbr": "可変ビットレート (VBR)",
     "cbr": "固定ビットレート (CBR)",
     "ignoreVideoEncoderConstraints": "ビデオエンコーダー制約を無視",

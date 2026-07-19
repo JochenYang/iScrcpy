@@ -19,6 +19,8 @@ export default function DevicePage() {
     addRecordingDevice,
     removeRecordingDevice,
     setAudioEnabled,
+    addCameraDevice,
+    removeCameraDevice,
   } = useDeviceStore();
   const [refreshing, setRefreshing] = useState(false);
   const [wifiIp, setWifiIp] = useState("");
@@ -53,139 +55,117 @@ export default function DevicePage() {
 
     let retryCount = 0;
     const maxRetries = 3;
+    /** Outcome of this loadDevices call — only bulk-offline on definitive failure/empty after retries. */
+    let loadSucceededWithList = false;
+    let definitiveEmptyOrFailure = false;
 
     while (retryCount < maxRetries) {
       try {
         const result = await electronAPI.adbDevices();
         if (result.success && result.devices) {
           const currentDevices = result.devices as DeviceInfo[];
-          const now = Date.now();
-          const known = knownDevicesRef.current;
-          const removed = useDeviceStore.getState().removedDevices;
 
-          // Current devices map for quick lookup
-          const currentDeviceMap = new Map(currentDevices.map(d => [d.id, d]));
-
-          // Merge devices: current devices take priority, historical data as fallback
-          // This ensures connected status comes from ADB, while metadata (name) comes from history
-          const mergedDevices = currentDevices.map(device => {
-            const existing = known.find(d => d.id === device.id);
-            if (existing) {
-              // Keep historical metadata (name) but use current status from ADB
-              return {
-                ...device,
-                lastSeen: now,
-                name: device.name !== "Unknown Device" ? device.name : existing.name,
-              };
-            }
-            return { ...device, lastSeen: now };
-          });
-
-          // Update known devices: USB devices keep last known state if not detected
-          // Only mark as offline when tracker confirms device is removed (via device-change remove event)
-          // This prevents false offline status during ADB polling
-          const updatedKnown = known.map(knownDevice => {
-            const current = currentDeviceMap.get(knownDevice.id);
-            if (current) {
-              // Device is currently connected, update with real-time status
-              return {
-                ...knownDevice,
-                name: current.name !== "Unknown Device" ? current.name : knownDevice.name,
-                status: current.status,
-                lastSeen: now,
-              };
-            }
-            // Device not in ADB list - keep last known status
-            // Only update lastSeen timestamp, do NOT change status to offline
-            // Status should only change to offline when we receive device-change remove event
-            return knownDevice;
-          });
-
-          // Add new devices that are not in knownDevices and not removed
-          // USB devices will be restored when USB is reconnected
-          for (const device of currentDevices) {
-            const isInUpdatedKnown = updatedKnown.find(d => d.id === device.id);
-            const wasRemoved = removed.some(d => d.id === device.id);
-            const isUsbDevice = device.status === "device" && !device.id.includes(":");
-
-            if (!isInUpdatedKnown && (!wasRemoved || isUsbDevice)) {
-              updatedKnown.push({
-                ...device,
-                lastSeen: now,
-                name: device.name !== "Unknown Device" ? device.name : device.id,
-              });
-            }
-          }
-
-          // Update store with merged results
-          useDeviceStore.setState({ devices: mergedDevices, knownDevices: updatedKnown });
-
-          // Auto-reconnect WiFi devices that were connected but not currently detected
-          // Only when force refresh is enabled (e.g., manual refresh)
-          if (forceRefresh) {
-            const wifiDevicesNeedingReconnect = updatedKnown.filter(d => {
-              // Only reconnect WiFi devices that are not currently connected
-              if (d.type !== "wifi") return false;
-              if (currentDevices.some(curr => curr.id === d.id)) return false;
-
-              // Only reconnect devices that were previously connected or connecting
-              const wasConnected = d.status === "connected" || d.status === "connecting";
-              if (!wasConnected) return false;
-
-              // Only reconnect if disconnected for more than 10 seconds
-              // This prevents immediate reconnection during network instability
-              const disconnectDuration = now - (d.lastSeen || 0);
-              return disconnectDuration > 10000;
-            });
-
-            // Delay reconnection by 2 seconds to avoid triggering during network instability
-            for (const device of wifiDevicesNeedingReconnect) {
-              setTimeout(() => {
-                electronAPI.connectWifi(device.id);
-              }, 2000);
-            }
-          }
-
-          // Success, exit the retry loop
-          break;
-        } else {
-          // ADB command failed OR returned empty device list
-          // Both cases mean devices are not available
-          if (!result.devices || result.devices.length === 0) {
-            // ADB succeeded but no devices found - mark all known devices as offline
-            console.warn("ADB returned empty device list, marking all devices as offline");
-            const known = useDeviceStore.getState().knownDevices;
+          // Successful non-empty list: apply merge and stop. Never re-poll to "confirm offline".
+          if (currentDevices.length > 0) {
             const now = Date.now();
-            const updatedKnown = known.map(knownDevice => ({
-              ...knownDevice,
-              status: "offline",
-              lastSeen: now,
-            }));
-            useDeviceStore.setState({
-              devices: [],
-              knownDevices: updatedKnown,
+            const known = knownDevicesRef.current;
+            const removed = useDeviceStore.getState().removedDevices;
+
+            const currentDeviceMap = new Map(currentDevices.map(d => [d.id, d]));
+
+            const mergedDevices = currentDevices.map(device => {
+              const existing = known.find(d => d.id === device.id);
+              if (existing) {
+                return {
+                  ...device,
+                  lastSeen: now,
+                  name: device.name !== "Unknown Device" ? device.name : existing.name,
+                };
+              }
+              return { ...device, lastSeen: now };
             });
+
+            const updatedKnown = known.map(knownDevice => {
+              const current = currentDeviceMap.get(knownDevice.id);
+              if (current) {
+                return {
+                  ...knownDevice,
+                  name: current.name !== "Unknown Device" ? current.name : knownDevice.name,
+                  status: current.status,
+                  lastSeen: now,
+                };
+              }
+              // Not in ADB list: keep last status (tracker remove event owns offline)
+              return knownDevice;
+            });
+
+            for (const device of currentDevices) {
+              const isInUpdatedKnown = updatedKnown.find(d => d.id === device.id);
+              const wasRemoved = removed.some(d => d.id === device.id);
+              const isUsbDevice = device.status === "device" && !device.id.includes(":");
+
+              if (!isInUpdatedKnown && (!wasRemoved || isUsbDevice)) {
+                updatedKnown.push({
+                  ...device,
+                  lastSeen: now,
+                  name: device.name !== "Unknown Device" ? device.name : device.id,
+                });
+              }
+            }
+
+            useDeviceStore.setState({ devices: mergedDevices, knownDevices: updatedKnown });
+            loadSucceededWithList = true;
+
+            if (forceRefresh) {
+              const wifiDevicesNeedingReconnect = updatedKnown.filter(d => {
+                if (d.type !== "wifi") return false;
+                if (currentDevices.some(curr => curr.id === d.id)) return false;
+                const wasConnected = d.status === "connected" || d.status === "connecting";
+                if (!wasConnected) return false;
+                const disconnectDuration = now - (d.lastSeen || 0);
+                return disconnectDuration > 10000;
+              });
+
+              for (const device of wifiDevicesNeedingReconnect) {
+                setTimeout(() => {
+                  electronAPI.connectWifi(device.id);
+                }, 2000);
+              }
+            }
+
+            break;
           }
+
+          // success + empty list: retry then mark empty only if still empty after retries
           retryCount++;
           if (retryCount < maxRetries) {
             await new Promise(resolve => setTimeout(resolve, 500 * Math.pow(2, retryCount - 1)));
             continue;
           }
+          definitiveEmptyOrFailure = true;
+        } else {
+          // ADB command failed
+          retryCount++;
+          if (retryCount < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 500 * Math.pow(2, retryCount - 1)));
+            continue;
+          }
+          definitiveEmptyOrFailure = true;
         }
       } catch (error) {
         console.error("Failed to load devices:", error);
         retryCount++;
         if (retryCount < maxRetries) {
-          // Wait before retry (500ms, 1000ms, 2000ms)
           await new Promise(resolve => setTimeout(resolve, 500 * Math.pow(2, retryCount - 1)));
           continue;
         }
+        definitiveEmptyOrFailure = true;
       }
     }
 
-    // When ADB fails after all retries, mark all known devices as offline
-    const lastResult = await electronAPI.adbDevices().catch(() => ({ success: false, devices: [] as DeviceInfo[] }));
-    if (!lastResult.success || !lastResult.devices?.length) {
+    // Bulk offline only when this attempt never got a non-empty success (no second unconditional poll)
+    if (!loadSucceededWithList && definitiveEmptyOrFailure) {
+      console.warn("ADB empty/failed after retries, marking known devices offline");
       const known = useDeviceStore.getState().knownDevices;
       const now = Date.now();
       const updatedKnown = known.map(knownDevice => ({
@@ -200,7 +180,6 @@ export default function DevicePage() {
     }
 
     setRefreshing(false);
-    // Reset loading flag to allow future calls
     isLoadingDevicesRef.current = false;
   }, []);
 
@@ -305,18 +284,20 @@ export default function DevicePage() {
   const startCamera = useCallback(async (deviceId: string) => {
     const result = await electronAPI.startCamera(deviceId);
     if (result.success) {
+      addCameraDevice(deviceId);
       showToast(t("devices.toast.cameraStarted"));
     } else {
       showToast(result.error || t("devices.toast.unknownError"));
     }
-  }, [t]);
+  }, [t, addCameraDevice]);
 
   const stopCamera = useCallback(async (deviceId: string) => {
     const result = await electronAPI.stopCamera(deviceId);
     if (result.success) {
+      removeCameraDevice(deviceId);
       showToast(t("devices.toast.cameraStopped"));
     }
-  }, [t]);
+  }, [t, removeCameraDevice]);
 
   const openFileManager = useCallback((deviceId: string, deviceName: string) => {
     setFileManagerDevice({ id: deviceId, name: deviceName });
@@ -460,6 +441,7 @@ export default function DevicePage() {
 
     const handleCameraExit = (deviceId: string) => {
       console.log(`Camera exited for device: ${deviceId}`);
+      useDeviceStore.getState().removeCameraDevice(deviceId);
       showToast(i18n.t("devices.toast.cameraStopped"));
     };
 
