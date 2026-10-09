@@ -88,7 +88,9 @@
       "recordingStopped": "録画を停止しました",
       "audioToggled": "音声が{{status}}されました",
       "cameraToggled": "カメラが{{status}}されました",
-      "deviceRemoved": "デバイスが削除されました"
+      "deviceRemoved": "デバイスが削除されました",
+      "cameraStarted": "カメラを開始しました",
+      "cameraStopped": "カメラを停止しました"
     }
   },
   "display": {
@@ -146,6 +148,7 @@
     "encodersLoaded": "{{count}}個のエンコーダーを読み込みました",
     "failedToLoadEncoders": "エンコーダーの読み込みに失敗しました",
     "noDeviceConnected": "デバイスが接続されていません",
+    "clickToRetry": "クリックして再試行",
     "noEncodersFound": "このデバイスにはエンコーダーが見つかりませんでした",
     "loading": "読み込み中...",
     "defaultEncoder": "デフォルト（システム）",

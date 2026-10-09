@@ -148,6 +148,7 @@
     "encodersLoaded": "Loaded {{count}} encoders",
     "failedToLoadEncoders": "Failed to load encoders",
     "noDeviceConnected": "No device connected",
+    "clickToRetry": "Click to retry",
     "noEncodersFound": "No encoders found on this device",
     "loading": "Loading...",
     "defaultEncoder": "Default (System)",

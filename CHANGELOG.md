@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `npm run lint` runs again: `eslint.config.js` used its rule sets before declaring them, never loaded the TypeScript parser and referenced the uninstalled `eslint-plugin-react`; the script also passed the flat-config-invalid `--ext` flag. Errors now block, the 64 pre-existing `no-explicit-any` warnings do not
+- Fixed the syntax error in `forge.config.cjs` (unquoted `signature-flags` key)
+
+### Added
+
+- Missing i18n keys: `devices.toast.cameraStarted` / `cameraStopped` for es-ES, fr-FR, ja-JP, ko-KR, tr-TR, and `encoding.clickToRetry` for all locales
+
+### Removed
+
+- Duplicate `.github/workflow/release.yml` (singular directory; GitHub only reads `.github/workflows/`)
+
 ## [1.3.0] - 2026-10-09
 
 ### Changed

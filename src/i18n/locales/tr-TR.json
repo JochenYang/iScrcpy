@@ -88,7 +88,9 @@
       "recordingStopped": "Kayıt durduruldu",
       "audioToggled": "Ses {{status}}",
       "cameraToggled": "Kamera {{status}}",
-      "deviceRemoved": "Cihaz kaldırıldı"
+      "deviceRemoved": "Cihaz kaldırıldı",
+      "cameraStarted": "Kamera başlatıldı",
+      "cameraStopped": "Kamera durduruldu"
     }
   },
   "display": {
@@ -146,6 +148,7 @@
     "encodersLoaded": "{{count}} kodlayıcı yüklendi",
     "failedToLoadEncoders": "Kodlayıcılar yüklenemedi",
     "noDeviceConnected": "Cihaz bağlı değil",
+    "clickToRetry": "Yeniden denemek için tıklayın",
     "noEncodersFound": "Bu cihazda kodlayıcı bulunamadı",
     "loading": "Yükleniyor...",
     "defaultEncoder": "Varsayılan (Sistem)",

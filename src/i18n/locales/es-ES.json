@@ -88,7 +88,9 @@
       "recordingStopped": "Grabación detenida",
       "audioToggled": "Audio {{status}}",
       "cameraToggled": "Cámara {{status}}",
-      "deviceRemoved": "Dispositivo eliminado"
+      "deviceRemoved": "Dispositivo eliminado",
+      "cameraStarted": "Cámara iniciada",
+      "cameraStopped": "Cámara detenida"
     }
   },
   "display": {
@@ -146,6 +148,7 @@
     "encodersLoaded": "Se cargaron {{count}} codificadores",
     "failedToLoadEncoders": "Error al cargar codificadores",
     "noDeviceConnected": "No hay dispositivo conectado",
+    "clickToRetry": "Haz clic para reintentar",
     "noEncodersFound": "No se encontraron codificadores en este dispositivo",
     "loading": "Cargando...",
     "defaultEncoder": "Predeterminado (Sistema)",

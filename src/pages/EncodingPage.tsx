@@ -291,7 +291,7 @@ export default function EncodingPage() {
               >
                 {!currentDeviceId && !loadingEncoders && (
                   <option value="" disabled>
-                    {t("encoding.noDeviceConnected")} - {t("encoding.clickToRetry") || "点击重试 / Click to retry"}
+                    {t("encoding.noDeviceConnected")} - {t("encoding.clickToRetry")}
                   </option>
                 )}
 

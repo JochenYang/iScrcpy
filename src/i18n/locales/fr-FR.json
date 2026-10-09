@@ -88,7 +88,9 @@
       "recordingStopped": "Enregistrement arrêté",
       "audioToggled": "Audio {{status}}",
       "cameraToggled": "Caméra {{status}}",
-      "deviceRemoved": "Appareil supprimé"
+      "deviceRemoved": "Appareil supprimé",
+      "cameraStarted": "Caméra démarrée",
+      "cameraStopped": "Caméra arrêtée"
     }
   },
   "display": {
@@ -146,6 +148,7 @@
     "encodersLoaded": "{{count}} encodeurs chargés",
     "failedToLoadEncoders": "Échec du chargement des encodeurs",
     "noDeviceConnected": "Aucun appareil connecté",
+    "clickToRetry": "Cliquez pour réessayer",
     "noEncodersFound": "Aucun encodeur trouvé sur cet appareil",
     "loading": "Chargement...",
     "defaultEncoder": "Par Défaut (Système)",

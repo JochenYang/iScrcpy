@@ -51,7 +51,7 @@ module.exports = {
           'hardened-runtime': true,
           entitlements: 'entitlements.plist',
           'entitlements-inherit': 'entitlements.plist',
-          signature-flags: 'library'
+          'signature-flags': 'library'
         },
         osxNotarize: process.env.APPLE_ID_PASSWORD ? {
           appleId: process.env.APPLE_ID || process.env.APPLE_ID_EMAIL,

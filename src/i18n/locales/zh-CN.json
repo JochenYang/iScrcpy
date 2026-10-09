@@ -148,6 +148,7 @@
     "encodersLoaded": "已加载 {{count}} 个编码器",
     "failedToLoadEncoders": "加载编码器失败",
     "noDeviceConnected": "未连接设备",
+    "clickToRetry": "点击重试",
     "noEncodersFound": "该设备未找到编码器",
     "loading": "加载中...",
     "defaultEncoder": "默认（系统）",
