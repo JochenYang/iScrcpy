@@ -103,9 +103,7 @@ iScrcpy/
 │       └── scrcpy.1        # マニュアルページ
 ├── electron/               # Electron メインプロセス
 │   ├── main.ts             # IPC ハンドラー付きメインプロセス
-│   ├── main.cjs            # コンパイルされたメインプロセス
 │   ├── preload.ts          # IPC ブリッジプリロードスクリプト
-│   ├── preload.cjs         # コンパイルされたプリロードスクリプト
 │   ├── logger.ts           # ログツール
 │   └── resources/          # ビルドリソース
 ├── src/                    # React アプリケーション
@@ -215,15 +213,15 @@ npm run build
 | `--audio-codec=<c>` | オーディオコーデック (opus, aac) |
 | `--video-encoder=<name>` | 特定のビデオエンコーダー名 |
 | `--ignore-video-encoder-constraints` | エンコーダー機能チェックを無視 |
+| `--hwdec=<mode>` | ハードウェアデコード（auto / disabled） |
 | `--always-on-top` | ウィンドウを最前面に保持 |
 | `--fullscreen` / `-f` | 全画面で開始 |
 | `--stay-awake` | 画面をオンのままにする |
 | `--window-borderless` | ボーダレスウィンドウモード |
 | `--disable-screensaver` | スクリーンセーバーを無効化 |
 | `--record=<file>` | 画面をファイルに録画 |
-| `--record-audio` | ビデオと同時に音声を録画 |
 | `--time-limit=<s>` | 録画時間制限（秒） |
-| `--tunnel-forward` | フォワードトンネルモードを使用 |
+| `--force-adb-forward` | フォワードトンネルモードを使用 |
 | `--no-cleanup` | 終了時にサーバーをクリーンアップしない |
 
 ## 開発

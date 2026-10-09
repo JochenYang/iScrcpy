@@ -103,9 +103,7 @@ iScrcpy/
 │       └── scrcpy.1        # 手册页
 ├── electron/               # Electron 主进程
 │   ├── main.ts             # 主进程 IPC 处理器
-│   ├── main.cjs            # 编译后的主进程
 │   ├── preload.ts          # IPC 桥接预加载脚本
-│   ├── preload.cjs         # 编译后的预加载脚本
 │   ├── logger.ts           # 日志工具
 │   └── resources/          # 构建资源
 ├── src/                    # React 应用
@@ -215,15 +213,15 @@ npm run build
 | `--audio-codec=<c>` | 音频编码器 (opus, aac) |
 | `--video-encoder=<name>` | 指定视频编码器名称 |
 | `--ignore-video-encoder-constraints` | 忽略编码器能力限制检查 |
+| `--hwdec=<mode>` | 硬件解码（auto / disabled） |
 | `--always-on-top` | 窗口置顶 |
 | `--fullscreen` / `-f` | 全屏启动 |
 | `--stay-awake` | 保持屏幕常亮 |
 | `--window-borderless` | 无边框窗口模式 |
 | `--disable-screensaver` | 禁止屏幕保护 |
 | `--record=<file>` | 录制屏幕到文件 |
-| `--record-audio` | 录制时同时录制音频 |
 | `--time-limit=<s>` | 录制时间限制（秒） |
-| `--tunnel-forward` | 使用正向隧道模式 |
+| `--force-adb-forward` | 使用正向隧道模式 |
 | `--no-cleanup` | 退出时不清理服务器 |
 
 ## 开发

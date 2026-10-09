@@ -156,6 +156,10 @@ Gelişmiş kodlama seçenekleri için "Kodlama" sekmesine gidin:
 | VBR | Değişken bit hızı, daha küçük dosyalar |
 | CBR | Sabit bit hızı, daha iyi kararlılık |
 
+### Donanım Kod Çözme
+
+Varsayılan olarak açıktır: video bilgisayarın GPU'su ile çözülür ve CPU kullanımı azalır. Görüntü bozuksa veya GPU desteklenmiyorsa "Kodlama" sekmesinde bu anahtarı kapatıp yazılım kod çözmeyi kullanın.
+
 ---
 
 ## Sunucu Ayarları

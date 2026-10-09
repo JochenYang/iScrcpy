@@ -134,6 +134,7 @@ interface Window {
         videoEncoder: string;
         audioCodec: string;
         bitrateMode: string;
+        hwdec?: string;
       };
       server?: {
         tunnelMode: string;

@@ -156,6 +156,10 @@ Allez dans l'onglet "Encodage" pour les options avancées:
 | VBR | Débit variable, fichiers plus petits |
 | CBR | Débit constant, meilleure stabilité |
 
+### Décodage matériel
+
+Activé par défaut : la vidéo est décodée par le GPU de l'ordinateur, ce qui réduit l'usage du processeur. Désactivez-le dans l'onglet « Encodage » pour forcer le décodage logiciel si l'image est corrompue ou si le GPU n'est pas pris en charge.
+
 ---
 
 ## Paramètres du serveur

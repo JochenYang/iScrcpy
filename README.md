@@ -103,9 +103,7 @@ iScrcpy/
 │       └── scrcpy.1        # Man page
 ├── electron/               # Electron main process
 │   ├── main.ts             # Main process with IPC handlers
-│   ├── main.cjs            # Compiled main process
 │   ├── preload.ts          # Preload script for IPC bridge
-│   ├── preload.cjs         # Compiled preload script
 │   ├── logger.ts           # Logging utility
 │   └── resources/          # Build resources
 ├── src/                    # React application
@@ -215,15 +213,15 @@ This will create an `.exe` installer in the `dist-win/` folder.
 | `--audio-codec=<c>`         | Audio codec (opus, aac)            |
 | `--video-encoder=<name>`    | Specific video encoder name        |
 | `--ignore-video-encoder-constraints` | Ignore encoder capability checks   |
+| `--hwdec=<mode>`            | Hardware decoding (auto, disabled) |
 | `--always-on-top`           | Keep window on top                 |
 | `--fullscreen` / `-f`       | Start in fullscreen                |
 | `--stay-awake`              | Keep screen on                     |
 | `--window-borderless`       | Borderless window mode             |
 | `--disable-screensaver`     | Disable screensaver                |
 | `--record=<file>`           | Record screen to file              |
-| `--record-audio`            | Record audio along with video      |
 | `--time-limit=<s>`          | Recording time limit in seconds    |
-| `--tunnel-forward`          | Use forward tunnel mode            |
+| `--force-adb-forward`       | Use forward tunnel mode            |
 | `--no-cleanup`              | Don't cleanup server on exit       |
 
 ## Development

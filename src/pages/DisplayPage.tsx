@@ -53,6 +53,7 @@ interface EncodingSettings {
   audioEncoder?: string;
   bitrateMode: string;
   ignoreVideoEncoderConstraints?: boolean;
+  hwdec?: string;
 }
 
 export default function DisplayPage() {
@@ -164,7 +165,7 @@ export default function DisplayPage() {
     if (settings.recordTimeLimit > 0) {
       parts.push(`--time-limit=${settings.recordTimeLimit}`);
     }
-    // scrcpy 4.x: no --record-audio; audio in recordings follows enableAudio / stream
+    // No --record-audio: scrcpy 4.x/5.x have no such flag; audio follows the audio stream
     if (settings.camera) {
       parts.push("--video-source=camera");
       if (settings.cameraId) parts.push(`--camera-id=${settings.cameraId}`);
@@ -177,6 +178,9 @@ export default function DisplayPage() {
     }
     if (encodingSettings.videoEncoder) {
       parts.push(`--video-encoder=${encodingSettings.videoEncoder}`);
+    }
+    if (encodingSettings.hwdec && encodingSettings.hwdec !== "auto") {
+      parts.push(`--hwdec=${encodingSettings.hwdec}`);
     }
     if (encodingSettings.audioCodec && encodingSettings.audioCodec !== "opus") {
       parts.push(`--audio-codec=${encodingSettings.audioCodec}`);

@@ -103,9 +103,7 @@ iScrcpy/
 │       └── scrcpy.1        # Página del manual
 ├── electron/               # Proceso principal de Electron
 │   ├── main.ts             # Proceso principal con manejadores IPC
-│   ├── main.cjs            # Proceso principal compilado
 │   ├── preload.ts          # Script de precarga para puente IPC
-│   ├── preload.cjs         # Script de precarga compilado
 │   ├── logger.ts           # Utilidad de registro
 │   └── resources/          # Recursos de compilación
 ├── src/                    # Aplicación React
@@ -215,15 +213,15 @@ Esto creará un instalador `.exe` en la carpeta `dist-win/`.
 | `--audio-codec=<c>` | Códec de audio (opus, aac) |
 | `--video-encoder=<name>` | Nombre del codificador de video específico |
 | `--ignore-video-encoder-constraints` | Ignorar comprobaciones de capacidad del codificador |
+| `--hwdec=<mode>` | Decodificación por hardware (auto / disabled) |
 | `--always-on-top` | Mantener ventana siempre encima |
 | `--fullscreen` / `-f` | Iniciar en pantalla completa |
 | `--stay-awake` | Mantener pantalla encendida |
 | `--window-borderless` | Modo de ventana sin bordes |
 | `--disable-screensaver` | Desactivar protector de pantalla |
 | `--record=<file>` | Grabar pantalla en archivo |
-| `--record-audio` | Grabar audio junto con video |
 | `--time-limit=<s>` | Límite de tiempo de grabación (segundos) |
-| `--tunnel-forward` | Usar modo de túnel hacia adelante |
+| `--force-adb-forward` | Usar modo de túnel hacia adelante |
 | `--no-cleanup` | No limpiar servidor al salir |
 
 ## Desarrollo

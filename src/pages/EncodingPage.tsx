@@ -9,6 +9,7 @@ interface EncodingSettings {
   audioCodec: string;
   bitrateMode: string;
   ignoreVideoEncoderConstraints: boolean;
+  hwdec: string;
 }
 
 export default function EncodingPage() {
@@ -19,6 +20,7 @@ export default function EncodingPage() {
     audioCodec: "opus",
     bitrateMode: "vbr",
     ignoreVideoEncoderConstraints: false,
+    hwdec: "auto",
   });
   const [saving, setSaving] = useState(false);
   const [deviceOptions, setDeviceOptions] = useState<
@@ -98,6 +100,7 @@ export default function EncodingPage() {
         audioCodec: encoding.audioCodec || "opus",
         bitrateMode: encoding.bitrateMode || "vbr",
         ignoreVideoEncoderConstraints: encoding.ignoreVideoEncoderConstraints ?? false,
+        hwdec: encoding.hwdec || "auto",
       });
     }
   };
@@ -381,6 +384,28 @@ export default function EncodingPage() {
           </label>
           <p className="form-hint text-small">
             {t("encoding.ignoreVideoEncoderConstraintsDesc")}
+          </p>
+
+          <label className="toggle-item">
+            <div className="toggle-item-left">
+              <span>{t("encoding.hwdec")}</span>
+            </div>
+            <div className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={settings.hwdec !== "disabled"}
+                onChange={(e) =>
+                  setSettings({
+                    ...settings,
+                    hwdec: e.target.checked ? "auto" : "disabled",
+                  })
+                }
+              />
+              <span className="toggle-slider" />
+            </div>
+          </label>
+          <p className="form-hint text-small">
+            {t("encoding.hwdecDesc")}
           </p>
         </div>
       </div>

@@ -162,6 +162,18 @@ console.log("scrcpyArgs tests\n");
   });
   assert(argvUsesCameraSource(args), "cameraOnly uses camera source");
   assertIncludes(args, "--camera-facing=back", "default facing when no cameraId");
+  assertNotIncludes(args, "--hwdec", "cameraOnly default emits no hwdec flag");
+
+  const cameraOnlyConfigured = buildScrcpyArgs({
+    deviceId: "dev1",
+    display: baseDisplay,
+    encoding: { ...baseEncoding, hwdec: "disabled" },
+    server: { tunnelMode: "forward", cleanup: true },
+    cameraOnly: true,
+  });
+  assertIncludes(cameraOnlyConfigured, "--hwdec=disabled", "cameraOnly honours hwdec disabled");
+  assertIncludes(cameraOnlyConfigured, "--force-adb-forward", "cameraOnly forward tunnel flag");
+  assertNotIncludes(cameraOnlyConfigured, "--tunnel-forward", "cameraOnly never emits --tunnel-forward");
 }
 
 // 8. Audio off
@@ -207,8 +219,56 @@ console.log("scrcpyArgs tests\n");
   assertIncludes(args, "c2.test.encoder", "video encoder");
   assertIncludes(args, "--ignore-video-encoder-constraints", "ignore constraints");
   assertIncludes(args, "--audio-codec", "aac");
-  assertIncludes(args, "--tunnel-forward", "forward tunnel");
+  assertIncludes(args, "--force-adb-forward", "forward tunnel");
+  assertNotIncludes(args, "--tunnel-forward", "no obsolete --tunnel-forward");
   assertIncludes(args, "--no-cleanup", "no cleanup");
+}
+
+// 11. Hardware decoding (scrcpy 5.0+): default emits nothing, explicit override does
+{
+  const args = buildScrcpyArgs({
+    deviceId: "dev1",
+    display: baseDisplay,
+    encoding: { ...baseEncoding, hwdec: "auto" },
+    server: baseServer,
+  });
+  assertNotIncludes(args, "--hwdec", "hwdec auto emits no flag");
+
+  const disabledArgs = buildScrcpyArgs({
+    deviceId: "dev1",
+    display: baseDisplay,
+    encoding: { ...baseEncoding, hwdec: "disabled" },
+    server: baseServer,
+  });
+  assertIncludes(disabledArgs, "--hwdec=disabled", "hwdec disabled emits --hwdec=disabled");
+
+  const platformArgs = buildScrcpyArgs({
+    deviceId: "dev1",
+    display: baseDisplay,
+    encoding: { ...baseEncoding, hwdec: "D3D11VA" },
+    server: baseServer,
+  });
+  assertIncludes(platformArgs, "--hwdec=d3d11va", "hwdec value normalized to lowercase");
+
+  const bogusArgs = buildScrcpyArgs({
+    deviceId: "dev1",
+    display: baseDisplay,
+    encoding: { ...baseEncoding, hwdec: "no-such-decoder" },
+    server: baseServer,
+  });
+  assertNotIncludes(bogusArgs, "--hwdec", "unknown hwdec value is ignored");
+}
+
+// 12. Forward tunnel must use the flag scrcpy actually accepts
+{
+  const args = buildScrcpyArgs({
+    deviceId: "dev1",
+    display: baseDisplay,
+    encoding: baseEncoding,
+    server: { tunnelMode: "forward", cleanup: true },
+  });
+  assertIncludes(args, "--force-adb-forward", "forward tunnel uses --force-adb-forward");
+  assertNotIncludes(args, "--tunnel-forward", "obsolete --tunnel-forward is never emitted");
 }
 
 console.log(`\nResult: ${passed} passed, ${failed} failed`);

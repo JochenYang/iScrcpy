@@ -103,9 +103,7 @@ iScrcpy/
 │       └── scrcpy.1        # 매뉴얼 페이지
 ├── electron/               # Electron 메인 프로세스
 │   ├── main.ts             # IPC 핸들러가 있는 메인 프로세스
-│   ├── main.cjs            # 컴파일된 메인 프로세스
 │   ├── preload.ts          # IPC 브릿지 프리로드 스크립트
-│   ├── preload.cjs         # 컴파일된 프리로드 스크립트
 │   ├── logger.ts           # 로그 유틸리티
 │   └── resources/          # 빌드 리소스
 ├── src/                    # React 애플리케이션
@@ -215,15 +213,15 @@ npm run build
 | `--audio-codec=<c>` | 오디오 코덱 (opus, aac) |
 | `--video-encoder=<name>` | 특정 비디오 인코더 이름 |
 | `--ignore-video-encoder-constraints` | 인코더 기능 검사 무시 |
+| `--hwdec=<mode>` | 하드웨어 디코딩 (auto / disabled) |
 | `--always-on-top` | 창을 항상 위에 유지 |
 | `--fullscreen` / `-f` | 전체 화면으로 시작 |
 | `--stay-awake` | 화면을 켜진 상태로 유지 |
 | `--window-borderless` | 테두리 없음 창 모드 |
 | `--disable-screensaver` | 화면 보호기 비활성화 |
 | `--record=<file>` | 화면을 파일로 녹화 |
-| `--record-audio` | 비디오와 함께 음성 녹화 |
 | `--time-limit=<s>` | 녹화 시간 제한 (초) |
-| `--tunnel-forward` | 포워드 터널 모드 사용 |
+| `--force-adb-forward` | 포워드 터널 모드 사용 |
 | `--no-cleanup` | 종료 시 서버 정리 안 함 |
 
 ## 개발

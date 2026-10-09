@@ -156,6 +156,10 @@ Vaya a la pestaña "Codificación" para opciones avanzadas:
 | VBR | Bitrate variable, archivos más pequeños |
 | CBR | Bitrate constante, mejor estabilidad |
 
+### Decodificación por hardware
+
+Activada por defecto: el vídeo se decodifica con la GPU del equipo, lo que reduce el uso de CPU. Desactívala en la pestaña "Codificación" para forzar la decodificación por software si la imagen se ve mal o la GPU no es compatible.
+
 ---
 
 ## Configuración del servidor

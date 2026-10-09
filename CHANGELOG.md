@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-10-09
+
+### Changed
+
+- Upgraded bundled scrcpy from 4.1 to 5.0.1 (FFmpeg 9.0.2, SDL 3.4.18, adb 37.0.1); FFmpeg DLL names changed (avcodec-63, avformat-63, avutil-61, swresample-7)
+- Removed stale compiled copies `electron/main.cjs` / `electron/preload.cjs` (unused duplicates of the TypeScript sources)
+
+### Fixed
+
+- Forward tunnel now passes `--force-adb-forward`; the previous `--tunnel-forward` is not a scrcpy option and made every forward-tunnel launch fail
+
+### Added
+
+- Hardware decoding toggle in Encoding settings (scrcpy 5.0+ `--hwdec`, enabled by default, can be disabled to force software decoding)
+
 ## [1.2.9] - 2026-07-19
 
 ### Fixed

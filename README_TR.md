@@ -103,9 +103,7 @@ iScrcpy/
 │       └── scrcpy.1        # Manuel sayfası
 ├── electron/               # Electron ana işlem
 │   ├── main.ts             # IPC işleyicileri ile ana işlem
-│   ├── main.cjs            # Derlenmiş ana işlem
 │   ├── preload.ts          # IPC köprüsü ön yükleme scripti
-│   ├── preload.cjs         # Derlenmiş ön yükleme scripti
 │   ├── logger.ts           - Günlükçü aracı
 │   └── resources/          # Derleme kaynakları
 ├── src/                    # React uygulaması
@@ -215,15 +213,15 @@ Bu, `dist-win/` klasöründe bir `.exe` yükleyici oluşturacaktır.
 | `--audio-codec=<c>` | Audio codec (opus, aac) |
 | `--video-encoder=<name>` | Belirli video kodlayıcı adı |
 | `--ignore-video-encoder-constraints` | Kodlayıcı yetenek kontrollerini atla |
+| `--hwdec=<mode>` | Donanım kod çözme (auto / disabled) |
 | `--always-on-top` | Pencereyi her zaman üstte tut |
 | `--fullscreen` / `-f` | Tam ekranda başlat |
 | `--stay-awake` | Ekranı açık tut |
 | `--window-borderless` | Kenarsız pencere modu |
 | `--disable-screensaver` | Ekran koruyucuyu devre dışı bırak |
 | `--record=<file>` | Ekranı dosyaya kaydet |
-| `--record-audio` | Video ile birlikte sesi kaydet |
 | `--time-limit=<s>` | Kayıt zaman sınırı (saniye) |
-| `--tunnel-forward` | İleri tünel modu kullan |
+| `--force-adb-forward` | İleri tünel modu kullan |
 | `--no-cleanup` | Çıkışta sunucuyu temizleme |
 
 ## Geliştirme

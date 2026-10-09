@@ -103,9 +103,7 @@ iScrcpy/
 │       └── scrcpy.1        # Page de manuel
 ├── electron/               # Processus principal Electron
 │   ├── main.ts             # Processus principal avec gestionnaires IPC
-│   ├── main.cjs            # Processus principal compilé
 │   ├── preload.ts          # Script de préchargement pour pont IPC
-│   ├── preload.cjs         # Script de préchargement compilé
 │   ├── logger.ts           # Utilitaire de journalisation
 │   └── resources/          # Ressources de construction
 ├── src/                    # Application React
@@ -215,15 +213,15 @@ Cela créera un installeur `.exe` dans le dossier `dist-win/`.
 | `--audio-codec=<c>` | Codec audio (opus, aac) |
 | `--video-encoder=<name>` | Nom de l'encodeur vidéo spécifique |
 | `--ignore-video-encoder-constraints` | Ignorer les vérifications de capacité de l'encodeur |
+| `--hwdec=<mode>` | Décodage matériel (auto / disabled) |
 | `--always-on-top` | Garder la fenêtre au-dessus |
 | `--fullscreen` / `-f` | Démarrer en plein écran |
 | `--stay-awake` | Garder l'écran allumé |
 | `--window-borderless` | Mode fenêtre sans bordures |
 | `--disable-screensaver` | Désactiver l'économiseur d'écran |
 | `--record=<file>` | Enregistrer l'écran dans un fichier |
-| `--record-audio` | Enregistrer l'audio avec la vidéo |
 | `--time-limit=<s>` | Limite de temps d'enregistrement (secondes) |
-| `--tunnel-forward` | Utiliser le mode tunnel vers l'avant |
+| `--force-adb-forward` | Utiliser le mode tunnel vers l'avant |
 | `--no-cleanup` | Ne pas nettoyer le serveur à la sortie |
 
 ## Développement

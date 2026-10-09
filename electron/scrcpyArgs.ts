@@ -3,7 +3,8 @@
  * Used by main-process launch paths and unit tests.
  *
  * Rules (see AGENTS.md):
- * - Never emit obsolete flags such as --record-audio (invalid on scrcpy 4.x).
+ * - Never emit obsolete flags such as --record-audio (unknown to scrcpy 4.x/5.x).
+ * - Forward tunnel requires --force-adb-forward (--tunnel-forward does not exist).
  * - Camera video requires --video-source=camera.
  * - Session record is a per-call override; do not encode global auto-record mutation here.
  */
@@ -29,7 +30,7 @@ export interface ScrcpyDisplaySettings {
   cameraFps: number;
   windowBorderless: boolean;
   disableScreensaver: boolean;
-  /** Kept for settings compatibility; scrcpy 4.x has no --record-audio. */
+  /** Kept for settings compatibility; scrcpy has no --record-audio flag. */
   recordAudio?: boolean;
 }
 
@@ -38,9 +39,14 @@ export interface ScrcpyEncodingSettings {
   videoEncoder?: string;
   audioCodec: string;
   audioEncoder?: string;
-  /** UI may still store this; scrcpy 4.x has no simple CBR/VBR CLI flag — never emit. */
+  /** UI may still store this; scrcpy 5.x has no CBR/VBR CLI flag — never emit. */
   bitrateMode?: string;
   ignoreVideoEncoderConstraints?: boolean;
+  /**
+   * Hardware video decoding on the computer (scrcpy 5.0+).
+   * "auto" is scrcpy's default and emits no flag; only an explicit override is emitted.
+   */
+  hwdec?: string;
 }
 
 export interface ScrcpyServerSettings {
@@ -75,6 +81,28 @@ export interface BuildScrcpyArgsOptions {
    * Implies forceCamera=true and skips most display/window flags that conflict.
    */
   cameraOnly?: boolean;
+}
+
+/** Valid values for scrcpy --hwdec (5.0+); "auto" is scrcpy's default and emits no flag. */
+const HWDEC_MODES = ["auto", "disabled", "vaapi", "d3d11va", "videotoolbox"] as const;
+
+function normalizeHwdec(mode: string | undefined): string | null {
+  if (!mode) {
+    return null;
+  }
+  const lower = mode.trim().toLowerCase();
+  if (lower === "auto" || !(HWDEC_MODES as readonly string[]).includes(lower)) {
+    return null;
+  }
+  return lower;
+}
+
+/** Append --hwdec when an explicit (non-default) decoding mode is configured. */
+function pushHwdec(args: string[], mode: string | undefined): void {
+  const hwdec = normalizeHwdec(mode);
+  if (hwdec) {
+    args.push(`--hwdec=${hwdec}`);
+  }
 }
 
 function normalizeVideoCodec(videoCodec: string): string | null {
@@ -135,7 +163,8 @@ export function buildScrcpyArgs(options: BuildScrcpyArgsOptions): string[] {
     if (display.cameraFps && display.cameraFps !== 30) {
       args.push("--camera-fps", String(display.cameraFps));
     }
-    if (server.tunnelMode === "forward") args.push("--tunnel-forward");
+    pushHwdec(args, encoding.hwdec);
+    if (server.tunnelMode === "forward") args.push("--force-adb-forward");
     if (server.cleanup === false) args.push("--no-cleanup");
     return args;
   }
@@ -193,6 +222,7 @@ export function buildScrcpyArgs(options: BuildScrcpyArgsOptions): string[] {
   if (encoding.ignoreVideoEncoderConstraints) {
     args.push("--ignore-video-encoder-constraints");
   }
+  pushHwdec(args, encoding.hwdec);
   if (encoding.audioCodec && encoding.audioCodec !== "opus") {
     args.push("--audio-codec", encoding.audioCodec);
   }
@@ -200,9 +230,9 @@ export function buildScrcpyArgs(options: BuildScrcpyArgsOptions): string[] {
     args.push("--audio-encoder", encoding.audioEncoder);
   }
 
-  // bitrateMode is intentionally never mapped: scrcpy 4.x has no CBR/VBR CLI switch.
+  // bitrateMode is intentionally never mapped: scrcpy 5.x has no CBR/VBR CLI switch.
 
-  if (server.tunnelMode === "forward") args.push("--tunnel-forward");
+  if (server.tunnelMode === "forward") args.push("--force-adb-forward");
   if (server.cleanup === false) args.push("--no-cleanup");
 
   return args;

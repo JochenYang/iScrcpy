@@ -46,6 +46,7 @@ export interface EncodingSettings {
   audioEncoder?: string;
   bitrateMode: string;
   ignoreVideoEncoderConstraints?: boolean;
+  hwdec?: string;
 }
 
 // Server settings

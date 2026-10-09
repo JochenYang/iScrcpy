@@ -156,6 +156,10 @@ Go to the "Encoding" tab for advanced encoding options:
 | VBR | Variable bitrate, smaller files |
 | CBR | Constant bitrate, better stability |
 
+### Hardware Decoding
+
+Enabled by default: the video is decoded with the computer GPU, which lowers CPU usage. Turn it off on the Encoding page to force software decoding if the picture is corrupted or the GPU is unsupported.
+
 ---
 
 ## Server Settings

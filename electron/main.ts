@@ -338,6 +338,7 @@ interface EncodingSettings {
   audioEncoder?: string;
   bitrateMode: string;
   ignoreVideoEncoderConstraints?: boolean; // scrcpy v4.1+: skip encoder capability checks
+  hwdec?: string; // Hardware decoding on the computer (scrcpy 5.0+); "auto" (default) or "disabled"
 }
 
 interface ServerSettings {
@@ -847,6 +848,7 @@ const settings: Settings = {
     audioCodec: "opus",
     bitrateMode: "vbr",
     ignoreVideoEncoderConstraints: false,
+    hwdec: "auto",
   },
   server: {
     tunnelMode: "reverse",

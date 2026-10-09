@@ -4,7 +4,7 @@ Rules for humans and AI agents working in this repository. **Project rules overr
 
 ## What this project is
 
-iScrcpy is an **Electron + React** desktop UI around bundled **scrcpy 4.x** and ADB: device list, screen mirroring, session recording, camera source, file manager, i18n.
+iScrcpy is an **Electron + React** desktop UI around bundled **scrcpy 5.x** and ADB: device list, screen mirroring, session recording, camera source, file manager, i18n.
 
 | Area | Location |
 |------|----------|
@@ -18,13 +18,15 @@ iScrcpy is an **Electron + React** desktop UI around bundled **scrcpy 4.x** and 
 
 1. **All launch paths** must use `buildScrcpyArgs()` from `electron/scrcpyArgs.ts`. Do not copy-paste argv construction in individual IPC handlers.
 2. **Never** pass obsolete or unknown flags to scrcpy. Especially:
-   - **`--record-audio`**: scrcpy 4.x exits with `unknown option`. Whether a recording has audio depends on the **audio stream** (omit `--no-audio`), not this flag.
+   - **`--record-audio`**: scrcpy 4.x/5.x exits with `unknown option`. Whether a recording has audio depends on the **audio stream** (omit `--no-audio`), not this flag.
+   - **`--tunnel-forward`**: does not exist in scrcpy 4.x/5.x either. Forward tunnel mode must pass **`--force-adb-forward`** (see `doc/tunnels.md`).
 3. **Camera video** must include `--video-source=camera` (display-settings camera mode, toggle-camera, and independent start-camera). Screen-only mirror paths must **not** force a camera source.
-4. **`bitrateMode` (VBR/CBR)**: scrcpy 4.x has **no** simple CLI mapping. `buildScrcpyArgs` must **not** emit cbr/vbr-related flags. The UI control is disabled and labeled unsupported; the field is kept only for settings compatibility.
+4. **`bitrateMode` (VBR/CBR)**: scrcpy 5.x has **no** simple CLI mapping. `buildScrcpyArgs` must **not** emit cbr/vbr-related flags. The UI control is disabled and labeled unsupported; the field is kept only for settings compatibility.
 5. After changing flags, verify at least:
    - Run bundled `scrcpy --help` and confirm the flag exists;
    - For risky flags, run `scrcpy --that-flag` and ensure it is not `unknown option`;
    - Run `npm run test:args` (imports the real `buildScrcpyArgs` / session helpers).
+6. **Hardware decoding** (`--hwdec`, scrcpy 5.0+): the GUI exposes only `auto` (default, emits no flag) and `disabled`. `buildScrcpyArgs` whitelists `auto`/`disabled`/`vaapi`/`d3d11va`/`videotoolbox` and ignores anything else. It must be emitted on **every** launch path, including the independent camera window (`cameraOnly`).
 
 ## Settings vs session state
 
